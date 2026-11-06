@@ -53,13 +53,13 @@ A missed target is reported as missed, with the next bounded improvement.
 
 ## Amendment after the first run
 
-The first full run, kept in `results/bench-2026-11-06T07-27-37-828Z`, showed a main thread draft of 142 ms against a pipeline of about 15 ms. That gap came from the baseline and not from the work. It yielded through `setTimeout` after each step, and browsers clamp chained timers to 4 ms, which stacked up across levels. Comparing the worker with it would have overstated the worker's value.
+The first full run, kept at tag `v0.1.0`, showed a main thread draft of 142 ms against a pipeline of about 15 ms. That gap came from the baseline and not from the work. It yielded through `setTimeout` after each step, and browsers clamp chained timers to 4 ms, which stacked up across levels. Comparing the worker with it would have overstated the worker's value.
 
 So I changed the baseline after seeing a result, and I am stating that here. The main thread path now yields in the same time slices and by the same method as the worker. I added a blocking form as the other extreme. The criteria, workloads and metrics did not change. The first run's worker numbers stand, and its main thread numbers must not be quoted.
 
 ## Amendment after the second run
 
-With a fair baseline, the worker lost on draft latency, 8 ms against 2 ms. Two things in the measurement needed correcting before drawing a conclusion. Both changes were made after seeing that result, and the second run is kept in `results/bench-2026-11-06T07-32-09-549Z`.
+With a fair baseline, the worker lost on draft latency, 8 ms against 2 ms. Two things in the measurement needed correcting before drawing a conclusion. Both changes were made after seeing that result, and the second run is kept at tag `v0.1.0`.
 
 1. **The clock.** Edit to draft started when the handler ran, so input queued behind a busy main thread cost nothing. That favoured blocking work. The clock now starts at the pointer event's own timestamp, and the metric is called input to draft.
 2. **The workload.** The target drag scene finishes within a frame on this machine, so it cannot show when a worker matters. The declared stress scene now also runs the same drag at 1x.
@@ -68,7 +68,7 @@ Pass criteria did not change.
 
 ## Amendment after an independent review
 
-A reviewer working from a clean clone showed that the third run, kept in `results/bench-2026-11-06T07-44-05-187Z`, measured less than it claimed. Its worker comparison must not be quoted.
+A reviewer working from a clean clone showed that the third run, kept at tag `v0.1.0`, measured less than it claimed. Its worker comparison must not be quoted.
 
 1. **Sampling closed too early.** It stopped 100 ms after the final, before the main thread's report ran, so the largest stalls were missed. The window now runs from mouse down to 300 ms after the report commits.
 2. **The drag was closed loop.** Each move was awaited, so a busy main thread slowed the input and hid its own queueing. Moves now go out on a fixed clock and are not awaited. Drafts per run can now fall below 150, because Chromium coalesces moves and a draft can be replaced before it starts.

@@ -178,7 +178,7 @@ What the worker prevents is a frozen page. The largest frame gap, from mouse dow
 
 So the worker is justified. It trades a few milliseconds of latency for a page that stays responsive after a heavy edit.
 
-Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs stay in the results folder.`;
+Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs are kept at tag `v0.1.0`.`;
 }
 
 function gridProse(): string {
