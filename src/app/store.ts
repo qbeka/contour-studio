@@ -56,6 +56,8 @@ export interface EditorState {
   geometry: Geometry | null;
   shown: Shown | null;
   report: { revision: number; report: ExportReport } | null;
+  /** The scene revision that geometry could not be computed for. */
+  failedRevision: number | null;
   notice: Notice | null;
   dialog: 'starters' | 'shortcuts' | null;
   savedAt: number | null;
@@ -91,6 +93,7 @@ export class EditorStore {
       geometry: null,
       shown: null,
       report: null,
+      failedRevision: null,
       notice: null,
       dialog: null,
       savedAt: null,

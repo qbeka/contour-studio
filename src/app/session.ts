@@ -62,7 +62,8 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
         if (revision === store.getState().revision) store.set({ report: { revision, report } });
       },
       onFailure(message) {
-        store.notify({ kind: 'error', title: 'The geometry could not be computed.', details: [message] });
+        store.set({ failedRevision: store.getState().revision });
+        store.notify({ kind: 'error', title: 'These lines could not be computed.', details: [message] });
       },
     },
     { useWorker: options.useWorker },

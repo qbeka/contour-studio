@@ -20,7 +20,9 @@ export class GeometryClient {
   private slots = new JobSlots();
   private worker: Worker | null = null;
   private cancelledInline = new Set<number>();
-  readonly mode: 'worker' | 'main-thread';
+  mode: 'worker' | 'main-thread';
+  /** Jobs that really stopped early, as opposed to finishing before a cancel. */
+  cancelledJobs = 0;
 
   constructor(
     private events: ClientEvents,
@@ -69,6 +71,7 @@ export class GeometryClient {
   private fallBack(): void {
     this.worker?.terminate();
     this.worker = null;
+    this.mode = 'main-thread';
     const running = this.slots.running;
     if (running) void this.runInline(running);
   }
@@ -91,6 +94,7 @@ export class GeometryClient {
         this.next(message.id);
         break;
       case 'cancelled':
+        this.cancelledJobs++;
         this.next(message.id);
         break;
       case 'failed':
@@ -106,6 +110,7 @@ export class GeometryClient {
       for (;;) {
         const step = steps.next();
         if (this.cancelledInline.delete(job.id)) {
+          this.cancelledJobs++;
           this.next(job.id);
           return;
         }

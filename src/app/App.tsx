@@ -190,8 +190,10 @@ function useShortcuts(store: EditorStore, save: () => void) {
 function StatusLine({ store, session }: { store: EditorStore; session: Session }) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const preview = previewState(state.shown, state.revision);
-  const label =
-    preview === 'final'
+  const stopped = state.failedRevision === state.revision;
+  const label = stopped
+    ? 'Stopped. Undo, or draw fewer lines'
+    : preview === 'final'
       ? `Export geometry, ${state.geometry?.resolution ?? ''} grid`
       : preview === 'draft'
         ? `Draft, ${state.geometry?.resolution ?? ''} grid`
@@ -199,7 +201,7 @@ function StatusLine({ store, session }: { store: EditorStore; session: Session }
   const time = state.geometry && preview === 'final' ? `${Math.round(state.geometry.stats.times.total)} ms` : '';
   return (
     <div className="status">
-      <span className="status-state" data-state={preview} role="status" aria-live="polite">
+      <span className="status-state" data-state={stopped ? 'stopped' : preview} role="status" aria-live="polite">
         <span className="status-dot" aria-hidden="true" />
         {label}
       </span>

@@ -308,6 +308,7 @@ button:disabled { cursor: default; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--forest); transition: background-color 160ms var(--ease); }
 .status-state[data-state='draft'] .status-dot { background: transparent; box-shadow: inset 0 0 0 1.25px var(--forest); }
 .status-state[data-state='refining'] .status-dot { background: #a7b5ac; }
+.status-state[data-state='stopped'] .status-dot { background: var(--danger); }
 .status-spacer { flex: 1; }
 .coordinates { font-family: var(--mono); font-size: 11px; min-width: 76px; text-align: right; }
 .status-item { white-space: nowrap; }
@@ -607,6 +608,8 @@ kbd { font: 400 11px var(--mono); white-space: nowrap; }
 }
 
 @media (max-width: 420px) {
+  .status { flex-wrap: wrap; row-gap: 0; padding: 2px 8px 2px 12px; }
+  .status-state { flex-basis: 100%; }
   .starter-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .starter img, .starter-blank { aspect-ratio: 4 / 3; }
   .field input[type='number'] { width: 72px; }

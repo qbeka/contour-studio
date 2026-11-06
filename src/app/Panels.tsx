@@ -409,6 +409,9 @@ function formatBytes(bytes: number): string {
 function ExportReportTable({ state }: { state: EditorState }) {
   const { geometry, report, shown, revision } = state;
   const current = previewState(shown, revision) === 'final';
+  if (state.failedRevision === revision) {
+    return <p className="report-wait" role="status">These lines could not be computed, so there is nothing to export yet.</p>;
+  }
   if (!geometry || !current || geometry.quality !== 'final') {
     return <p className="report-wait" role="status">Refining. The numbers will follow the exact lines.</p>;
   }
@@ -618,7 +621,7 @@ export function ExportPanel({ store, state }: PanelProps) {
             say(`Saved ${stem}.svg`);
           }}
         >
-          {ready ? 'Download SVG' : 'Refining...'}
+          {ready ? 'Download SVG' : state.failedRevision === state.revision ? 'Nothing to export' : 'Refining...'}
         </button>
         <div className="row">
           <button

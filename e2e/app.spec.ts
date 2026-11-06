@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { computeGeometry } from '../src/core/pipeline';
 import { emptyScene, parseScene, type Scene } from '../src/core/scene';
@@ -169,16 +170,87 @@ test('a heavy final is superseded by a newer edit', async ({ page }) => {
   const lines = page.getByRole('spinbutton', { name: 'Lines' });
   for (const count of [110, 100, 90, 80]) {
     await lines.fill(String(count));
-    await page.waitForTimeout(60);
+    // Past the refine delay, so a final is running when the next edit lands.
+    await page.waitForTimeout(250);
   }
   await waitForFinal(page);
   const hook = await readHook(page);
   expect(JSON.parse(hook.sceneJson).levels.count).toBe(80);
   expect(hook.shownRevision).toBe(hook.revision);
-  const outstanding = await page.evaluate(
-    () => (window as any).__contour.session.client.outstanding,
+  const client = await page.evaluate(() => {
+    const c = (window as any).__contour.session.client;
+    return { outstanding: c.outstanding, cancelled: c.cancelledJobs };
+  });
+  expect(client.outstanding).toBeLessThanOrEqual(1);
+  // Without this, the test could pass with cancellation broken, if each job
+  // happened to finish before the next edit.
+  expect(client.cancelled).toBeGreaterThan(0);
+});
+
+test('a worker that cannot load falls back to the main thread', async ({ page }) => {
+  await page.route('**/geometry.worker*', (route) => route.abort());
+  await open(page);
+  await expect(page.locator('.status')).toContainText('main thread');
+  await page.locator('.source-row').first().click();
+  await page.getByRole('spinbutton', { name: 'Lines' }).fill('8');
+  await waitForFinal(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).first().click();
+  const { text } = await downloadText(page, () =>
+    page.getByRole('button', { name: 'Download SVG' }).click(),
   );
-  expect(outstanding).toBeLessThanOrEqual(1);
+  expect(text).toBe(canonicalSvg((await readHook(page)).sceneJson));
+});
+
+test('a scene too dense to compute stops clearly and recovers with undo', async ({ page }) => {
+  await open(page);
+  const start = (await readHook(page)).sceneJson;
+  // Fine texture, every level, finest grid: more lines than the limit allows.
+  const dense: Scene = {
+    ...PRESETS[2].scene,
+    domain: { width: 8192, height: 8192 },
+    clip: { x: 0, y: 0, width: 8192, height: 8192 },
+    noise: { amplitude: 10, scale: 4, octaves: 4 },
+    levels: { base: -6, spacing: 0.1, count: 128 },
+    export: { ...PRESETS[2].scene.export, resolution: 2048 },
+  };
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'dense.contour.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(dense)),
+  });
+  await expect(page.locator('.status-state')).toHaveAttribute('data-state', 'stopped', {
+    timeout: 40_000,
+  });
+  await expect(page.locator('.notice[data-kind=error]')).toContainText('too many lines');
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await page.getByRole('button', { name: 'Export', exact: true }).first().click();
+  await expect(page.getByRole('button', { name: 'Nothing to export' })).toBeDisabled();
+  await page.keyboard.press('ControlOrMeta+z');
+  await waitForFinal(page);
+  expect((await readHook(page)).sceneJson).toBe(start);
+});
+
+test('automated accessibility scan finds nothing serious', async ({ page }) => {
+  await open(page);
+  const states = [
+    async () => undefined,
+    async () => {
+      await page.locator('.source-row').first().click();
+    },
+    async () => {
+      await page.getByRole('button', { name: 'Export', exact: true }).first().click();
+      await expect(page.locator('.report dl')).toBeVisible();
+    },
+    async () => {
+      await page.keyboard.press('?');
+    },
+  ];
+  for (const enter of states) {
+    await enter();
+    const { violations } = await new AxeBuilder({ page }).analyze();
+    const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
+  }
 });
 
 test('a broken file leaves the project untouched', async ({ page }) => {
