@@ -72,6 +72,7 @@ html { scroll-behavior: smooth; }
   position: absolute; z-index: 2; left: 50%; bottom: 16px; transform: translateX(-50%);
   display: flex; align-items: stretch; gap: 2px; padding: 3px;
 }
+.toolbar :focus-visible { outline-offset: 1px; }
 .presets { display: flex; gap: 2px; }
 .actions { display: flex; align-items: stretch; gap: 2px; }
 #export { display: inline-grid; }
