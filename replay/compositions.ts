@@ -8,7 +8,7 @@
  */
 
 import { PRESETS, type Preset } from '../src/core/presets';
-import type { PeakSource, Rect, Scene } from '../src/core/scene';
+import type { PeakSource, Rect, Scene, Source } from '../src/core/scene';
 
 export interface Composition {
   id: string;
@@ -28,17 +28,21 @@ function compose(
   index: number,
   label: string,
   source: string,
+  tuned: Partial<PeakSource>,
   focus: Composition['focus'],
   aspect: Composition['aspect'],
 ): Composition {
   const preset = PRESETS[index];
-  return { id: preset.id, label, preset, scene: preset.scene, source, focus, aspect };
+  const sources = preset.scene.sources.map((s) => (s.id === source ? ({ ...s, ...tuned } as Source) : s));
+  return { id: preset.id, label, preset, scene: { ...preset.scene, sources }, source, focus, aspect };
 }
 
+// `tuned` places each source so that its rings close around the handle, because a
+// drag reads best when the handle sits at the eye of what it moves.
 export const COMPOSITIONS: readonly Composition[] = [
-  compose(0, 'Quiet ridge', 'summit', { x: 340, y: 320 }, [0.5, 2.5]),
-  compose(1, 'Tall basin', 'island', { x: 500, y: 500 }, [0.5, 0.8]),
-  compose(2, 'Interference', 's6', { x: 600, y: 400 }, [0.5, 2]),
+  compose(0, 'Quiet ridge', 'summit', { x: 260, y: 312 }, { x: 340, y: 320 }, [0.5, 2.5]),
+  compose(1, 'Tall basin', 'island', { radius: 96, height: 0.78 }, { x: 500, y: 500 }, [0.5, 0.8]),
+  compose(2, 'Interference', 's6', { name: 'Centre peak', radius: 130, height: 1.32 }, { x: 600, y: 400 }, [0.5, 2]),
 ];
 
 export function compositionOf(scene: Scene): Composition {
