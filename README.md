@@ -17,6 +17,17 @@ Shader tools make good pictures quickly, but the picture is an effect. You canno
 Measured on an Apple M5 Pro laptop on AC power, with other work running on it. Full tables, raw data and limits are in [docs/REPORT.md](docs/REPORT.md).
 
 <!-- results:readme-results -->
+| Result | Measured | Compared with | Workload |
+|---|---|---|---|
+| Time to refined geometry | 12 to 20 ms in Chromium | Target of 500 ms | 512 cells on the long side, 16 levels, three scenes, 5 runs |
+| Input to draft, 95th percentile | 17 ms with the worker | Target of 33 ms. The main thread is faster, at 10 ms | 150 step open loop drag, 5 runs |
+| Largest frame gap, heavy scene | 25 ms with the worker | 204 ms blocking, 201 ms time sliced | 1024 grid, 64 levels, same drag, 5 runs |
+| File size, same composition | 83 KB to 15 KB, or 19 KB to 5.4 KB gzipped | The same scene with nothing removed | Quiet ridge, Balanced |
+| Distance moved by export | 0.19 units sampled, 0.22 proved at most | Extracted lines | Same file, sampled every 0.25 units |
+| Grid error, worst place | 0.79 units | The same scene at a 2048 grid | Same scene. It sits at a near-flat saddle. Export bounds do not include it |
+| Topology | 0 crossings, 0 lost paths | Extracted lines | 9 rows of the size table, plus 420 random scenes |
+| Output repeatability | Identical bytes | Chromium, Firefox, WebKit, Node | One workflow's scene |
+| Renderers | Within 1 px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads 4 px or more |
 <!-- /results -->
 
 Three things this does not show. All timings come from one fast machine. No outside person has used the tool. No desktop vector editor has opened the files yet: path editing was checked in paper.js only.

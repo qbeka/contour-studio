@@ -46,6 +46,10 @@ Read from [SVG 2 paths](https://www.w3.org/TR/SVG2/paths.html) and [SVG 2 coordi
 
 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas): widely available. Not used. Canvas draw calls take about 0.2 ms of main thread time, so moving them off the thread has nothing measurable to win yet. That figure covers only recording commands, since the browser rasterises later, and raster cost was not measured separately. WebGL is not used, for the same reason and because the preview must show exact paths. There is one CPU path, so the only fallback to maintain is the worker's.
 
+## Name
+
+On 2026-11-06, `qbeka/contour-studio` and the npm name `contour-studio` were both free. Other public GitHub repositories use the same name, for terrain tools and an image tool among others, so the name is not unique. The app calls itself Contour. It is not published to npm.
+
 ## Decisions changed by evidence
 
 1. **Rule 1.** The first version banned proper crossings only, and the proof left rounding out. An independent review found rounded paths crossing through a vertex and swapping sides. Rule 1 became a separation rule with its own proof.
