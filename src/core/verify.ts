@@ -284,6 +284,7 @@ export function sampledHausdorff(
   a: readonly Polyline[],
   b: readonly Polyline[],
   requested: number,
+  maxSamples: number = MAX_SAMPLES,
 ): SampledDistance {
   const segA = pathSegments(a);
   const segB = pathSegments(b);
@@ -311,7 +312,7 @@ export function sampledHausdorff(
   const toA = new DistanceIndex(segA);
   const used = Math.max(
     requested,
-    Math.max(totalLength(segA), totalLength(segB)) / MAX_SAMPLES,
+    Math.max(totalLength(segA), totalLength(segB)) / maxSamples,
   );
   let forward = 0;
   let backward = 0;
@@ -333,6 +334,8 @@ export interface GridErrorEstimate {
   /** Root mean square of the same distances. */
   rms: number;
   samples: number;
+  /** The spacing used. Wider than requested only if the sample limit was reached. */
+  spacing: number;
   /** Points skipped because the slope is too small for the estimate to work. */
   skipped: number;
 }
@@ -344,9 +347,14 @@ export interface GridErrorEstimate {
 export function estimateGridError(
   scene: Scene,
   geometry: Geometry,
-  spacing: number,
+  requested: number,
+  maxSamples: number = MAX_SAMPLES,
 ): GridErrorEstimate {
   const f = fieldFunction(scene);
+  const spacing = Math.max(
+    requested,
+    totalLength(pathSegments(geometry.source.flat())) / maxSamples,
+  );
   const step = 1e-3 * Math.max(scene.domain.width, scene.domain.height) / geometry.resolution;
   let max = 0;
   let sum = 0;
@@ -368,5 +376,5 @@ export function estimateGridError(
       samples++;
     });
   });
-  return { max, rms: samples > 0 ? Math.sqrt(sum / samples) : 0, samples, skipped };
+  return { max, rms: samples > 0 ? Math.sqrt(sum / samples) : 0, samples, spacing, skipped };
 }

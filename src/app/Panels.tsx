@@ -457,11 +457,11 @@ function ExportReportTable({ state }: { state: EditorState }) {
           <dd>{stats.maxBound.toFixed(3)} units</dd>
         </div>
         <div>
-          <dt title={`Sampled estimate every ${SAMPLE_SPACING} units`}>Measured in the file</dt>
+          <dt title={`Sampled estimate, every ${(fresh?.distance.spacing ?? SAMPLE_SPACING).toFixed(2)} units`}>Measured in the file</dt>
           <dd>{fresh ? `${fresh.distance.sampled.toFixed(3)} units` : '...'}</dd>
         </div>
         <div>
-          <dt title={`First-order estimate every ${GRID_SAMPLE_SPACING} units`}>Grid error, worst estimate</dt>
+          <dt title={`First-order estimate, every ${(fresh?.grid.spacing ?? GRID_SAMPLE_SPACING).toFixed(1)} units`}>Grid error, worst estimate</dt>
           <dd>{fresh ? `${fresh.grid.max.toFixed(3)} units` : '...'}</dd>
         </div>
       </dl>

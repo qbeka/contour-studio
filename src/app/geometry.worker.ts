@@ -66,14 +66,14 @@ async function run(job: Job): Promise<void> {
       const light: Geometry = { ...geometry, source: [] };
       const reply: WorkerResponse = { type: 'done', id: job.id, revision: job.revision, geometry: light };
       self.postMessage(reply, { transfer: transferables(light) });
-      await yieldToQueue();
-      if (cancelled.delete(job.id)) {
-        const end: WorkerResponse = { type: 'cancelled', id: job.id };
-        self.postMessage(end);
-        return;
-      }
-      const report = await buildReport(reportInput, scene);
-      const out: WorkerResponse = { type: 'report', id: job.id, revision: job.revision, report };
+      const pause = async () => {
+        await yieldToQueue();
+        return cancelled.delete(job.id);
+      };
+      const report = (await pause()) ? null : await buildReport(reportInput, scene, pause);
+      const out: WorkerResponse = report
+        ? { type: 'report', id: job.id, revision: job.revision, report }
+        : { type: 'cancelled', id: job.id };
       self.postMessage(out);
       return;
     }

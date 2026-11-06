@@ -121,11 +121,13 @@ export class GeometryClient {
             geometry: { ...geometry, source: job.quality === 'final' ? geometry.source : [] },
           });
           if (job.quality === 'final') {
-            await new Promise((resolve) => setTimeout(resolve));
-            if (!this.cancelledInline.delete(job.id)) {
-              const report = await buildReport(geometry, job.scene);
-              this.events.onReport({ revision: job.revision, report });
-            }
+            const pause = async () => {
+              await new Promise((resolve) => setTimeout(resolve));
+              return this.cancelledInline.delete(job.id);
+            };
+            const report = (await pause()) ? null : await buildReport(geometry, job.scene, pause);
+            if (report) this.events.onReport({ revision: job.revision, report });
+            else this.cancelledJobs++;
           }
           this.next(job.id);
           return;

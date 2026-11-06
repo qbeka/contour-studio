@@ -50,14 +50,36 @@ export async function fileCost(text: string): Promise<FileCost> {
 export const SAMPLE_SPACING = 0.5;
 export const GRID_SAMPLE_SPACING = 4;
 
-export async function buildReport(geometry: Geometry, scene: Scene): Promise<ExportReport> {
+/** Enough for a stable reading. Bounds each step, so that a cancel lands quickly. */
+const REPORT_SAMPLES = 200_000;
+const REPORT_GRID_SAMPLES = 20_000;
+
+/**
+ * Builds the report in steps. `pause` runs between steps and returns true when
+ * the report is no longer wanted. The numbers cost more than the geometry on a
+ * large scene, so they must never hold up the next edit.
+ */
+export async function buildReport(
+  geometry: Geometry,
+  scene: Scene,
+  pause: () => Promise<boolean> = async () => false,
+): Promise<ExportReport | null> {
   const svg = toSvg(geometry, scene);
+  if (await pause()) return null;
   const full = toSvg(unsimplified(geometry, scene), scene);
-  return {
-    simplified: await fileCost(svg),
-    unsimplified: await fileCost(full),
-    // The parsed file is what the user receives, so that is what gets measured.
-    distance: sampledHausdorff(geometry.source.flat(), parseSvgPaths(svg), SAMPLE_SPACING),
-    grid: estimateGridError(scene, geometry, GRID_SAMPLE_SPACING),
-  };
+  if (await pause()) return null;
+  const simplifiedCost = await fileCost(svg);
+  if (await pause()) return null;
+  const unsimplifiedCost = await fileCost(full);
+  if (await pause()) return null;
+  // The parsed file is what the user receives, so that is what gets measured.
+  const distance = sampledHausdorff(
+    geometry.source.flat(),
+    parseSvgPaths(svg),
+    SAMPLE_SPACING,
+    REPORT_SAMPLES,
+  );
+  if (await pause()) return null;
+  const grid = estimateGridError(scene, geometry, GRID_SAMPLE_SPACING, REPORT_GRID_SAMPLES);
+  return { simplified: simplifiedCost, unsimplified: unsimplifiedCost, distance, grid };
 }

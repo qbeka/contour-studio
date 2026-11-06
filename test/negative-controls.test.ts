@@ -88,6 +88,15 @@ describe('sampled distance', () => {
     expect(distance.samples).toBeLessThanOrEqual(4_000_010);
   });
 
+  it('a sample budget widens the spacing and keeps the guard true', () => {
+    const a: Polyline = { points: new Float64Array([0, 0, 1000, 0]), closed: false };
+    const b: Polyline = { points: new Float64Array([0, 3, 1000, 3]), closed: false };
+    const distance = sampledHausdorff([a], [b], 0.25, 100);
+    expect(distance.spacing).toBe(10);
+    expect(distance.sampled).toBe(3);
+    expect(distance.guard).toBe(8);
+  });
+
   it('the guard covers a maximum that the samples miss', () => {
     // The farthest point of a is at x = 50, between two short pieces of b. At this
     // spacing the samples land at thirds, so the sampled value falls short of 49.
