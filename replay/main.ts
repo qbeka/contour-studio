@@ -7,7 +7,7 @@ import { GeometryClient, type Engine } from '../src/app/geometry-client';
 import { setHandle, updateSource } from '../src/app/edits';
 import { drawArtwork, drawLog } from '../src/app/render';
 import { startSession } from '../src/app/session';
-import { EditorStore } from '../src/app/store';
+import { EditorStore, type EditorState } from '../src/app/store';
 import type { Geometry } from '../src/core/pipeline';
 import type { Rect, Scene } from '../src/core/scene';
 import { toSvg } from '../src/core/svg';
@@ -254,17 +254,19 @@ function syncControls(): void {
 }
 
 /** The store changes often. Only what changed is written to the page. */
-let lastScene: Scene | null = null;
+let lastHistory: EditorState['history'] | null = null;
 let lastGeometry: Geometry | null = null;
 
 function onStore(): void {
-  const { geometry } = store.getState();
-  const scene = store.scene;
-  if (scene !== lastScene) {
-    lastScene = scene;
-    if (!drag) syncHandle();
+  const { geometry, history } = store.getState();
+  // Ending a drag changes the history and leaves the scene as it is.
+  if (history !== lastHistory) {
+    lastHistory = history;
+    if (!drag) {
+      syncHandle();
+      syncControls();
+    }
     syncSheet();
-    syncControls();
   }
   if (geometry !== lastGeometry) {
     lastGeometry = geometry;
