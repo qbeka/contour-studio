@@ -382,12 +382,12 @@ function FrameFields({ store }: { store: EditorStore }) {
     <>
       <h3>Frame</h3>
       <div className="field-pair">
-        <NumberField label="Left" value={clip.x} min={0} max={domain.width} step={1} onChange={(x) => set({ x })} />
-        <NumberField label="Top" value={clip.y} min={0} max={domain.height} step={1} onChange={(y) => set({ y })} />
+        <NumberField label="Frame left" value={clip.x} min={0} max={domain.width} step={1} onChange={(x) => set({ x })} />
+        <NumberField label="Frame top" value={clip.y} min={0} max={domain.height} step={1} onChange={(y) => set({ y })} />
       </div>
       <div className="field-pair">
-        <NumberField label="Width" value={clip.width} min={1} max={domain.width} step={1} onChange={(width) => set({ width })} />
-        <NumberField label="Height" value={clip.height} min={1} max={domain.height} step={1} onChange={(height) => set({ height })} />
+        <NumberField label="Frame width" value={clip.width} min={1} max={domain.width} step={1} onChange={(width) => set({ width })} />
+        <NumberField label="Frame height" value={clip.height} min={1} max={domain.height} step={1} onChange={(height) => set({ height })} />
       </div>
       <button
         type="button"
