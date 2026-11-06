@@ -5,5 +5,6 @@ export default defineConfig({
   root: 'replay',
   base: './',
   publicDir: '../public',
+  worker: { format: 'es' },
   build: { target: 'es2022', outDir: '../dist-site', emptyOutDir: true },
 });
