@@ -1,0 +1,136 @@
+/**
+ * Source mutation check. Each mutation is a small deliberate bug. It is applied
+ * to a temporary copy of the repository, and the unit tests must fail.
+ *
+ * A survivor means the tests would not notice that bug. The run also records the
+ * failing test names, because a mutant that dies from a crash in setup says less
+ * than one that dies on the test written for it.
+ *
+ *   pnpm exec tsx scripts/mutate.ts
+ */
+
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+interface Mutation {
+  id: string;
+  file: string;
+  find: string;
+  replace: string;
+  why: string;
+}
+
+const MUTATIONS: Mutation[] = [
+  { id: 'tie-up', file: 'src/core/contour.ts', find: '(a > level ? 1 : 0)', replace: '(a >= level ? 1 : 0)', why: 'Tie rule differs on corner a only.' },
+  { id: 'decider-flip', file: 'src/core/contour.ts', find: 'const saddleAbove = mask === 5 ? numerator > 0 : numerator < 0;', replace: 'const saddleAbove = mask === 5 ? numerator < 0 : numerator > 0;', why: 'Ambiguous cells choose the wrong pairing.' },
+  { id: 'decider-tie', file: 'src/core/contour.ts', find: 'mask === 5 ? numerator > 0 : numerator < 0', replace: 'mask === 5 ? numerator >= 0 : numerator < 0', why: 'An exact saddle tie counts as above.' },
+  { id: 'case-swap', file: 'src/core/contour.ts', find: '[R, B], // 4 c', replace: '[B, R], // 4 c', why: 'One case is reversed.' },
+  { id: 'edge-interp', file: 'src/core/contour.ts', find: 'let t = (level - v0) / (v1 - v0);', replace: 'let t = 0.5;', why: 'Crossings sit at edge midpoints.' },
+  { id: 'edge-x-end', file: 'src/core/contour.ts', find: 'out[0] = (i * width) / nx;', replace: 'out[0] = i * (width / nx);', why: 'The last sample misses the domain edge by rounding.' },
+  { id: 'no-dedupe', file: 'src/core/contour.ts', find: 'if (write > 0 && out[write - 2] === x && out[write - 1] === y) continue;', replace: '', why: 'Exact duplicates stay in paths.' },
+  { id: 'keep-degenerate', file: 'src/core/contour.ts', find: 'const minimum = closed ? 6 : 4;', replace: 'const minimum = 2;', why: 'Paths with no extent are kept.' },
+  { id: 'no-close', file: 'src/core/contour.ts', find: 'if (next === start) return true;', replace: 'if (next === start) return false;', why: 'Loops are marked open.' },
+  { id: 'peak-power', file: 'src/core/field.ts', find: 'return m * m * m;\n}', replace: 'return m * m;\n}', why: 'Pointwise peak profile differs from the sampler.' },
+  { id: 'sampler-order', file: 'src/core/field.ts', find: "if (amplitude > 0) total += amplitude * fractalNoise(x / scale, y / scale, seed, octaves);", replace: "if (amplitude > 0) total += amplitude * 0.5 * fractalNoise(x / scale, y / scale, seed, octaves);", why: 'Pointwise noise differs from the sampler.' },
+  { id: 'ridge-norm', file: 'src/core/field.ts', find: 'const RIDGE_NORMALISER = 35 / 32;', replace: 'const RIDGE_NORMALISER = 1;', why: 'Ridge crest is not 1.' },
+  { id: 'ridge-clip', file: 'src/core/field.ts', find: 'const t1 = Math.min((length - along) / radius, edge);', replace: 'const t1 = edge;', why: 'A ridge piece has no end.' },
+  { id: 'noise-normal', file: 'src/core/field.ts', find: 'return sum / total;', replace: 'return sum;', why: 'Noise is no longer bounded by 1.' },
+  { id: 'clip-rotate', file: 'src/core/clip.ts', find: 'const start = closed ? outside : 0;', replace: 'const start = 0;', why: 'Closed loops split at their first vertex.' },
+  { id: 'clip-edge', file: 'src/core/clip.ts', find: 'x >= rect.x && x <= rect.x + rect.width', replace: 'x > rect.x && x < rect.x + rect.width', why: 'A point on the edge counts as outside.' },
+  { id: 'dp-line', file: 'src/core/simplify.ts', find: 'if (t < 0) t = 0;\n    else if (t > 1) t = 1;', replace: '', why: 'Distance to the infinite line, not the segment.' },
+  { id: 'dp-tolerance', file: 'src/core/simplify.ts', find: 'if (worst > toleranceSquared) {', replace: 'if (worst > 4 * toleranceSquared) {', why: 'Tolerance silently doubled.' },
+  { id: 'no-triangle', file: 'src/core/simplify.ts', find: '    ensureTriangle(points, keep, split);\n', replace: '', why: 'Small loops collapse to a line.' },
+  { id: 'rounding-bound', file: 'src/core/simplify.ts', find: 'return (Math.SQRT2 / 2) * 10 ** -decimals;', replace: 'return 0;', why: 'The declared bound ignores rounding.' },
+  { id: 'no-crossings', file: 'src/core/topology.ts', find: 'blamed.add(owner[a]);', replace: '', why: 'Only one path of a crossing is blamed.' },
+  { id: 'sweep-off', file: 'src/core/topology.ts', find: 'if (swept) blamed.add(index);', replace: '', why: 'Rule 3 never blames anything.' },
+  { id: 'loop-off', file: 'src/core/topology.ts', find: 'if (simplified.points.length < 6) return false;', replace: '', why: 'Rule 2 accepts a two point loop.' },
+  { id: 'rule1-ignored', file: 'src/core/pipeline.ts', find: 'for (const index of crossings.blamed) blamed.add(index);', replace: '', why: 'The pipeline ignores crossings.' },
+  { id: 'rule3-ignored', file: 'src/core/pipeline.ts', find: 'for (const index of findSweeps(sweeps)) blamed.add(index);', replace: '', why: 'The pipeline ignores sweeps.' },
+  { id: 'bound-no-rounding', file: 'src/core/pipeline.ts', find: 'bound: settings.tolerance + roundingBound(settings.decimals),', replace: 'bound: settings.tolerance,', why: 'The declared bound leaves out rounding.' },
+  { id: 'margin-limit', file: 'src/core/pipeline.ts', find: 'const x = Math.max(0, clip.x - m);', replace: 'const x = clip.x - m;', why: 'Expanded bounds leave the domain.' },
+  { id: 'relative-lattice', file: 'src/core/svg.ts', find: 'lastX = x;\n    lastY = y;', replace: 'lastX = x;', why: 'Relative commands accumulate a wrong y.' },
+  { id: 'absolute-off', file: 'src/core/svg.ts', find: 'if (i % ABSOLUTE_EVERY === 0) {', replace: 'if (false) {', why: 'No absolute anchor, so drift is unbounded.' },
+  { id: 'no-escape', file: 'src/core/svg.ts', find: "return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');", replace: 'return text;', why: 'Scene names can inject markup.' },
+  { id: 'no-z', file: 'src/core/svg.ts', find: "if (closed) parts.push('z');", replace: '', why: 'Closed paths are not closed in the file.' },
+  { id: 'colour-check', file: 'src/core/scene.ts', find: "if (typeof value !== 'string' || !HEX_COLOR.test(value)) {", replace: "if (typeof value !== 'string') {", why: 'Any text can reach an SVG attribute.' },
+  { id: 'size-check', file: 'src/core/scene.ts', find: 'if (text.length > LIMITS.fileBytes) {', replace: 'if (false) {', why: 'Huge files reach the parser.' },
+  { id: 'commit-order', file: 'src/app/jobs.ts', find: 'if (result.revision !== shown.revision) return result.revision > shown.revision;', replace: 'if (result.revision !== shown.revision) return true;', why: 'An old final can overwrite a newer draft.' },
+  { id: 'cancel-drafts', file: 'src/app/jobs.ts', find: "const cancel = this.running.quality === 'final' ? this.running.id : null;", replace: 'const cancel = this.running.id;', why: 'Drafts starve during a drag.' },
+  { id: 'unbounded-queue', file: 'src/app/jobs.ts', find: 'this.waiting = job;', replace: 'this.waiting = this.waiting ?? job;', why: 'The newest request is dropped.' },
+  { id: 'history-coalesce', file: 'src/app/history.ts', find: "return { past, present: next, future: [] };", replace: "return { past, present: next, future: history.future };", why: 'A new edit keeps stale redo entries.' },
+];
+
+const repo = process.cwd();
+const sandbox = mkdtempSync(join(tmpdir(), 'contour-mutants-'));
+for (const entry of ['src', 'test', 'package.json', 'tsconfig.json', 'vite.config.ts']) {
+  cpSync(join(repo, entry), join(sandbox, entry), { recursive: true });
+}
+symlinkSync(join(repo, 'node_modules'), join(sandbox, 'node_modules'));
+
+interface Outcome {
+  passed: boolean;
+  failed: string[];
+  suiteErrors: number;
+}
+
+function runTests(): Outcome {
+  const report = join(sandbox, 'report.json');
+  spawnSync('node_modules/.bin/vitest', ['run', '--reporter=json', `--outputFile=${report}`], {
+    cwd: sandbox,
+    stdio: 'ignore',
+    timeout: 120_000,
+  });
+  const json = JSON.parse(readFileSync(report, 'utf8')) as {
+    numFailedTests: number;
+    testResults: { status: string; assertionResults: { status: string; fullName: string }[] }[];
+  };
+  const failed = json.testResults.flatMap((file) =>
+    file.assertionResults.filter((a) => a.status === 'failed').map((a) => a.fullName),
+  );
+  const suiteErrors = json.testResults.filter(
+    (file) => file.status === 'failed' && file.assertionResults.length === 0,
+  ).length;
+  return { passed: failed.length === 0 && suiteErrors === 0, failed, suiteErrors };
+}
+
+const baseline = runTests();
+if (!baseline.passed) {
+  console.error('The unmodified suite fails in the sandbox, so results would mean nothing.');
+  console.error(baseline.failed);
+  process.exit(1);
+}
+
+const results = MUTATIONS.map((mutation) => {
+  const path = join(sandbox, mutation.file);
+  const original = readFileSync(path, 'utf8');
+  if (!original.includes(mutation.find)) {
+    return { id: mutation.id, file: mutation.file, why: mutation.why, status: 'not-applied', failed: [] as string[] };
+  }
+  writeFileSync(path, original.replace(mutation.find, mutation.replace));
+  const outcome = runTests();
+  writeFileSync(path, original);
+  const status = outcome.passed ? 'survived' : 'killed';
+  console.log(`${status.padEnd(12)} ${mutation.id.padEnd(20)} ${outcome.failed.length} failing`);
+  return {
+    id: mutation.id,
+    file: mutation.file,
+    why: mutation.why,
+    status,
+    failed: outcome.failed,
+    suiteErrors: outcome.suiteErrors,
+  };
+});
+
+rmSync(sandbox, { recursive: true, force: true });
+
+const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
+mkdirSync(join(repo, 'results/mutations'), { recursive: true });
+writeFileSync(
+  join(repo, 'results/mutations/latest.json'),
+  `${JSON.stringify({ commit, unmodifiedSuitePassed: true, total: results.length, killed: results.filter((r) => r.status === 'killed').length, results }, null, 2)}\n`,
+);
+const survivors = results.filter((r) => r.status !== 'killed');
+console.log(`\n${results.length - survivors.length} of ${results.length} killed.`);
+for (const s of survivors) console.log(`${s.status}: ${s.id} (${s.why})`);

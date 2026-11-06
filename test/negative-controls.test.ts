@@ -111,6 +111,9 @@ describe('loop check', () => {
     expect(loopSurvives(loop, { points: new Float64Array([0, 0, 10, 0]), closed: true })).toBe(false);
     const flipped = new Float64Array([0, 10, 10, 10, 10, 0, 0, 0]);
     expect(loopSurvives(loop, { points: flipped, closed: true })).toBe(false);
+    // A loop with no area has no sign to compare, so the count must catch this.
+    const flat: Polyline = { points: new Float64Array([0, 0, 5, 0, 10, 0]), closed: true };
+    expect(loopSurvives(flat, { points: new Float64Array([0, 0, 10, 0]), closed: true })).toBe(false);
   });
 });
 

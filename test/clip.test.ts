@@ -58,6 +58,13 @@ describe('clipping', () => {
     expect(clipPath(path, rect)).toEqual([path]);
   });
 
+  it('a closed loop touching the edge from inside stays closed', () => {
+    const path = loop(10, 50, 50, 20, 80, 50, 50, 80);
+    const parts = clipPath(path, rect);
+    expect(parts).toHaveLength(1);
+    expect(parts[0].closed).toBe(true);
+  });
+
   it('a vertical line exactly on the edge stays', () => {
     const parts = clipPath(line(10, 0, 10, 100), rect);
     expect(parts).toHaveLength(1);

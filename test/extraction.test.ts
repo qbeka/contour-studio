@@ -198,6 +198,31 @@ describe('ties and degenerate shapes', () => {
     expect(paths[0].closed).toBe(true);
   });
 
+  it('a contour through tied corners has no repeated points', () => {
+    // Every corner on the diagonal x + y = 10 equals the level, so neighbouring
+    // crossings land on the same corner.
+    const grid = gridFrom(10, 10, 10, 10, (x, y) => x + y);
+    const { paths } = contourLevel(grid, 10);
+    expect(paths).toHaveLength(1);
+    const pts = pointsOf(paths[0]);
+    for (let i = 1; i < pts.length; i++) expect(pts[i]).not.toEqual(pts[i - 1]);
+    expect(pts).toHaveLength(11);
+  });
+
+  it('a boundary crossing lands exactly on a domain that does not divide evenly', () => {
+    let tried = 0;
+    for (const width of [1000.3, 777.7, 123.456, 1201.1]) {
+      for (const nx of [7, 13, 49, 97]) {
+        if ((width / nx) * nx === width) continue;
+        tried++;
+        const grid = gridFrom(width, 100, nx, 8, (_x, y) => y);
+        const pts = pointsOf(contourLevel(grid, 33.3).paths[0]);
+        expect(Math.max(pts[0][0], pts[pts.length - 1][0])).toBe(width);
+      }
+    }
+    expect(tried).toBeGreaterThan(0);
+  });
+
   it('tiny segments are kept and a near tie does not break joining', () => {
     const f = (x: number, y: number) => y - 50 + 1e-13 * Math.sin(x);
     const grid = gridFrom(SIZE, SIZE, 10, 10, f);

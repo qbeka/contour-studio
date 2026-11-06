@@ -1,0 +1,95 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Chords that cross with nothing swept",
+  "seed": 26,
+  "domain": {
+    "width": 1200,
+    "height": 800
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800
+  },
+  "sources": [
+    {
+      "id": "p0",
+      "name": "p0",
+      "kind": "peak",
+      "enabled": true,
+      "x": 892.216173838824,
+      "y": 408.1117121502757,
+      "radius": 40.430315867997706,
+      "height": 0.7393128525465726
+    },
+    {
+      "id": "p1",
+      "name": "p1",
+      "kind": "peak",
+      "enabled": true,
+      "x": 1188.181786146015,
+      "y": 597.2222423180938,
+      "radius": 255.48334678635,
+      "height": 0.45272027868777515
+    },
+    {
+      "id": "p2",
+      "name": "p2",
+      "kind": "peak",
+      "enabled": true,
+      "x": 78.10148829594254,
+      "y": 683.1436086446047,
+      "radius": 257.24623842164874,
+      "height": 0.23419295744970442
+    },
+    {
+      "id": "p3",
+      "name": "p3",
+      "kind": "peak",
+      "enabled": true,
+      "x": 796.6823187656701,
+      "y": 508.08716621249914,
+      "radius": 219.12839332129806,
+      "height": -0.7905128822196275
+    },
+    {
+      "id": "p4",
+      "name": "p4",
+      "kind": "peak",
+      "enabled": true,
+      "x": 323.8300781697035,
+      "y": 516.2425210699439,
+      "radius": 296.4205465698615,
+      "height": 0.4586162278894335
+    }
+  ],
+  "noise": {
+    "amplitude": 0.1391365818679333,
+    "scale": 118.34906592965126,
+    "octaves": 2
+  },
+  "levels": {
+    "base": -0.4863903130870313,
+    "spacing": 0.10290705408435316,
+    "count": 9
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 1,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 128,
+    "tolerance": 4,
+    "decimals": 0,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

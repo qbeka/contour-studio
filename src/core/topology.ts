@@ -137,7 +137,6 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
 
   const coords = new Float64Array(segmentCount * 4);
   const owner = new Int32Array(segmentCount);
-  const position = new Int32Array(segmentCount);
   let s = 0;
   paths.forEach((path, index) => {
     const { points, closed } = path;
@@ -150,7 +149,6 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
       coords[s * 4 + 2] = points[next * 2];
       coords[s * 4 + 3] = points[next * 2 + 1];
       owner[s] = index;
-      position[s] = k;
       s++;
     }
   });
@@ -191,6 +189,8 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
         const bx1 = coords[b * 4 + 2];
         const by1 = coords[b * 4 + 3];
 
+        // Neighbouring segments share a point, which makes one of these products
+        // exactly 0, so they need no special case.
         const d1 = orient(ax0, ay0, ax1, ay1, bx0, by0);
         const d2 = orient(ax0, ay0, ax1, ay1, bx1, by1);
         if (d1 * d2 >= 0) continue;
@@ -198,13 +198,6 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
         const d4 = orient(bx0, by0, bx1, by1, ax1, ay1);
         if (d3 * d4 >= 0) continue;
 
-        // Neighbouring segments of one path share a point and never count.
-        if (owner[a] === owner[b]) {
-          const path = paths[owner[a]];
-          const n = path.points.length / 2;
-          const gap = Math.abs(position[a] - position[b]);
-          if (gap <= 1 || (path.closed && gap === n - 1)) continue;
-        }
         crossings.add(Math.min(a, b) * segmentCount + Math.max(a, b));
         blamed.add(owner[a]);
         blamed.add(owner[b]);

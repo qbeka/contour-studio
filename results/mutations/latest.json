@@ -1,0 +1,453 @@
+{
+  "commit": "6063bf8485075ba0f400baf2186a2c221c5a9b56",
+  "unmodifiedSuitePassed": true,
+  "total": 37,
+  "killed": 37,
+  "results": [
+    {
+      "id": "tie-up",
+      "file": "src/core/contour.ts",
+      "why": "Tie rule differs on corner a only.",
+      "status": "killed",
+      "failed": [
+        "analytic fixtures a flat field gives nothing, even when it equals the level",
+        "analytic fixtures a level exactly on grid values follows the row without duplicates",
+        "ties and degenerate shapes a plateau at exactly the level gets an outline where the field rises",
+        "ties and degenerate shapes a contour through tied corners has no repeated points",
+        "ties and degenerate shapes marks every level crossing once even in a 2 by 2 grid of saddles",
+        "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "decider-flip",
+      "file": "src/core/contour.ts",
+      "why": "Ambiguous cells choose the wrong pairing.",
+      "status": "killed",
+      "failed": [
+        "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "decider-tie",
+      "file": "src/core/contour.ts",
+      "why": "An exact saddle tie counts as above.",
+      "status": "killed",
+      "failed": [
+        "ambiguous cells a level exactly at the saddle counts the centre as below"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "case-swap",
+      "file": "src/core/contour.ts",
+      "why": "One case is reversed.",
+      "status": "killed",
+      "failed": [
+        "analytic fixtures a linear field gives one straight open line on the exact position",
+        "analytic fixtures a radial field gives one closed circle within the grid error",
+        "analytic fixtures grid error shrinks at the second order for a radial field",
+        "analytic fixtures a circle cut by the domain gives open paths that end on the boundary",
+        "analytic fixtures two separated bumps give two disjoint loops, then one when they merge",
+        "ambiguous cells a saddle field xy has the right topology at every level",
+        "ties and degenerate shapes a contour through tied corners has no repeated points",
+        "ties and degenerate shapes tiny segments are kept and a near tie does not break joining",
+        "ties and degenerate shapes marks every level crossing once even in a 2 by 2 grid of saddles",
+        "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings",
+        "peak kernel its contours are circles at the known radius",
+        "random scenes every rule holds in every scene",
+        "random scenes extracted vertices sit on the level of the interpolated field",
+        "random scenes is fully deterministic",
+        "random scenes coordinates of a known scene stay byte stable",
+        "saved scenes close-lines.contour.json holds every rule",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes swept-pit.contour.json holds every rule",
+        "saved scenes the pit stays on the same side of the contour",
+        "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it",
+        "saved scenes lines closer than the tolerance stay apart and keep most of the saving",
+        "pipeline keeps every path, closes every loop and never crosses at a coarse tolerance",
+        "pipeline the declared bound holds per path against the extracted path",
+        "pipeline a duplicate of the same geometry is a fixed point of contour extraction"
+      ],
+      "suiteErrors": 2
+    },
+    {
+      "id": "edge-interp",
+      "file": "src/core/contour.ts",
+      "why": "Crossings sit at edge midpoints.",
+      "status": "killed",
+      "failed": [
+        "analytic fixtures a linear field gives one straight open line on the exact position",
+        "analytic fixtures a radial field gives one closed circle within the grid error",
+        "analytic fixtures grid error shrinks at the second order for a radial field",
+        "analytic fixtures a level exactly on grid values follows the row without duplicates",
+        "ties and degenerate shapes a single raised corner at the level drops as degenerate",
+        "ties and degenerate shapes a contour through tied corners has no repeated points",
+        "peak kernel its contours are circles at the known radius",
+        "random scenes every rule holds in every scene",
+        "random scenes coordinates of a known scene stay byte stable",
+        "saved scenes the pit stays on the same side of the contour"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "edge-x-end",
+      "file": "src/core/contour.ts",
+      "why": "The last sample misses the domain edge by rounding.",
+      "status": "killed",
+      "failed": [
+        "ties and degenerate shapes a boundary crossing lands exactly on a domain that does not divide evenly"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-dedupe",
+      "file": "src/core/contour.ts",
+      "why": "Exact duplicates stay in paths.",
+      "status": "killed",
+      "failed": [
+        "ties and degenerate shapes a contour through tied corners has no repeated points"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "keep-degenerate",
+      "file": "src/core/contour.ts",
+      "why": "Paths with no extent are kept.",
+      "status": "killed",
+      "failed": [
+        "ties and degenerate shapes a single raised corner at the level drops as degenerate"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-close",
+      "file": "src/core/contour.ts",
+      "why": "Loops are marked open.",
+      "status": "killed",
+      "failed": [
+        "analytic fixtures a radial field gives one closed circle within the grid error",
+        "analytic fixtures two separated bumps give two disjoint loops, then one when they merge",
+        "ties and degenerate shapes a pit reaching exactly the level with a real neighbour keeps its shape",
+        "ties and degenerate shapes a plateau at exactly the level gets an outline where the field rises",
+        "peak kernel its contours are circles at the known radius",
+        "random scenes every rule holds in every scene",
+        "random scenes coordinates of a known scene stay byte stable",
+        "saved scenes the pit stays on the same side of the contour",
+        "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "peak-power",
+      "file": "src/core/field.ts",
+      "why": "Pointwise peak profile differs from the sampler.",
+      "status": "killed",
+      "failed": [
+        "sampling the grid matches pointwise evaluation bit for bit",
+        "random scenes extracted vertices sit on the level of the interpolated field"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "sampler-order",
+      "file": "src/core/field.ts",
+      "why": "Pointwise noise differs from the sampler.",
+      "status": "killed",
+      "failed": [
+        "sampling the grid matches pointwise evaluation bit for bit",
+        "random scenes extracted vertices sit on the level of the interpolated field"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ridge-norm",
+      "file": "src/core/field.ts",
+      "why": "Ridge crest is not 1.",
+      "status": "killed",
+      "failed": [
+        "ridge kernel a long straight ridge has a crest of 1 and the expected cross section",
+        "ridge kernel matches numeric integration of the peak profile along the piece",
+        "random scenes coordinates of a known scene stay byte stable"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ridge-clip",
+      "file": "src/core/field.ts",
+      "why": "A ridge piece has no end.",
+      "status": "killed",
+      "failed": [
+        "ridge kernel matches numeric integration of the peak profile along the piece",
+        "ridge kernel splitting a straight ridge in two does not change the field",
+        "sampling the grid matches pointwise evaluation bit for bit",
+        "random scenes extracted vertices sit on the level of the interpolated field",
+        "random scenes coordinates of a known scene stay byte stable"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "noise-normal",
+      "file": "src/core/field.ts",
+      "why": "Noise is no longer bounded by 1.",
+      "status": "killed",
+      "failed": [
+        "noise is bounded by 1 for every octave count",
+        "random scenes coordinates of a known scene stay byte stable"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "clip-rotate",
+      "file": "src/core/clip.ts",
+      "why": "Closed loops split at their first vertex.",
+      "status": "killed",
+      "failed": [
+        "clipping keeps a fragment whole when the loop starts inside",
+        "random scenes coordinates of a known scene stay byte stable"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "clip-edge",
+      "file": "src/core/clip.ts",
+      "why": "A point on the edge counts as outside.",
+      "status": "killed",
+      "failed": [
+        "clipping a closed loop touching the edge from inside stays closed"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "dp-line",
+      "file": "src/core/simplify.ts",
+      "why": "Distance to the infinite line, not the segment.",
+      "status": "killed",
+      "failed": [
+        "Douglas-Peucker uses distance to the segment, so a point past the end still counts"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "dp-tolerance",
+      "file": "src/core/simplify.ts",
+      "why": "Tolerance silently doubled.",
+      "status": "killed",
+      "failed": [
+        "random scenes every rule holds in every scene",
+        "random scenes coordinates of a known scene stay byte stable",
+        "saved scenes close-lines.contour.json holds every rule",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "Douglas-Peucker stays within the tolerance, both ways, on a measured check",
+        "pipeline the declared bound holds per path against the extracted path",
+        "SVG file measured distance to the extracted lines is within the declared bound"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-triangle",
+      "file": "src/core/simplify.ts",
+      "why": "Small loops collapse to a line.",
+      "status": "killed",
+      "failed": [
+        "Douglas-Peucker keeps a loop smaller than the tolerance as a triangle"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "rounding-bound",
+      "file": "src/core/simplify.ts",
+      "why": "The declared bound ignores rounding.",
+      "status": "killed",
+      "failed": [
+        "random scenes every rule holds in every scene",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "rounding moves each vertex no further than the declared bound",
+        "SVG file measured distance to the extracted lines is within the declared bound"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-crossings",
+      "file": "src/core/topology.ts",
+      "why": "Only one path of a crossing is blamed.",
+      "status": "killed",
+      "failed": [
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "topology checks finds a proper crossing and blames both paths"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "sweep-off",
+      "file": "src/core/topology.ts",
+      "why": "Rule 3 never blames anything.",
+      "status": "killed",
+      "failed": [
+        "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it",
+        "saved scenes lines closer than the tolerance stay apart and keep most of the saving",
+        "topology checks finds a chord that sweeps over a small loop with no crossing"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "loop-off",
+      "file": "src/core/topology.ts",
+      "why": "Rule 2 accepts a two point loop.",
+      "status": "killed",
+      "failed": [
+        "loop check catches a collapsed and a flipped loop"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "rule1-ignored",
+      "file": "src/core/pipeline.ts",
+      "why": "The pipeline ignores crossings.",
+      "status": "killed",
+      "failed": [
+        "saved scenes crossing-chords.contour.json holds every rule"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "rule3-ignored",
+      "file": "src/core/pipeline.ts",
+      "why": "The pipeline ignores sweeps.",
+      "status": "killed",
+      "failed": [
+        "saved scenes lines closer than the tolerance stay apart and keep most of the saving"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "bound-no-rounding",
+      "file": "src/core/pipeline.ts",
+      "why": "The declared bound leaves out rounding.",
+      "status": "killed",
+      "failed": [
+        "random scenes every rule holds in every scene",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "SVG file measured distance to the extracted lines is within the declared bound"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "margin-limit",
+      "file": "src/core/pipeline.ts",
+      "why": "Expanded bounds leave the domain.",
+      "status": "killed",
+      "failed": [
+        "SVG file expanded bounds grow the viewBox and report a limited margin"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "relative-lattice",
+      "file": "src/core/svg.ts",
+      "why": "Relative commands accumulate a wrong y.",
+      "status": "killed",
+      "failed": [
+        "SVG file expanded bounds grow the viewBox and report a limited margin"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "absolute-off",
+      "file": "src/core/svg.ts",
+      "why": "No absolute anchor, so drift is unbounded.",
+      "status": "killed",
+      "failed": [
+        "path data adds an absolute command every 64 nodes"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-escape",
+      "file": "src/core/svg.ts",
+      "why": "Scene names can inject markup.",
+      "status": "killed",
+      "failed": [
+        "SVG file uses only the declared elements and attributes",
+        "SVG file escapes the title"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-z",
+      "file": "src/core/svg.ts",
+      "why": "Closed paths are not closed in the file.",
+      "status": "killed",
+      "failed": [
+        "sampled distance finds a single displaced vertex at about its true size",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes swept-pit.contour.json holds every rule",
+        "path data closes loops with z and does not repeat the first point",
+        "SVG file parses back to the same geometry the pipeline produced",
+        "SVG file measured distance to the extracted lines is within the declared bound"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "colour-check",
+      "file": "src/core/scene.ts",
+      "why": "Any text can reach an SVG attribute.",
+      "status": "killed",
+      "failed": [
+        "scene files rejects a colour that could carry markup"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "size-check",
+      "file": "src/core/scene.ts",
+      "why": "Huge files reach the parser.",
+      "status": "killed",
+      "failed": [
+        "scene files rejects an oversized file before parsing"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "commit-order",
+      "file": "src/app/jobs.ts",
+      "why": "An old final can overwrite a newer draft.",
+      "status": "killed",
+      "failed": [
+        "commit rule an old final never overwrites a newer draft"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "cancel-drafts",
+      "file": "src/app/jobs.ts",
+      "why": "Drafts starve during a drag.",
+      "status": "killed",
+      "failed": [
+        "job slots never cancels a running draft, so a long drag still paints"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "unbounded-queue",
+      "file": "src/app/jobs.ts",
+      "why": "The newest request is dropped.",
+      "status": "killed",
+      "failed": [
+        "job slots keeps only the newest waiting job, so outstanding work stays at two"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "history-coalesce",
+      "file": "src/app/history.ts",
+      "why": "A new edit keeps stale redo entries.",
+      "status": "killed",
+      "failed": [
+        "history undo and redo walk through states and a new edit clears redo"
+      ],
+      "suiteErrors": 0
+    }
+  ]
+}
