@@ -118,7 +118,8 @@ interface BrowserFile {
   gaps: number[];
   longTasks: number[];
   draws: number[];
-  stages: Record<string, Record<string, number>[]>;
+  stages: Record<string, Record<string, Record<string, number>[]>>;
+  sendSpan: number;
 }
 
 async function browserRuns() {
@@ -126,22 +127,18 @@ async function browserRuns() {
   const url = `http://localhost:${PORT}`;
   const engines = ['worker', 'main', 'blocking'];
   const configs = smoke
-    ? [{ mode: 'worker', throttle: 1, scene: 'target' }]
-    : [
-        ...engines.map((mode) => ({ mode, throttle: 1, scene: 'target' })),
-        ...engines.map((mode) => ({ mode, throttle: 4, scene: 'target' })),
-        ...engines.map((mode) => ({ mode, throttle: 1, scene: 'stress' })),
-      ];
+    ? [{ mode: 'worker', scene: 'target' }]
+    : ['target', 'stress'].flatMap((scene) => engines.map((mode) => ({ mode, scene })));
   const runs = smoke ? 1 : BROWSER_RUNS;
   const summary = [];
   let browserVersion = '';
   try {
-    for (const { mode, throttle, scene } of configs) {
+    for (const { mode, scene } of configs) {
       const files: BrowserFile[] = [];
       for (let r = 0; r < runs; r++) {
-        console.log(`Browser ${scene} ${mode} x${throttle}, run ${r + 1} of ${runs}`);
-        const out = join(folder, 'raw', `browser-${scene}-${mode}-x${throttle}-${r + 1}.json`);
-        await run(['bench/browser-run.ts', url, mode, String(throttle), scene, out]);
+        console.log(`Browser ${scene} ${mode}, run ${r + 1} of ${runs}`);
+        const out = join(folder, 'raw', `browser-${scene}-${mode}-${r + 1}.json`);
+        await run(['bench/browser-run.ts', url, mode, scene, out]);
         files.push(JSON.parse(readFileSync(out, 'utf8')));
       }
       browserVersion = files[0].browser;
@@ -155,28 +152,36 @@ async function browserRuns() {
       summary.push({
         scene,
         mode,
-        throttle,
         draftCommitsPerRun: perRun((f) => latency('draft')(f).length),
         draftCommitMedianMs: perRun((f) => median(latency('draft')(f))),
         draftCommitP95Ms: perRun((f) => percentile(latency('draft')(f), 0.95)),
         draftFrameP95Ms: perRun((f) => percentile(framed('draft')(f), 0.95)),
         finalCommitMs: perRun((f) => median(latency('final')(f))),
+        sendSpanMs: perRun((f) => f.sendSpan),
         longestRafGapMs: perRun((f) => Math.max(...f.gaps)),
         rafGapP95Ms: perRun((f) => percentile(f.gaps, 0.95)),
         longTaskCount: perRun((f) => f.longTasks.length),
         drawP95Ms: perRun((f) => percentile(f.draws, 0.95)),
         stages:
-          throttle === 1 && scene === 'target'
+          mode === 'worker' && scene === 'target'
             ? Object.fromEntries(
-                RESOLUTIONS.map((res) => [
-                  res,
+                Object.keys(files[0].stages).map((id) => [
+                  id,
                   Object.fromEntries(
-                    ['field', 'extract', 'join', 'clip', 'simplify', 'topology', 'serialize', 'total'].map(
-                      (stage) => [
-                        stage,
-                        perRun((f) => median(f.stages[res].map((s) => s[stage]))),
-                      ],
-                    ),
+                    RESOLUTIONS.map((res) => [
+                      res,
+                      {
+                        grid: `${files[0].stages[id][res][0].nx}x${files[0].stages[id][res][0].ny}`,
+                        ...Object.fromEntries(
+                          ['field', 'extract', 'join', 'clip', 'simplify', 'topology', 'serialize', 'total'].map(
+                            (stage) => [
+                              stage,
+                              perRun((f) => median(f.stages[id][res].map((s) => s[stage]))),
+                            ],
+                          ),
+                        ),
+                      },
+                    ]),
                   ),
                 ]),
               )
@@ -224,7 +229,8 @@ function manifest(browserVersion: string) {
       tolerances: TOLERANCES,
       resolutions: RESOLUTIONS,
       exclusions: 'None. Every run and every measured iteration is kept.',
-      cpuThrottle: 'Chrome DevTools Protocol rate 4 is synthetic, and stands in for a slower laptop.',
+      drag: 'Open loop, 150 moves on a 16 ms clock, not awaited.',
+      samplingWindow: 'Mouse down until 300 ms after the export report commits.',
     },
   };
 }
@@ -240,21 +246,12 @@ writeFileSync(
 );
 writeFileSync(join(folder, 'size-error.json'), `${JSON.stringify(table, null, 2)}\n`);
 
-interface Row {
-  id: string;
-  group: string;
-}
-const browserNominal = browserSummary.find(
-  (b) => b.mode === 'worker' && b.throttle === 1 && b.scene === 'target',
+const browserNominal = browserSummary.find((b) => b.mode === 'worker' && b.scene === 'target');
+const refined = Object.values(browserNominal?.stages ?? {}).map(
+  (byGrid) => (byGrid as unknown as Record<number, { total: { max: number } }>)[512].total.max,
 );
-const refined = browserSummary
-  .filter((b) => b.stages)
-  .map((b) => b.stages?.[512]?.total.max ?? Infinity);
-const nodeRefined = (stageSummary as (Row & { total: { max: number } })[])
-  .filter((r) => r.group === 'target' && r.id.endsWith('/512'))
-  .map((r) => r.total.max);
 const criteria = {
-  refined512Within500Ms: Math.max(...refined, ...nodeRefined) <= 500,
+  refined512Within500Ms: refined.length === 3 && Math.max(...refined) <= 500,
   draftP95Within33Ms: (browserNominal?.draftCommitP95Ms.max ?? Infinity) <= 33,
   noLongTaskDuringDrag: (browserNominal?.longTaskCount.max ?? Infinity) === 0,
   sizeTableClean: table.every(

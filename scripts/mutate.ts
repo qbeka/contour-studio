@@ -15,6 +15,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
   rmSync,
   symlinkSync,
@@ -91,9 +92,34 @@ const MUTATIONS: Mutation[] = [
   { id: 'history-coalesce', file: 'src/app/history.ts', find: "return { past, present: next, future: [] };", replace: "return { past, present: next, future: history.future };", why: 'A new edit keeps stale redo entries.' },
 ];
 
+/** Bugs that only a browser can show. These run against the Chromium suite. */
+const BROWSER_MUTATIONS: Mutation[] = [
+  { id: 'typing-reset', file: 'src/app/controls.tsx', find: 'setText((current) => (Number(current) === value ? current : show(value)));', replace: 'setText(show(value));', why: 'Typing a negative number resets the field.' },
+  { id: 'ridge-limit', file: 'src/app/Stage.tsx', find: 'if (points.length >= 2 && hasRoom(store.scene)) {', replace: 'if (points.length >= 2) {', why: 'A ridge can pass the source limit.' },
+  { id: 'place-limit', file: 'src/app/Stage.tsx', find: "if (tool === 'peak' || tool === 'ridge') {\n      if (!hasRoom(store.scene)) {", replace: "if (tool === 'peak' || tool === 'ridge') {\n      if (false) {", why: 'Placing a source ignores the limit.' },
+  { id: 'right-click', file: 'src/app/Stage.tsx', find: 'if (event.button !== 0) return;\n    const at = placed', replace: 'const at = placed', why: 'Right click places a source.' },
+  { id: 'double-click', file: 'src/app/Stage.tsx', find: 'finishRidge(store, repeated ? draftRidge.slice(0, -1) : draftRidge);', replace: 'finishRidge(store, draftRidge);', why: 'A double click repeats a ridge point.' },
+  { id: 'slider-delete', file: 'src/app/App.tsx', find: "if (!source || (event.target as HTMLElement | null)?.tagName === 'INPUT') return;", replace: 'if (!source) return;', why: 'Backspace on a slider deletes the source.' },
+  { id: 'no-flush', file: 'src/app/session.ts', find: 'if (dirty) save();', replace: '', why: 'A reload inside the delay loses the edit.' },
+  { id: 'save-state', file: 'src/app/session.ts', find: "options.persist(store.scene) ? 'saved' : 'failed'", replace: "(options.persist(store.scene), 'saved')", why: 'Failed storage reads as saved.' },
+  { id: 'peak-clamp', file: 'src/app/edits.ts', find: '    x: clampPosition(x),\n    y: clampPosition(y),\n    radius: defaultReach(scene),', replace: '    x,\n    y,\n    radius: defaultReach(scene),', why: 'A peak can land outside the format.' },
+  { id: 'cancel-off', file: 'src/app/geometry.worker.ts', find: "    cancelled.add(message.id);", replace: '', why: 'The worker ignores cancel messages.' },
+  { id: 'export-stale', file: 'src/app/Panels.tsx', find: "previewState(state.shown, state.revision) === 'final' && state.geometry?.quality === 'final';", replace: "state.geometry?.quality === 'final';", why: 'Export is allowed while geometry is stale.' },
+];
+
 const repo = process.cwd();
 const sandbox = mkdtempSync(join(tmpdir(), 'contour-mutants-'));
-for (const entry of ['src', 'test', 'package.json', 'tsconfig.json', 'vite.config.ts']) {
+for (const entry of [
+  'src',
+  'test',
+  'e2e',
+  'public',
+  'index.html',
+  'package.json',
+  'tsconfig.json',
+  'vite.config.ts',
+  'playwright.config.ts',
+]) {
   cpSync(join(repo, entry), join(sandbox, entry), { recursive: true });
 }
 symlinkSync(join(repo, 'node_modules'), join(sandbox, 'node_modules'));
@@ -181,13 +207,73 @@ for (const mutation of MUTATIONS) {
   });
 }
 
+async function runBrowserTests(): Promise<Outcome> {
+  const report = join(sandbox, 'e2e-report.json');
+  rmSync(report, { force: true });
+  const child = spawn(
+    'node_modules/.bin/playwright',
+    ['test', '--project=chromium', '--reporter=json'],
+    {
+      cwd: sandbox,
+      stdio: ['ignore', openSync(report, 'w'), 'ignore'],
+      detached: true,
+    },
+  );
+  let timedOut = false;
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(() => {
+      timedOut = true;
+      process.kill(-(child.pid as number), 'SIGKILL');
+    }, 180_000);
+    child.on('exit', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+  if (timedOut) return { passed: false, timedOut: true, failed: [], suiteErrors: 0 };
+  interface Suite {
+    title: string;
+    specs?: { title: string; ok: boolean }[];
+    suites?: Suite[];
+  }
+  const json = JSON.parse(readFileSync(report, 'utf8')) as { suites: Suite[] };
+  const failed: string[] = [];
+  const walk = (suite: Suite) => {
+    for (const spec of suite.specs ?? []) if (!spec.ok) failed.push(spec.title);
+    for (const child_ of suite.suites ?? []) walk(child_);
+  };
+  json.suites.forEach(walk);
+  return { passed: failed.length === 0, timedOut: false, failed, suiteErrors: 0 };
+}
+
+const browserBaseline = await runBrowserTests();
+if (!browserBaseline.passed) {
+  console.error('The unmodified browser suite fails in the sandbox.', browserBaseline.failed);
+  process.exit(1);
+}
+
+for (const mutation of BROWSER_MUTATIONS) {
+  const path = join(sandbox, mutation.file);
+  const original = readFileSync(path, 'utf8');
+  if (!original.includes(mutation.find)) {
+    results.push({ id: mutation.id, file: mutation.file, why: mutation.why, status: 'not-applied', failed: [], suiteErrors: 0 });
+    continue;
+  }
+  writeFileSync(path, original.replace(mutation.find, mutation.replace));
+  const outcome = await runBrowserTests();
+  writeFileSync(path, original);
+  const status = outcome.timedOut ? 'timed-out' : outcome.passed ? 'survived' : 'killed';
+  console.log(`${status.padEnd(12)} ${mutation.id.padEnd(20)} ${outcome.failed.length} failing`);
+  results.push({ id: mutation.id, file: mutation.file, why: mutation.why, status, failed: outcome.failed, suiteErrors: 0 });
+}
+
 rmSync(sandbox, { recursive: true, force: true });
 
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
 mkdirSync(join(repo, 'results/mutations'), { recursive: true });
 writeFileSync(
   join(repo, 'results/mutations/latest.json'),
-  `${JSON.stringify({ commit, unmodifiedSuitePassed: true, total: results.length, killed: results.filter((r) => r.status === 'killed').length, timedOut: results.filter((r) => r.status === 'timed-out').length, results }, null, 2)}\n`,
+  `${JSON.stringify({ commit, unmodifiedSuitePassed: true, unmodifiedBrowserSuitePassed: true, total: results.length, killed: results.filter((r) => r.status === 'killed').length, timedOut: results.filter((r) => r.status === 'timed-out').length, results }, null, 2)}\n`,
 );
 const survivors = results.filter((r) => r.status !== 'killed');
 console.log(`\n${results.length - survivors.length} of ${results.length} killed by a named test.`);

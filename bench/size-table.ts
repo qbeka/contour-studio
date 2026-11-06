@@ -5,12 +5,29 @@ import { unsimplified } from '../src/app/report';
 import { computeGeometry } from '../src/core/pipeline';
 import { PRESETS } from '../src/core/presets';
 import { toSvg } from '../src/core/svg';
+import type { Polyline } from '../src/core/contour';
+import type { Scene } from '../src/core/scene';
 import { estimateGridError, parseSvgPaths, sampledHausdorff } from '../src/core/verify';
 import { DISTANCE_SPACING, TOLERANCES } from './workload';
+
+const REFERENCE_RESOLUTION = 2048;
+
+/** Extracted lines, as drawn at a grid. Drafts stop before simplifying. */
+function extracted(scene: Scene, resolution: number): Polyline[] {
+  const geometry = computeGeometry(scene, { quality: 'draft', resolution });
+  return geometry.levels.flatMap((level) => level.paths);
+}
 
 export function sizeTable() {
   const rows = [];
   for (const preset of PRESETS) {
+    // A reference for grid error that does not use the first-order estimate: the
+    // same scene at four times the grid, and so about a sixteenth of the error.
+    const reference = sampledHausdorff(
+      extracted(preset.scene, preset.scene.export.resolution),
+      extracted(preset.scene, REFERENCE_RESOLUTION),
+      1,
+    );
     for (const tolerance of TOLERANCES) {
       const scene = { ...preset.scene, export: { ...preset.scene.export, tolerance } };
       const geometry = computeGeometry(scene, { quality: 'final' });
@@ -46,6 +63,8 @@ export function sizeTable() {
         gridErrorRms: grid.rms,
         gridSamples: grid.samples,
         gridSkipped: grid.skipped,
+        referenceDistance: reference.sampled,
+        referenceResolution: REFERENCE_RESOLUTION,
         crossings: stats.crossings,
         fallbackPaths: stats.fallbackPaths,
         retainedPaths: stats.retainedPaths,

@@ -18,7 +18,10 @@ import { join } from 'node:path';
 import { chromium, firefox, webkit, type BrowserType } from '@playwright/test';
 import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
+import { computeGeometry } from '../src/core/pipeline';
 import { PRESETS } from '../src/core/presets';
+import { toSvg } from '../src/core/svg';
+import { parsePathData } from '../src/core/verify';
 
 const WIDTH = 1200;
 const INK_THRESHOLD = 0.02;
@@ -164,10 +167,20 @@ async function vectorModel(svgs: Record<string, string>) {
         if (p.closed) closed++;
       }
       // An edit that a designer would do: move one node, then write the file back.
-      paths[0].segments[0].point = paths[0].segments[0].point.add([3, 3]);
-      const written = paper.project.exportSVG({ asString: true }).length;
+      const before = paper.project.exportSVG({ asString: true });
+      const segment = paths[0].segments[0];
+      const start = { x: segment.point.x, y: segment.point.y };
+      segment.point = segment.point.add([3, 3]);
+      const after = paper.project.exportSVG({ asString: true });
+      const moved = segment.point.x === start.x + 3 && segment.point.y === start.y + 3;
       paper.project.clear();
-      return { pathItems: paths.length, segments, closed, nodeEditWorked: true, writtenBytes: written };
+      return {
+        pathItems: paths.length,
+        segments,
+        closed,
+        nodeEditWorked: moved && after !== before,
+        writtenBytes: after.length,
+      };
     }, svg);
   }
   await browser.close();
@@ -181,7 +194,11 @@ const svgs = Object.fromEntries(
 const expected = Object.fromEntries(
   Object.entries(svgs).map(([name, svg]) => {
     const paths = (svg.match(/<path /g) ?? []).length;
-    return [name, { paths, closed: (svg.match(/z"/g) ?? []).length }];
+    const nodes = [...svg.matchAll(/ d="([^"]+)"/g)].reduce(
+      (sum, m) => sum + parsePathData(m[1]).reduce((n, p) => n + p.points.length / 2, 0),
+      0,
+    );
+    return [name, { paths, nodes, closed: (svg.match(/z"/g) ?? []).length }];
   }),
 );
 
@@ -208,6 +225,69 @@ const rows = Object.keys(svgs).map((name) => ({
 }));
 
 const editing = await vectorModel(svgs);
+for (const [name, want] of Object.entries(expected)) {
+  const got = editing[name] as { pathItems: number; segments: number; closed: number; nodeEditWorked: boolean };
+  if (
+    got.pathItems !== want.paths ||
+    got.segments !== want.nodes ||
+    got.closed !== want.closed ||
+    !got.nodeEditWorked
+  ) {
+    console.error(`${name}: the vector model disagrees with the file.`);
+    process.exitCode = 1;
+  }
+}
+
+// Fixed line weight depends on vector-effect, which is a separate claim. Ink at
+// twice the size against ink at the natural size: about 1 means the weight held.
+async function fixedStroke() {
+  const preset = PRESETS[1];
+  const scene = {
+    ...preset.scene,
+    export: { ...preset.scene.export, strokeScaling: 'fixed' as const, outputWidth: 2000 },
+  };
+  const svg = toSvg(computeGeometry(scene, { quality: 'final' }), scene);
+  const natural = toSvg(
+    computeGeometry(
+      { ...scene, export: { ...scene.export, outputWidth: 1000 } },
+      { quality: 'final' },
+    ),
+    scene,
+  );
+  const ink = (r: Raster) => inkMask(r).reduce((a, b) => a + b, 0);
+  const lineWidth = async (type: BrowserType) => {
+    const browser = await type.launch();
+    const measure = async (text: string, size: number) => {
+      const page = await browser.newPage({ viewport: { width: size, height: size } });
+      await page.setContent(
+        `<!doctype html><body style="margin:0;background:#fff">${text.replace(/ width="[\d.]+" height="[\d.]+"/, ` width="${size}" height="${size}"`)}</body>`,
+      );
+      const raster = decode(await page.screenshot({ type: 'png' }));
+      await page.close();
+      return ink(raster);
+    };
+    const big = await measure(svg, 2000);
+    const small = await measure(natural, 1000);
+    await browser.close();
+    return big / small / 2;
+  };
+  const resvg = () => {
+    const render = (value: number) =>
+      decode(Buffer.from(new Resvg(svg, { background: PAPER, fitTo: { mode: 'width', value } }).render().asPng()));
+    return ink(render(2000)) / ink(render(1000)) / 2;
+  };
+  return {
+    note: 'Ink at 2000 px over ink at 1000 px, over 2. Line length doubles, so 1 means the line weight stayed the same, and 2 means it scaled.',
+    chromium: await lineWidth(chromium),
+    firefox: await lineWidth(firefox),
+    webkit: await lineWidth(webkit),
+    resvg: resvg(),
+  };
+}
+
+const fixed = await fixedStroke();
+console.log(fixed);
+
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const result = {
   commit,
@@ -219,6 +299,7 @@ const result = {
   control: `The longest path moved down ${CONTROL_SHIFT_UNITS} units. The comparison must report more than any real renderer pair.`,
   xmlWellFormed: xml,
   render: rows,
+  fixedStroke: fixed,
   vectorModel: {
     tool: `paper.js ${require('paper/package.json').version}`,
     note: 'A vector scripting library with its own path model. It is not a desktop editor.',

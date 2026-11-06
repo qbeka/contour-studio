@@ -6,7 +6,7 @@ This plan was committed before the final measurement. The workload lives in `ben
 
 MacBook Pro, Apple M5 Pro, model Mac17,9, 48 GB of memory, on AC power, macOS. The exact versions go in each run's `manifest.json`.
 
-This is a fast laptop. The brief's first target, 500 ms, was written for a named reference laptop, and this is the one available. To show what a slower machine might see, each browser run is repeated with Chrome's CPU throttle at 4x. That throttle is synthetic. It is not a measurement of a real slower laptop.
+This is a fast laptop. The brief's first target, 500 ms, was written for a named reference laptop, and this is the one available. A slower machine has not been measured.
 
 ## Workloads
 
@@ -18,14 +18,14 @@ This is a fast laptop. The brief's first target, 500 ms, was written for a named
 
 "16 levels" keeps each scene's height range and divides it into 16 lines.
 
-The browser workload is the interference study at 512 with 16 levels, the densest target. One source is dragged with real pointer events along a fixed loop of 150 steps at a 16 ms pace, then released to refine.
+The browser workload is the interference study at 512 with 16 levels, the densest target. One source is dragged with real pointer events along a fixed loop of 150 steps on a 16 ms clock, then released to refine. The stress scene repeats the same drag.
 
 ## Metrics
 
 - **Stage times**: field, extract, join, clip, simplify, topology, serialize, and their total.
 - **Input to draft**: pointer event to draft geometry committed, and to the next animation frame after that.
 - **Input to final**: pointer event to final geometry committed. This includes the 90 ms wait for the scene to go still.
-- **Main thread availability**: long tasks, and the largest gap between animation frames. These do not prove displayed frame rate.
+- **Main thread availability**: long tasks, and the largest gap between animation frames, from mouse down until 300 ms after the export report commits. These do not prove displayed frame rate.
 - **Size**: nodes, paths, bytes, gzip bytes (level 9), against the unsimplified file for the same composition at the same decimals.
 - **Error**: declared bound, sampled distance from the parsed SVG to the extracted lines at 0.25 unit spacing, its guard, and a sampled grid error estimate.
 
@@ -44,9 +44,9 @@ The browser workload is the interference study at 512 with 16 levels, the denses
 
 ## Pass criteria
 
-1. A refined 512 by 512 scene with 16 levels takes at most 500 ms in Chromium on every target scene.
-2. Edit to draft at the 95th percentile is at most 33 ms with the worker at 1x.
-3. With the worker at 1x, the drag produces no long task.
+1. A refined scene with 512 cells on its long side and 16 levels takes at most 500 ms in Chromium on all three target scenes. The grids are 512 by 205, 512 by 512 and 512 by 341, because the domains differ in shape.
+2. Input to draft at the 95th percentile is at most 33 ms with the worker.
+3. With the worker, no long task runs in the measured window.
 4. Every row of the size table has 0 crossings, keeps every path, and has a sampled distance within its declared bound.
 
 A missed target is reported as missed, with the next bounded improvement.
@@ -65,3 +65,14 @@ With a fair baseline, the worker lost on draft latency, 8 ms against 2 ms. Two t
 2. **The workload.** The target drag scene finishes within a frame on this machine, so it cannot show when a worker matters. The declared stress scene now also runs the same drag at 1x.
 
 Pass criteria did not change.
+
+## Amendment after an independent review
+
+A reviewer working from a clean clone showed that the third run, kept in `results/bench-2026-11-06T07-44-05-187Z`, measured less than it claimed. Its worker comparison must not be quoted.
+
+1. **Sampling closed too early.** It stopped 100 ms after the final, before the main thread's report ran, so the largest stalls were missed. The window now runs from mouse down to 300 ms after the report commits.
+2. **The drag was closed loop.** Each move was awaited, so a busy main thread slowed the input and hid its own queueing. Moves now go out on a fixed clock and are not awaited. Drafts per run can now fall below 150, because Chromium coalesces moves and a draft can be replaced before it starts.
+3. **The 4x throttle missed the worker.** Chrome's throttle applied to the page's main thread and not to the worker, so those rows compared different machines. They are removed. Nothing here measures a slower machine.
+4. **Criterion 1 covered one scene in Chromium.** It now covers all three, and it states the real grids.
+
+A reference for grid error was also added: each scene's lines at its own grid against the same scene at 2048 cells.

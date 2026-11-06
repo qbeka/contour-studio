@@ -2,8 +2,13 @@
  * One independent browser run: a new Chromium, a new page, one mode.
  *
  * It drags a source through the fixed scene with real pointer events, then lets
- * it refine. Times come from the app's session log. rAF gaps are recorded as well,
- * and they measure main thread availability. They do not prove displayed frames.
+ * it refine and finish its report. Times come from the app's session log. rAF gaps
+ * measure main thread availability. They do not prove displayed frames.
+ *
+ * The drag is open loop: moves go out on a fixed clock and are not awaited. A busy
+ * main thread cannot slow the input down, so its queueing shows up as latency.
+ * The sampling window opens at mouse down and closes after the report, because
+ * work done after release still blocks whatever the user does next.
  */
 
 import { writeFileSync } from 'node:fs';
@@ -12,8 +17,7 @@ import { PRESETS } from '../src/core/presets';
 import { serializeScene, type Scene } from '../src/core/scene';
 import { stressScene, withLevels } from './workload';
 
-const [url, mode, throttleText, sceneName, out] = process.argv.slice(2);
-const throttle = Number(throttleText);
+const [url, mode, sceneName, out] = process.argv.slice(2);
 const DRAG_STEPS = 150;
 const PACE_MS = 16;
 
@@ -21,7 +25,6 @@ const browser = await chromium.launch();
 const version = browser.version();
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 const page = await context.newPage();
-const client = await context.newCDPSession(page);
 // tsx wraps named functions with this helper, and evaluated code needs it as well.
 await page.addInitScript('window.__name = (f) => f');
 const engines: Record<string, string> = { main: '&worker=off', blocking: '&worker=blocking' };
@@ -39,8 +42,21 @@ await page.locator('input[type=file]').setInputFiles({
 });
 await page.waitForFunction(() => document.querySelector('.notice')?.textContent?.includes('Opened'));
 await page.waitForSelector('.status-state[data-state=final]', { timeout: 30_000 });
-if (throttle > 1) await client.send('Emulation.setCPUThrottlingRate', { rate: throttle });
 await page.waitForTimeout(300);
+
+const source = scene.sources[5];
+if (source.kind !== 'peak') throw new Error('Workload changed.');
+const position = await page.evaluate(
+  ({ x, y }) => {
+    const { store } = (window as any).__contour;
+    const { view } = store.getState();
+    const box = document.querySelector('.stage')!.getBoundingClientRect();
+    return { x: box.left + view.x + x * view.scale, y: box.top + view.y + y * view.scale };
+  },
+  { x: source.x, y: source.y },
+);
+await page.mouse.move(position.x, position.y);
+await page.waitForTimeout(100);
 
 await page.evaluate(() => {
   const w = window as any;
@@ -61,32 +77,26 @@ await page.evaluate(() => {
   requestAnimationFrame(tick);
 });
 
-const source = scene.sources[5];
-if (source.kind !== 'peak') throw new Error('Workload changed.');
-const position = await page.evaluate(
-  ({ x, y }) => {
-    const { store } = (window as any).__contour;
-    const { view } = store.getState();
-    const box = document.querySelector('.stage')!.getBoundingClientRect();
-    return { x: box.left + view.x + x * view.scale, y: box.top + view.y + y * view.scale };
-  },
-  { x: source.x, y: source.y },
-);
-await page.mouse.move(position.x, position.y);
 await page.mouse.down();
 const started = performance.now();
+const sent: Promise<void>[] = [];
 for (let i = 1; i <= DRAG_STEPS; i++) {
   const angle = (i / DRAG_STEPS) * Math.PI * 4;
-  await page.mouse.move(
-    position.x + 120 * Math.sin(angle),
-    position.y + 70 * (1 - Math.cos(angle)),
+  sent.push(
+    page.mouse.move(position.x + 120 * Math.sin(angle), position.y + 70 * (1 - Math.cos(angle))),
   );
   const wait = started + i * PACE_MS - performance.now();
-  if (wait > 0) await page.waitForTimeout(wait);
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
 }
+const sendSpan = performance.now() - started;
+await Promise.all(sent);
 await page.mouse.up();
 await page.waitForSelector('.status-state[data-state=final]', { timeout: 30_000 });
-await page.waitForTimeout(100);
+await page.waitForFunction(() => {
+  const state = (window as any).__contour.store.getState();
+  return state.report?.revision === state.revision;
+}, undefined, { timeout: 30_000 });
+await page.waitForTimeout(300);
 
 const data = await page.evaluate(() => {
   const w = window as any;
@@ -102,28 +112,42 @@ const data = await page.evaluate(() => {
   };
 });
 
-// Geometry stages in this engine, on the main thread, for all three grids.
-if (throttle > 1) await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-const stages = sceneName === 'stress' ? {} : await page.evaluate(
-  ({ text }) => {
-    const { computeGeometry, toSvg } = (window as any).__contour.core;
-    const parsed = JSON.parse(text);
-    const out: Record<string, unknown> = {};
-    for (const resolution of [256, 512, 1024]) {
-      for (let i = 0; i < 3; i++) computeGeometry(parsed, { quality: 'final', resolution });
-      const samples = [];
-      for (let i = 0; i < 5; i++) {
-        const geometry = computeGeometry(parsed, { quality: 'final', resolution });
-        const t0 = performance.now();
-        toSvg(geometry, parsed);
-        samples.push({ ...geometry.stats.times, serialize: performance.now() - t0 });
-      }
-      out[resolution] = samples;
-    }
-    return out;
-  },
-  { text: serializeScene(scene) },
-);
+// Geometry stages in this engine, on the main thread, for all three target scenes.
+const stages =
+  mode === 'worker' && sceneName === 'target'
+    ? await page.evaluate(
+        ({ scenes }) => {
+          const { computeGeometry, toSvg } = (window as any).__contour.core;
+          const out: Record<string, Record<number, unknown>> = {};
+          for (const [id, text] of Object.entries(scenes)) {
+            const parsed = JSON.parse(text as string);
+            out[id] = {};
+            for (const resolution of [256, 512, 1024]) {
+              for (let i = 0; i < 3; i++) computeGeometry(parsed, { quality: 'final', resolution });
+              const samples = [];
+              for (let i = 0; i < 5; i++) {
+                const geometry = computeGeometry(parsed, { quality: 'final', resolution });
+                const t0 = performance.now();
+                toSvg(geometry, parsed);
+                samples.push({
+                  ...geometry.stats.times,
+                  serialize: performance.now() - t0,
+                  nx: geometry.nx,
+                  ny: geometry.ny,
+                });
+              }
+              out[id][resolution] = samples;
+            }
+          }
+          return out;
+        },
+        {
+          scenes: Object.fromEntries(
+            PRESETS.map((p) => [p.id, serializeScene(withLevels(p.scene, 16))]),
+          ),
+        },
+      )
+    : {};
 
 await browser.close();
-writeFileSync(out, JSON.stringify({ ...data, browser: version, mode, throttle, scene: sceneName, stages }));
+writeFileSync(out, JSON.stringify({ ...data, browser: version, mode, scene: sceneName, sendSpan, stages }));

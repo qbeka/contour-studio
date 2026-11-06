@@ -55,39 +55,42 @@ const MODES: Record<string, string> = {
 
 function browserTable(): string {
   const head =
-    '| Scene | Mode | CPU | Drafts per run | Input to draft, p50 | Input to draft, p95 | To next frame, p95 | Input to final | Long tasks | Largest frame gap |\n|---|---|---|---|---|---|---|---|---|---|';
+    '| Scene | Mode | Drafts per run | Input to draft, p50 | Input to draft, p95 | To next frame, p95 | Input to final | Long tasks | Largest frame gap |\n|---|---|---|---|---|---|---|---|---|';
   return [
     head,
     ...summary.browser.map(
-      (b: Record<string, Stat> & { mode: string; throttle: number; scene: string }) =>
-        `| ${SCENES[b.scene]} | ${MODES[b.mode]} | ${b.throttle}x | ${b.draftCommitsPerRun.mean.toFixed(0)} | ${range(b.draftCommitMedianMs)} | ${range(b.draftCommitP95Ms)} | ${ms(b.draftFrameP95Ms)} | ${range(b.finalCommitMs, 0)} | ${b.longTaskCount.mean.toFixed(1)} | ${range(b.longestRafGapMs, 0)} |`,
+      (b: Record<string, Stat> & { mode: string; scene: string }) =>
+        `| ${SCENES[b.scene]} | ${MODES[b.mode]} | ${b.draftCommitsPerRun.mean.toFixed(0)} | ${range(b.draftCommitMedianMs)} | ${range(b.draftCommitP95Ms)} | ${ms(b.draftFrameP95Ms)} | ${range(b.finalCommitMs, 0)} | ${b.longTaskCount.mean.toFixed(1)} | ${range(b.longestRafGapMs, 0)} |`,
     ),
   ].join('\n');
 }
 
 function chromiumStages(): string {
-  const main = summary.browser.find(
-    (b: { mode: string; throttle: number; scene: string }) =>
-      b.mode === 'worker' && b.throttle === 1 && b.scene === 'target',
+  const worker = summary.browser.find(
+    (b: { mode: string; scene: string }) => b.mode === 'worker' && b.scene === 'target',
   );
   const head =
-    '| Grid | Field | Extract | Join | Clip | Simplify | Topology | Serialize | Pipeline total |\n|---|---|---|---|---|---|---|---|---|';
-  const rows = Object.entries(main.stages as Record<string, Record<string, Stat>>).map(
-    ([grid, s]) =>
-      `| ${grid} | ${ms(s.field)} | ${ms(s.extract)} | ${ms(s.join)} | ${ms(s.clip)} | ${ms(s.simplify)} | ${ms(s.topology)} | ${ms(s.serialize)} | ${range(s.total)} |`,
-  );
-  const draw = `Canvas draw calls took ${ms(main.drawP95Ms, 2)} ms at the 95th percentile. That covers recording commands in JavaScript. The browser rasterises later, so it is a lower bound on render cost.`;
+    '| Scene | Grid | Field | Extract | Join | Clip | Simplify | Topology | Serialize | Pipeline total |\n|---|---|---|---|---|---|---|---|---|---|';
+  const rows: string[] = [];
+  for (const [id, grids] of Object.entries(worker.stages as Record<string, Record<string, Record<string, Stat> & { grid: string }>>)) {
+    for (const s of Object.values(grids)) {
+      rows.push(
+        `| ${id} | ${(s.grid as unknown as string).replace('x', ' by ')} | ${ms(s.field)} | ${ms(s.extract)} | ${ms(s.join)} | ${ms(s.clip)} | ${ms(s.simplify)} | ${ms(s.topology)} | ${ms(s.serialize)} | ${range(s.total)} |`,
+      );
+    }
+  }
+  const draw = `Canvas draw calls took ${ms(worker.drawP95Ms, 2)} ms at the 95th percentile. That covers recording commands in JavaScript. The browser rasterises later, so it is a lower bound on render cost.`;
   return [head, ...rows, '', draw].join('\n');
 }
 
 function sizeTable(): string {
   const head =
-    '| Scene | Allowed | Nodes | Paths | Bytes | Gzip | Time ms | Bound | Sampled | Guard | Grid max | Grid RMS | Crossings | Fallbacks |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
+    '| Scene | Tolerance | Nodes | Paths | Bytes | Gzip | Time ms | Bound | Sampled | Guard | Grid max | Grid RMS | Against 2048 grid | Crossings | Fallbacks |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|';
   return [
     head,
     ...size.map(
       (r: Record<string, number> & { scene: string }) =>
-        `| ${r.scene} | ${r.tolerance} | ${int(r.verticesBefore)} to ${int(r.verticesAfter)} | ${r.pathsBefore} to ${r.paths} | ${kb(r.bytesBefore)} to ${kb(r.bytesAfter)} | ${kb(r.gzipBefore)} to ${kb(r.gzipAfter)} | ${r.processingMs.toFixed(0)} | ${r.declaredBound.toFixed(3)} | ${r.sampledDistance.toFixed(3)} | ${r.guard.toFixed(3)} | ${r.gridErrorMax.toFixed(3)} | ${r.gridErrorRms.toFixed(4)} | ${r.crossings} | ${r.fallbackPaths} |`,
+        `| ${r.scene} | ${r.tolerance} | ${int(r.verticesBefore)} to ${int(r.verticesAfter)} | ${r.pathsBefore} to ${r.paths} | ${kb(r.bytesBefore)} to ${kb(r.bytesAfter)} | ${kb(r.gzipBefore)} to ${kb(r.gzipAfter)} | ${r.processingMs.toFixed(0)} | ${r.declaredBound.toFixed(3)} | ${r.sampledDistance.toFixed(3)} | ${r.guard.toFixed(3)} | ${r.gridErrorMax.toFixed(3)} | ${r.gridErrorRms.toFixed(4)} | ${r.referenceDistance.toFixed(3)} | ${r.crossings} | ${r.fallbackPaths} |`,
     ),
   ].join('\n');
 }
@@ -106,9 +109,9 @@ function environment(): string {
 
 function criteriaTable(): string {
   const names: Record<string, string> = {
-    refined512Within500Ms: 'Refined 512 by 512, 16 levels, within 500 ms in Chromium on every target scene',
-    draftP95Within33Ms: 'Edit to draft at p95 within 33 ms, worker at 1x',
-    noLongTaskDuringDrag: 'No long task during the drag, worker at 1x',
+    refined512Within500Ms: 'Refined at a 512 cell long side, 16 levels, within 500 ms in Chromium on all three target scenes',
+    draftP95Within33Ms: 'Input to draft at p95 within 33 ms, worker',
+    noLongTaskDuringDrag: 'No long task from mouse down to the end of the report, worker',
     sizeTableClean: 'No crossings, no lost paths, sampled distance within the bound',
   };
   return [
