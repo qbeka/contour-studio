@@ -94,7 +94,9 @@ export class GeometryClient {
         this.events.onGeometry({ revision: message.revision, geometry: message.geometry });
         // A draft ends here. A final still has its report to build, but the next
         // job should not wait behind numbers for an older scene.
-        if (message.geometry.quality === 'draft') this.next(message.id);
+        if (message.geometry.quality === 'draft' || this.slots.running?.report === false) {
+          this.next(message.id);
+        }
         break;
       case 'report':
         this.events.onReport({ revision: message.revision, report: message.report });
@@ -127,7 +129,7 @@ export class GeometryClient {
         if (step.done) {
           const geometry = step.value;
           this.events.onGeometry({ revision: job.revision, geometry });
-          if (job.quality === 'final') {
+          if (job.quality === 'final' && job.report !== false) {
             const report = (await pause()) ? null : await buildReport(geometry, job.scene, pause);
             if (report) this.events.onReport({ revision: job.revision, report });
             else this.cancelledJobs++;

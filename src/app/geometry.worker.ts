@@ -36,9 +36,10 @@ async function run(job: Job): Promise<void> {
     const step = steps.next();
     if (step.done) {
       const geometry = step.value;
-      if (job.quality === 'draft') {
-        const reply: WorkerResponse = { type: 'done', id: job.id, revision: job.revision, geometry };
-        self.postMessage(reply, { transfer: transferables(geometry) });
+      if (job.quality === 'draft' || job.report === false) {
+        const light: Geometry = { ...geometry, source: [] };
+        const reply: WorkerResponse = { type: 'done', id: job.id, revision: job.revision, geometry: light };
+        self.postMessage(reply, { transfer: transferables(light) });
         return;
       }
       // The report needs the extracted lines and must run before the transfer

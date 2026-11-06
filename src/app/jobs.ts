@@ -15,6 +15,8 @@ export interface JobRequest {
   quality: Quality;
   resolution: number;
   scene: Scene;
+  /** False ends a final at its geometry. The project page has no use for the numbers. */
+  report?: boolean;
 }
 
 export interface Job extends JobRequest {
