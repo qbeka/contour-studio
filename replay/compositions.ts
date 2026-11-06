@@ -40,9 +40,9 @@ function compose(
 // `tuned` places each source so that its rings close around the handle, because a
 // drag reads best when the handle sits at the eye of what it moves.
 export const COMPOSITIONS: readonly Composition[] = [
-  compose(0, 'Quiet ridge', 'summit', { x: 260, y: 312 }, { x: 340, y: 320 }, [0.5, 2.5]),
+  compose(0, 'Quiet ridge', 'summit', { x: 260, y: 312 }, { x: 340, y: 320 }, [0.5, 3]),
   compose(1, 'Tall basin', 'island', { radius: 96, height: 0.78 }, { x: 500, y: 500 }, [0.5, 0.8]),
-  compose(2, 'Interference', 's6', { name: 'Centre peak', radius: 130, height: 1.32 }, { x: 600, y: 400 }, [0.5, 2]),
+  compose(2, 'Interference', 's6', { name: 'Centre peak', radius: 130, height: 1.32 }, { x: 600, y: 400 }, [0.5, 3]),
 ];
 
 export function compositionOf(scene: Scene): Composition {
