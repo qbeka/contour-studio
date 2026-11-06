@@ -19,6 +19,8 @@ export interface SessionOptions {
   engine: Engine;
   createClient(events: ClientEvents, options: { engine: Engine }): GeometryClient;
   persist(scene: Scene): boolean;
+  /** False skips the export report on every final. */
+  report?: boolean;
 }
 
 export interface Session {
@@ -93,6 +95,7 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
       quality: 'final',
       resolution: store.scene.export.resolution,
       scene: store.scene,
+      report: options.report,
     });
   };
 
