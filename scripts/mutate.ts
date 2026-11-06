@@ -30,6 +30,8 @@ interface Mutation {
   find: string;
   replace: string;
   why: string;
+  /** A second edit in the same file, for a bug that needs both halves. */
+  also?: [string, string];
 }
 
 const MUTATIONS: Mutation[] = [
@@ -86,6 +88,9 @@ const MUTATIONS: Mutation[] = [
   { id: 'grid-no-slope', file: 'src/core/verify.ts', find: 'const d = Math.abs(f(x, y) - value) / slope;', replace: 'const d = Math.abs(f(x, y) - value);', why: 'Grid error is a height, not a distance.' },
   { id: 'snap-closing', file: 'src/core/simplify.ts', find: 'while (write >= 4 && out[0] === out[write - 2] && out[1] === out[write - 1]) write -= 2;\n  }\n  return { points: out.slice(0, write), closed: path.closed };', replace: '}\n  return { points: out.slice(0, write), closed: path.closed };', why: 'Rounding can repeat the first point at the end.' },
   { id: 'size-check', file: 'src/core/scene.ts', find: 'if (text.length > LIMITS.fileBytes) {', replace: 'if (false) {', why: 'Huge files reach the parser.' },
+  { id: 'export-stale', file: 'src/app/store.ts', find: "return previewState(shown, revision) === 'final' && geometry?.quality === 'final';", replace: "return geometry?.quality === 'final';", why: 'Export is allowed while geometry is stale.' },
+  { id: 'coalesce-reset', file: 'src/app/store.ts', find: "    this.lastCoalesce = null;\n    const before = this.scene;", replace: '    const before = this.scene;', why: 'An edit after undo loses a step.' },
+  { id: 'selection-repair', file: 'src/app/store.ts', find: 'return valid ? selection : { sourceId: selection.sourceId, handle: null };', replace: 'return selection;', why: 'Undo leaves a handle that no longer exists.' },
   { id: 'commit-order', file: 'src/app/jobs.ts', find: 'if (result.revision !== shown.revision) return result.revision > shown.revision;', replace: 'if (result.revision !== shown.revision) return true;', why: 'An old final can overwrite a newer draft.' },
   { id: 'cancel-drafts', file: 'src/app/jobs.ts', find: "const cancel = this.running.quality === 'final' ? this.running.id : null;", replace: 'const cancel = this.running.id;', why: 'Drafts starve during a drag.' },
   { id: 'unbounded-queue', file: 'src/app/jobs.ts', find: 'this.waiting = job;', replace: 'this.waiting = this.waiting ?? job;', why: 'The newest request is dropped.' },
@@ -94,7 +99,7 @@ const MUTATIONS: Mutation[] = [
 
 /** Bugs that only a browser can show. These run against the Chromium suite. */
 const BROWSER_MUTATIONS: Mutation[] = [
-  { id: 'typing-reset', file: 'src/app/controls.tsx', find: 'setText((current) => (Number(current) === value ? current : show(value)));', replace: 'setText(show(value));', why: 'Typing a negative number resets the field.' },
+  { id: 'typing-reset', file: 'src/app/controls.tsx', find: 'setText((current) => (Number(current) === value ? current : show(value)));', replace: 'setText(show(value));', why: 'Typing a negative number loses its sign.', also: ['if (ok) onChange(parsed + 0);', 'if (ok) onChange(parsed);'] },
   { id: 'ridge-limit', file: 'src/app/Stage.tsx', find: 'if (points.length >= 2 && hasRoom(store.scene)) {', replace: 'if (points.length >= 2) {', why: 'A ridge can pass the source limit.' },
   { id: 'place-limit', file: 'src/app/Stage.tsx', find: "if (tool === 'peak' || tool === 'ridge') {\n      if (!hasRoom(store.scene)) {", replace: "if (tool === 'peak' || tool === 'ridge') {\n      if (false) {", why: 'Placing a source ignores the limit.' },
   { id: 'right-click', file: 'src/app/Stage.tsx', find: 'if (event.button !== 0) return;\n    const at = placed', replace: 'const at = placed', why: 'Right click places a source.' },
@@ -104,7 +109,6 @@ const BROWSER_MUTATIONS: Mutation[] = [
   { id: 'save-state', file: 'src/app/session.ts', find: "options.persist(store.scene) ? 'saved' : 'failed'", replace: "(options.persist(store.scene), 'saved')", why: 'Failed storage reads as saved.' },
   { id: 'peak-clamp', file: 'src/app/edits.ts', find: '    x: clampPosition(x),\n    y: clampPosition(y),\n    radius: defaultReach(scene),', replace: '    x,\n    y,\n    radius: defaultReach(scene),', why: 'A peak can land outside the format.' },
   { id: 'cancel-off', file: 'src/app/geometry.worker.ts', find: "    cancelled.add(message.id);", replace: '', why: 'The worker ignores cancel messages.' },
-  { id: 'export-stale', file: 'src/app/Panels.tsx', find: "previewState(state.shown, state.revision) === 'final' && state.geometry?.quality === 'final';", replace: "state.geometry?.quality === 'final';", why: 'Export is allowed while geometry is stale.' },
 ];
 
 const repo = process.cwd();
@@ -259,7 +263,8 @@ for (const mutation of BROWSER_MUTATIONS) {
     results.push({ id: mutation.id, file: mutation.file, why: mutation.why, status: 'not-applied', failed: [], suiteErrors: 0 });
     continue;
   }
-  writeFileSync(path, original.replace(mutation.find, mutation.replace));
+  const [also, alsoWith] = mutation.also ?? ['', ''];
+  writeFileSync(path, original.replace(mutation.find, mutation.replace).replace(also, alsoWith));
   const outcome = await runBrowserTests();
   writeFileSync(path, original);
   const status = outcome.timedOut ? 'timed-out' : outcome.passed ? 'survived' : 'killed';

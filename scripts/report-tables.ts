@@ -120,7 +120,107 @@ function criteriaTable(): string {
   ].join('\n');
 }
 
+function browser(scene: string, mode: string) {
+  return summary.browser.find((b: { scene: string; mode: string }) => b.scene === scene && b.mode === mode);
+}
+
+function targetRanges() {
+  const nodeTotals = summary.stages
+    .filter((r: { group: string; id: string }) => r.group === 'target' && r.id.endsWith('/512'))
+    .map((r: { total: Stat }) => r.total.mean);
+  const worker = browser('target', 'worker');
+  const chromiumTotals = Object.values(
+    worker.stages as Record<string, Record<string, { total: Stat }>>,
+  ).map((grids) => grids[512].total.mean);
+  return {
+    nodeLow: Math.min(...nodeTotals),
+    nodeHigh: Math.max(...nodeTotals),
+    chromiumLow: Math.min(...chromiumTotals),
+    chromiumHigh: Math.max(...chromiumTotals),
+  };
+}
+
+function balanced(scene: string) {
+  return size.find((r: { scene: string; tolerance: number }) => r.scene === scene && r.tolerance === 0.15);
+}
+
+function percentRange(pick: (r: Record<string, number>) => number): string {
+  const values = size.filter((r: { tolerance: number }) => r.tolerance === 0.15).map(pick);
+  return `${Math.round(Math.min(...values) * 100)} to ${Math.round(Math.max(...values) * 100)} percent`;
+}
+
+function summaryProse(): string {
+  const t = targetRanges();
+  const sw = browser('stress', 'worker');
+  const sb = browser('stress', 'blocking');
+  const nodes = percentRange((r) => 1 - r.verticesAfter / r.verticesBefore);
+  const gz = percentRange((r) => 1 - r.gzipAfter / r.gzipBefore);
+  return `All four pass criteria passed on the reference laptop. A refined scene with 512 cells on its long side and 16 levels takes ${t.chromiumLow.toFixed(0)} to ${t.chromiumHigh.toFixed(0)} ms in Chromium across the three scenes, against a 500 ms target. That target was written for a slower machine, so this margin says little about other hardware.
+
+Simplifying the same composition removes ${nodes} of its nodes and ${gz} of its gzipped size at the Balanced setting, with no crossing and no lost path in any row.
+
+The worker does not make drafts faster. It keeps the page from freezing. On the stress scene the largest frame gap is ${sw.longestRafGapMs.mean.toFixed(0)} ms with the worker, against ${sb.longestRafGapMs.mean.toFixed(0)} ms with blocking work on the main thread.`;
+}
+
+function workerProse(): string {
+  const tw = browser('target', 'worker');
+  const tm = browser('target', 'main');
+  const tb = browser('target', 'blocking');
+  const sw = browser('stress', 'worker');
+  const sm = browser('stress', 'main');
+  const sb = browser('stress', 'blocking');
+  const f = (b: Record<string, Stat>) => b.longestRafGapMs.mean.toFixed(0);
+  const l = (b: Record<string, Stat>) => b.longTaskCount.mean.toFixed(1);
+  const p = (b: Record<string, Stat>) => b.draftCommitP95Ms.mean.toFixed(0);
+  return `**What the worker buys.** I expected the worker to win on draft latency, and it does not. A trip to the worker and back costs more than a small draft does. Input to draft at the 95th percentile is ${p(tw)} ms through the worker against ${p(tm)} ms time sliced and ${p(tb)} ms blocking on the target scene, and ${p(sw)} ms against ${p(sm)} and ${p(sb)} on the stress scene. On the stress scene the worker misses the 33 ms target. That target applies to the target scene, but a user on a heavy scene will feel it.
+
+What the worker prevents is a frozen page. The largest frame gap, from mouse down to the end of the export report, is ${f(tw)} ms against ${f(tm)} and ${f(tb)} on the target scene, and ${f(sw)} ms against ${f(sm)} and ${f(sb)} on the stress scene. Long tasks per run are ${l(sw)} against ${l(sm)} and ${l(sb)}. Time slicing does not help much here, because the largest stalls come from the export report and the final geometry, which run in long synchronous steps.
+
+So the worker is justified. It trades a few milliseconds of latency for a page that stays responsive after a heavy edit.
+
+Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs stay in the results folder.`;
+}
+
+function gridProse(): string {
+  const worst = size.reduce((a: Record<string, number>, b: Record<string, number>) =>
+    b.referenceDistance > a.referenceDistance ? b : a,
+  );
+  return `**Grid error is real, and simplification does not touch it.** The final lines are extracted at a grid, so they are close to the true isolines and not on them. The first-order estimate and an independent reference agree. The reference compares each scene's lines with the same scene at 2048 cells. For ${worst.scene}, the estimate is ${worst.gridErrorMax.toFixed(2)} units and the reference is ${worst.referenceDistance.toFixed(2)} units. That is at a near-flat saddle, and it is several times the Balanced bound there. The RMS is ${worst.gridErrorRms.toFixed(3)} units, so this is a small place in the drawing. A finer grid reduces it, and the error bound in the Export panel does not include it.`;
+}
+
+function readmeTable(): string {
+  const t = targetRanges();
+  const tw = browser('target', 'worker');
+  const tm = browser('target', 'main');
+  const sw = browser('stress', 'worker');
+  const sm = browser('stress', 'main');
+  const sb = browser('stress', 'blocking');
+  const q = balanced('quiet-ridge');
+  const c = JSON.parse(readFileSync('results/compat/latest.json', 'utf8'));
+  const control = Math.min(...c.render.map((r: { seededControl: { maxPx: number } }) => r.seededControl.maxPx));
+  const pairs = Math.max(
+    ...c.render.flatMap((r: Record<string, { maxPx: number }>) => [r.firefox.maxPx, r.webkit.maxPx, r.resvg.maxPx]),
+  );
+  return [
+    '| Result | Measured | Compared with | Workload |',
+    '|---|---|---|---|',
+    `| Time to refined geometry | ${t.chromiumLow.toFixed(0)} to ${t.chromiumHigh.toFixed(0)} ms in Chromium | Target of 500 ms | 512 cells on the long side, 16 levels, three scenes, 5 runs |`,
+    `| Input to draft, 95th percentile | ${tw.draftCommitP95Ms.mean.toFixed(0)} ms with the worker | Target of 33 ms. The main thread is faster, at ${tm.draftCommitP95Ms.mean.toFixed(0)} ms | 150 step open loop drag, 5 runs |`,
+    `| Largest frame gap, heavy scene | ${sw.longestRafGapMs.mean.toFixed(0)} ms with the worker | ${sb.longestRafGapMs.mean.toFixed(0)} ms blocking, ${sm.longestRafGapMs.mean.toFixed(0)} ms time sliced | 1024 grid, 64 levels, same drag, 5 runs |`,
+    `| File size, same composition | ${(q.bytesBefore / 1024).toFixed(0)} KB to ${(q.bytesAfter / 1024).toFixed(0)} KB, or ${(q.gzipBefore / 1024).toFixed(0)} KB to ${(q.gzipAfter / 1024).toFixed(1)} KB gzipped | The same scene with nothing removed | Quiet ridge, Balanced |`,
+    `| Distance moved by export | ${q.sampledDistance.toFixed(2)} units sampled, ${q.declaredBound.toFixed(2)} proved at most | Extracted lines | Same file, sampled every ${q.spacing} units |`,
+    `| Grid error, worst place | ${q.referenceDistance.toFixed(2)} units | The same scene at a 2048 grid | Same scene. It sits at a near-flat saddle. Export bounds do not include it |`,
+    `| Topology | 0 crossings, 0 lost paths | Extracted lines | ${size.length} rows of the size table, plus 420 random scenes |`,
+    '| Output repeatability | Identical bytes | Chromium, Firefox, WebKit, Node | One workflow\'s scene |',
+    `| Renderers | Within ${pairs} px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads ${control} px or more |`,
+  ].join('\n');
+}
+
 const fragments: Record<string, string> = {
+  summary: summaryProse(),
+  'worker-findings': workerProse(),
+  'grid-findings': gridProse(),
+  'readme-results': readmeTable(),
   environment: environment(),
   criteria: criteriaTable(),
   'stages-target': stageTable('target'),

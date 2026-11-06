@@ -80,6 +80,16 @@ describe('editor store', () => {
     expect(store.getState().geometry).toBe(draft);
   });
 
+  it('export waits for a final of the scene on screen', () => {
+    const { store, id } = storeWithRidge();
+    const final = { quality: 'final' } as Parameters<EditorStore['commitGeometry']>[1];
+    expect(store.exportReady).toBe(false);
+    store.commitGeometry(store.getState().revision, final);
+    expect(store.exportReady).toBe(true);
+    store.edit(updateSource(store.scene, id, { radius: 9 }));
+    expect(store.exportReady).toBe(false);
+  });
+
   it('a pointer time is used once', () => {
     const { store } = storeWithRidge();
     store.markInput(123);

@@ -4,11 +4,8 @@ What Contour measures, what the evidence shows, and where it stops. The plan was
 
 ## Summary
 
-All four pass criteria passed on the reference laptop. A refined 512 by 512 scene with 16 levels takes 14 to 25 ms in Node and about 15 ms in Chromium, against a 500 ms target. That target was written for a slower machine, so this margin says little about other hardware.
-
-Simplifying the same composition removes 83 to 87 percent of its nodes and 72 to 80 percent of its gzipped size at the Balanced setting, with no crossing and no lost path in any row.
-
-The worker does not make drafts faster. It limits the worst stall. On the stress scene the largest frame gap is 40 ms with the worker, against 157 ms with blocking work on the main thread.
+<!-- results:summary -->
+<!-- /results -->
 
 ## Environment
 
@@ -38,13 +35,13 @@ These are tests, separate from the performance numbers below.
 
 | Check | Result | Where |
 |---|---|---|
-| Unit, property and regression tests | 165 passed | `pnpm test` |
-| Browser tests | 31 passed in three runs in a row, the core workflow in three engines | `pnpm test:e2e` |
+| Unit, property and regression tests | TESTCOUNT passed | `pnpm test` |
+| Browser tests | E2ECOUNT passed, the core workflow in three engines | `pnpm test:e2e` |
 | Random scenes through every rule | 120 scenes, plus 300 crowded scenes with lines packed tighter than the rounding lattice | `test/properties.test.ts` |
 | Same SVG bytes in Chromium, Firefox, WebKit and Node | Identical for the workflow's scene | `e2e/app.spec.ts` |
 | Same SVG bytes with and without the worker | Identical | `e2e/app.spec.ts` |
 | Same SVG bytes at display scales 1, 2 and 3 | Identical | `e2e/app.spec.ts` |
-| Source mutations | 56 of 57 killed by a named test. 1 timed out, and its targeted test fails on it when run alone | `results/mutations/latest.json` |
+| Source mutations | MUTKILLED of MUTTOTAL killed by a named test, in the unit and browser suites. 1 timed out, and its targeted test fails on it when run alone | `results/mutations/latest.json` |
 | Seeded negative controls | All detected | `test/negative-controls.test.ts` |
 | Automated accessibility scan | No serious or critical finding in 4 states | `e2e/app.spec.ts` |
 
@@ -92,7 +89,7 @@ Do not read this as a typical result. It exists to find the upper end.
 | interference-study/stress-64-levels/1024 | 19.1 | 117.6 | 10.1 | 0.4 | 4.8 | 26.4 | 10.1 | 178.4 (168.6 to 188.4) | 188.3 |
 <!-- /results -->
 
-### Stage times in Chromium, interference study with 16 levels
+### Stage times in Chromium, 16 levels
 
 <!-- results:chromium-stages -->
 | Grid | Field | Extract | Join | Clip | Simplify | Topology | Serialize | Pipeline total |
@@ -106,7 +103,7 @@ Canvas draw calls took 0.20 ms at the 95th percentile. That covers recording com
 
 ### Editing in Chromium
 
-The same scene and drag for every row. 4x is Chrome's synthetic CPU throttle. "Final" includes the 90 ms wait for the scene to go still. "First frame" is the first animation frame after commit. Animation frame callbacks do not prove what the display showed, and none of this is field INP.
+Times are in milliseconds. Each row runs the same drag. The drag is open loop, so a busy main thread cannot slow its own input, and drafts per run can fall below 150. "Input to final" includes the 90 ms wait for the scene to go still. "To next frame" is the first animation frame after commit. Long tasks and the frame gap cover mouse down until 300 ms after the export report. Animation frame callbacks do not prove what the display showed, and none of this is field INP.
 
 <!-- results:browser -->
 | Scene | Mode | CPU | Drafts per run | Input to draft, p50 | Input to draft, p95 | To next frame, p95 | Input to final | Long tasks | Largest frame gap |
@@ -122,17 +119,12 @@ The same scene and drag for every row. 4x is Chrome's synthetic CPU throttle. "F
 | Stress, 1024, 64 levels | Main thread, blocking | 1x | 150 | 10.4 (10.3 to 10.6) | 12.1 (11.9 to 12.4) | 12.6 | 244 (237 to 249) | 2.0 | 157 (150 to 160) |
 <!-- /results -->
 
-**What the worker buys.** I expected the worker to win on draft latency, and it does not. Drafts take a few milliseconds, and a trip to the worker and back costs more than that. At 1x on the target scene, input to draft at the 95th percentile is 17 ms through the worker and about 9 ms on the main thread.
-
-What the worker limits is the worst stall on the main thread. The largest frame gap is 25 ms against 42 ms on the target scene, and 40 ms against 157 ms on the stress scene, with 0 long tasks against 2. Time slicing on the main thread gets part of the way, at 65 ms on the stress scene. So the worker is justified, by less than I first thought, and mainly for heavy scenes and slow machines.
-
-The first measurement said otherwise. It showed the worker ahead by a factor of 18, because my main thread baseline waited on a clamped timer after every step. A bracketing control and a closer look exposed that, as [BENCH_PLAN.md](BENCH_PLAN.md) records. Do not quote the earlier runs' main thread numbers.
-
-Under the 4x throttle, input to draft at p95 is 49 ms with the worker, which is above 33 ms. That is not a pass criterion, because the throttle is synthetic. It suggests a slower machine needs a lower draft grid.
+<!-- results:worker-findings -->
+<!-- /results -->
 
 ## Size and error
 
-Each row compares a composition with itself. "Allowed" is the tolerance. "Bound" adds rounding. "Sampled" is measured from the parsed SVG to the extracted lines every 0.25 units, and it is an estimate. "Guard" is sampled plus half the spacing, which is a true upper bound on the measured quantity. "Grid" is a first-order estimate of distance to the true isoline, sampled every 2 units. It is a separate error, and simplification does not reduce it.
+Each row compares a composition with itself. "Tolerance" is the Line detail setting. "Bound" adds rounding, and the proof covers it. "Sampled" is measured from the parsed SVG to the extracted lines every 0.25 units, and it is an estimate. "Guard" is sampled plus half the spacing, which is a true upper bound on the distance to the sampled set. "Grid" is a first-order estimate of distance to the true isoline, sampled every 2 units. "Against 2048 grid" is a sampled distance from the extracted lines at the scene's grid to the same scene at 2048 cells. Grid error is separate, and simplification does not reduce it.
 
 <!-- results:size -->
 | Scene | Allowed | Nodes | Paths | Bytes | Gzip | Time ms | Bound | Sampled | Guard | Grid max | Grid RMS | Crossings | Fallbacks |
@@ -148,7 +140,8 @@ Each row compares a composition with itself. "Allowed" is the tolerance. "Bound"
 | interference-study | 0.5 | 29,554 to 2,795 | 75 to 75 | 258.3 KB to 30.5 KB | 82.2 KB to 11.6 KB | 26 | 0.507 | 0.501 | 0.626 | 0.362 | 0.0100 | 0 | 0 |
 <!-- /results -->
 
-Simplification removes nodes from the composition and does nothing for grid error. Quiet ridge has the largest grid estimate, 0.767 units at worst, with an RMS of a small fraction of that. The worst points are near saddles, where the slope is nearly flat and a first-order estimate inflates. So the worst value is an estimate, and it is the number to treat with most care.
+<!-- results:grid-findings -->
+<!-- /results -->
 
 A coarser setting saves less each time. Going from Balanced to Light at 0.5 units almost halves the nodes, for three times the allowed error.
 
@@ -156,11 +149,13 @@ Fallback did not occur in any row here. It occurs at far coarser tolerances, or 
 
 ## Export compatibility
 
-**Render compatibility.** The three starter exports were rendered at 1200 px wide in Chromium 148, Firefox 157, WebKit 27.2 and resvg 2.6.2. The check compares where ink lies, as distance to the nearest ink in the other render. Every pair stayed within 1 px. A seeded control that moves one path by 4 units reads 4 to 5 px, so the check can see a real shift. This check resolves whole pixels, so it cannot see the 32-bit drift bound in `docs/GEOMETRY.md`. Raw data: `results/compat/latest.json`.
+**Render compatibility.** The three starter exports, in the default stroke mode, were rendered at 1200 px wide in Chromium 148, Firefox 157, WebKit 27.2 and resvg 2.6.2. The check compares where ink lies, as distance to the nearest ink in the other render. Every pair stayed within 1 px. A seeded control that moves one path by 4 units reads 4 to 5 px, so the check can see a real shift. This check resolves whole pixels, so it cannot see the 32-bit drift bound in `docs/GEOMETRY.md`. Raw data: `results/compat/latest.json`.
+
+**Fixed line weight.** The "Stays the same" option uses `vector-effect`. At twice the size, Chromium, Firefox and WebKit keep the line weight, within 0.1 percent. resvg ignores `vector-effect` and scales the lines, so a fixed stroke file will not hold its weight there. The option is safe in browsers and not in every renderer.
 
 **Well-formedness.** All three files pass `xmllint`.
 
-**Path editing compatibility.** This is a separate claim from rendering. All three files were loaded into paper.js 0.17, a vector library with its own path model. Path counts, node counts and closed path counts match the file exactly. Moving one node and writing the file back worked. paper.js is not a desktop editor.
+**Path editing compatibility.** This is a separate claim from rendering. All three files were loaded into paper.js 0.17, a vector library with its own path model. The check asserts that path, node and closed path counts match the file, and that moving one node changes the written output. paper.js is not a desktop editor.
 
 **External editors.** None verified. Inkscape and Illustrator are not installed here, and the Figma connection needs a sign-in that was not available. Opening a file in one of these is the next check.
 
@@ -174,7 +169,7 @@ I inspected real renders in three passes. Screenshots are in `docs/media`.
 
 **Typography and layout.** Panels, numbers and the status line at 1440, 768, 390 and 320 CSS pixels and at 200 percent zoom. Fixed in this pass: Download fell below the fold, the Empty sheet card overflowed, and quiet text had low contrast.
 
-**Interaction and motion.** A drag keeps up with the pointer and the status line changes state. Fixed in this pass: unselected ridge spines read as part of the artwork, and a selected ridge stacked many reach circles. Motion is limited to short colour and scale transitions, and they are removed under reduced motion.
+**Interaction and motion.** A drag follows the pointer and the status line changes state. Fixed in this pass: unselected ridge spines read as part of the artwork, and a selected ridge stacked many reach circles. Motion is limited to short colour and scale transitions, and they are removed under reduced motion.
 
 **Empty, error and interrupted states.** An empty sheet offers a next step. A bad file lists what is wrong and keeps the scene. A scene too dense to compute stops with a clear status, and undo recovers it. A running final is cancelled by the next edit.
 
@@ -186,20 +181,24 @@ Real failures, kept here because they changed the design. Details are in [RESEAR
 
 - **Topology claim.** My first proof left out rounding. An independent review found rounded paths crossing through a vertex and swapping sides, with the crossing check reporting 0. That is fixed with a separation rule.
 - **The superseded job test.** It passed for a long time with no job ever being cancelled. Counting real cancellations exposed a bug in which the export report blocked every draft.
+- **The worker comparison.** It took four runs. See the performance section.
+- **Data loss.** A ridge at the source limit, or a peak placed far out at low zoom, made a scene the app could not read back. On reload, autosave then replaced it with a starter. Scenes now stay inside the format, an unreadable save is kept aside, and autosave refuses to store a scene that fails validation.
+- **Tests that could not fail.** A typing test passed against the very bug it was written for, because it typed too fast for React's effects to run. Browser mutants exposed this.
 - **The render metric.** Comparing ink amount could not tell WebKit's antialiasing from a moved path. The seeded control caught this.
 - **The mutation harness.** After a timeout it read the previous mutant's report as its own, so one kill was recorded for the wrong reason. I found this by reading kill reasons.
 
 ## Limits
 
-- **One machine.** All timings come from one fast laptop. Other sessions were running on it, with a load average near 8 during the runs, so these are not quiet machine numbers. The manifest records this.
-- **Synthetic throttle.** 4x is an emulation, and it is not a slower laptop.
+- **One machine.** All timings come from one fast laptop. Other work was running on it during the runs, so these are not quiet machine numbers. The manifest records this.
+- **No slower machine.** Chrome's CPU throttle does not reach the worker, so it cannot compare the two fairly, and no slower laptop was available. Latency on one is unknown.
 - **No users.** Nobody outside this project has used it. There is a task script and a self review only.
 - **Lab numbers.** These are lab timings from scripted input. They are not field INP. Animation frame callbacks show when the main thread was free, and they do not prove what was displayed.
 - **Polylines only.** There is no curve fitting, so a smooth line needs many nodes. Editing nearly 2,000 nodes by hand is possible but tedious.
 - **Whole path fallback.** One conflict tightens a whole path, which can cost more nodes than needed.
 - **Topology in doubles.** Rule 1 runs on doubles without exact arithmetic. `docs/GEOMETRY.md` states what happens at the finest lattice.
-- **Grid error is an estimate.** It is first-order and sampled, and it is not a bound.
+- **Grid error has no bound.** The estimate and the reference are sampled, and they agree, but neither is a guarantee. Export bounds do not include grid error.
 - **Portability evidence.** The cross-engine byte comparison covers one workflow's scene on one operating system. The argument for all scenes is the use of IEEE exact operations, which is reasoning and not a measurement.
+- **Fixed stroke.** It depends on `vector-effect`, which resvg ignores.
 - **Touch and screen readers.** Touch was emulated. No real phone or screen reader was used.
 - **Undo.** History lives in memory and does not survive a reload. The scene does.
 

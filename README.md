@@ -2,7 +2,7 @@
 
 *Shape a field, tune its lines, and export a small SVG with a measured error.*
 
-![Contour with the asymmetric basin scene open](docs/media/editor.png)
+![Contour with the interference study open and one source selected](docs/media/cover.png)
 
 [Signature interaction, 22 s](docs/media/signature.mp4) | [Captioned walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
@@ -16,20 +16,12 @@ Shader tools make good pictures quickly, but the picture is an effect. You canno
 
 Measured on an Apple M5 Pro laptop on AC power, with other work running on it. Full tables, raw data and limits are in [docs/REPORT.md](docs/REPORT.md).
 
-| Result | Measured | Compared with | Workload |
-|---|---|---|---|
-| Time to refined geometry | 14 to 25 ms in Node, 15 ms in Chromium | Target of 500 ms | 512 by 512, 16 levels, three scenes, 7 runs in Node and 5 in Chromium |
-| Time from input to draft | 17 ms at the 95th percentile | Target of 33 ms | 150 step drag, 5 runs. It is not faster than the main thread, at 9 ms |
-| Largest frame gap, heavy scene | 40 ms with the worker | 157 ms blocking, 65 ms time sliced | 1024 grid, 64 levels, same drag, 5 runs |
-| File size, same composition | 83 KB to 15 KB, or 19 KB to 5.4 KB gzipped | The same scene with nothing removed | Quiet ridge, Balanced |
-| Distance from exported to extracted lines | 0.19 units measured, 0.22 allowed | Proved bound | Same file, sampled every 0.25 units |
-| Topology | 0 crossings, 0 lost paths | Extracted lines | 9 rows of the size table, plus 420 random scenes |
-| Output repeatability | Identical bytes | Chromium, Firefox, WebKit, Node | One workflow's scene |
-| Renderers | Within 1 px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads 4 px or more |
+<!-- results:readme-results -->
+<!-- /results -->
 
 Three things this does not show. All timings come from one fast machine. No outside person has used the tool. No desktop vector editor has opened the files yet: path editing was checked in paper.js only.
 
-The worker result is smaller than I first measured. An early baseline made it look 18 times faster, because of a flaw in the baseline. See [the report](docs/REPORT.md#performance).
+The worker does not make drafts faster. It keeps the page from freezing on heavy scenes. It took four runs and an independent review to measure that properly, as [the report](docs/REPORT.md#performance) explains.
 
 ## Run it
 

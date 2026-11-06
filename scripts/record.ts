@@ -100,7 +100,7 @@ async function signature(): Promise<void> {
   await page.mouse.move(summit.x - 200, summit.y + 160);
   await glide(page, { x: summit.x - 200, y: summit.y + 160 }, summit, 700);
   await page.mouse.down();
-  await orbit(page, summit, 6500, 240, 90);
+  await orbit(page, summit, 6500, 120, 70);
   const valley = await modelPoint(page, 700, 400);
   await glide(page, summit, valley, 1600);
   await glide(page, valley, await modelPoint(page, 520, 300), 1300);

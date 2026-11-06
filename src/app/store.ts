@@ -139,6 +139,12 @@ export class EditorStore {
     return at;
   }
 
+  /** Export only ever writes final geometry computed from the scene on screen. */
+  get exportReady(): boolean {
+    const { shown, revision, geometry } = this.state;
+    return previewState(shown, revision) === 'final' && geometry?.quality === 'final';
+  }
+
   /** A complete edit. Calls with the same key in quick succession merge. */
   edit(next: Scene, coalesceKey?: string): void {
     if (next === this.scene) return;

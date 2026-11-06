@@ -52,5 +52,5 @@ Read from [SVG 2 paths](https://www.w3.org/TR/SVG2/paths.html) and [SVG 2 coordi
 2. **Is rule 1 redundant?** I suspected rule 3 made it so. A search with rule 1 removed found crossings in 5 of 63 random scenes, which settled that. A test scene now keeps that case.
 3. **Report cost.** The Export numbers were computed inside the job. They held up every draft on a large scene, until a test that counted real cancellations failed.
 4. **Render comparison.** Comparing ink amount failed its own seeded control, because WebKit's antialiasing outweighed a moved path. It now compares where ink lies.
-5. **The worker's value.** I expected it to win on draft latency. It first appeared 18 times faster, then a fair baseline showed it losing on drafts and winning on worst stalls. See `docs/BENCH_PLAN.md`.
+5. **The worker's value.** I expected it to win on draft latency. It first appeared 18 times faster. A fair baseline then showed it losing on drafts, and a review showed that the measurement still hid the largest stalls. It loses on drafts and prevents a frozen page. See `docs/BENCH_PLAN.md`.
 6. **Curve fitting.** Cubic fitting would cut nodes, but it needs its own error model and a topology check on curves. It is left for later. Polylines already reach the size target with a proved bound.

@@ -507,8 +507,7 @@ export function ExportPanel({ store, state }: PanelProps) {
   const ex = scene.export;
   const set = (change: Partial<Scene['export']>, key: string) =>
     store.edit({ ...scene, export: { ...ex, ...change } }, `export.${key}`);
-  const ready =
-    previewState(state.shown, state.revision) === 'final' && state.geometry?.quality === 'final';
+  const ready = store.exportReady;
   const [feedback, setFeedback] = useState('');
   const { rect } = outputRect(scene);
   const stem = fileStem(scene);

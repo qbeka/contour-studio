@@ -77,6 +77,10 @@ await shot('refining', desk, async (page) => {
   });
   await page.getByRole('spinbutton', { name: 'Lines' }).fill('100');
 }, { settle: 60 });
+await shot('cover', { width: 1280, height: 640 }, async (page) => {
+  await load(page, PRESETS[2].scene);
+  await page.locator('.source-row').nth(5).click();
+});
 await shot('phone', { width: 390, height: 800 });
 await shot('phone-export', { width: 390, height: 800 }, exportPanel);
 await shot('narrow-320', { width: 320, height: 640 });

@@ -401,8 +401,9 @@ test('typing key by key keeps a negative number', async ({ page }) => {
   await page.locator('.source-row').first().click();
   const height = page.getByLabel('Height', { exact: true });
   await height.click();
-  await height.press('ControlOrMeta+a');
-  await height.pressSequentially('-0.5');
+  await height.fill('');
+  // A real delay between keys, so that React's effects run between them.
+  await height.pressSequentially('-0.5', { delay: 40 });
   await expect(height).toHaveValue('-0.5');
   expect(JSON.parse((await readHook(page)).sceneJson).sources[0].height).toBe(-0.5);
 });
@@ -411,8 +412,8 @@ test('typing a decimal key by key survives the digits rounding', async ({ page }
   await open(page);
   const gap = page.getByRole('spinbutton', { name: 'Line gap' });
   await gap.click();
-  await gap.press('ControlOrMeta+a');
-  await gap.pressSequentially('0.05');
+  await gap.fill('');
+  await gap.pressSequentially('0.05', { delay: 40 });
   await expect(gap).toHaveValue('0.05');
   expect(JSON.parse((await readHook(page)).sceneJson).levels.spacing).toBe(0.05);
 });
@@ -439,6 +440,30 @@ test('no way of adding a source can pass the limit', async ({ page }) => {
     page.getByRole('button', { name: 'Save', exact: true }).click(),
   );
   expect(parseScene(saved.text).ok).toBe(true);
+});
+
+test('a duplicate during a ridge draft still cannot pass the limit', async ({ page }) => {
+  await open(page);
+  const scene: Scene = {
+    ...emptyScene(),
+    name: 'Nearly full',
+    sources: Array.from({ length: 63 }, (_, i) => ({
+      id: `p${i}`, name: `P ${i}`, kind: 'peak' as const, enabled: true,
+      x: (i % 8) * 150 + 40, y: Math.floor(i / 8) * 90 + 40, radius: 60, height: 1,
+    })),
+  };
+  await loadScene(page, scene);
+  await page.locator('.source-row').first().click();
+  await page.keyboard.press('r');
+  for (const [x, y] of [[100, 600], [300, 700]]) {
+    const p = await stagePoint(page, x, y);
+    await page.mouse.click(p.x, p.y);
+  }
+  await page.keyboard.press('ControlOrMeta+d');
+  await expect(page.locator('.source-row')).toHaveCount(64);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.source-row')).toHaveCount(64);
+  expect(parseScene((await readHook(page)).sceneJson).ok).toBe(true);
 });
 
 test('a peak placed far out at the lowest zoom stays in the format', async ({ page }) => {

@@ -162,7 +162,7 @@ This bound is against the **extracted** polyline. The distance to the true isoli
 |---|---|---|
 | Simplification plus rounding | Exported path against extracted path | Proved bound `e + q`, per path |
 | Measured export error | Parsed SVG against extracted path | Sampled estimate, with a conservative guard below |
-| Grid error | Extracted path against the true isoline | Sampled first-order estimate |
+| Grid error | Extracted path against the true isoline | Sampled first-order estimate, checked against a 2048 cell reference in the benchmark |
 
 ### Sampled checks
 
