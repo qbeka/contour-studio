@@ -1,0 +1,136 @@
+{
+  "note": "release/ is built by scripts/verify-release.ts and is not committed.",
+  "sourceCommit": "85bb00767243912ad2f22389c6b61c2d4f434428",
+  "files": [
+    {
+      "path": "artwork/asymmetric-basin/AsymmetricBasinArtwork.tsx",
+      "bytes": 28762,
+      "sha256": "b96ecf3cef0e8619882c7949514a4de80438cd443ebe32c4f3a87ba10cecc9a1"
+    },
+    {
+      "path": "artwork/asymmetric-basin/asymmetric-basin.contour.json",
+      "bytes": 1732,
+      "sha256": "8a136cb41122974f567e5e89059e903124773f0942ce5a9c789a45824b1e79a8"
+    },
+    {
+      "path": "artwork/asymmetric-basin/asymmetric-basin.png",
+      "bytes": 433077,
+      "sha256": "12271ad6b075f045e1994833e51e172e9dd480a430f7da884aa7e292a2930bc3"
+    },
+    {
+      "path": "artwork/asymmetric-basin/asymmetric-basin.svg",
+      "bytes": 28227,
+      "sha256": "3ea13ec0d66c75202026d3e25ff303683c8fd86314621cfa6920533208551182"
+    },
+    {
+      "path": "artwork/interference-study/InterferenceStudyArtwork.tsx",
+      "bytes": 64687,
+      "sha256": "b619b20614033cde94f8dc38abd7db39cd759a82dc230db613ba20b91c4c6001"
+    },
+    {
+      "path": "artwork/interference-study/interference-study.contour.json",
+      "bytes": 2834,
+      "sha256": "8d1ebab5bf207f675f21cb965663b7e5b5cd219a5da496d6b75dff25f1c1760c"
+    },
+    {
+      "path": "artwork/interference-study/interference-study.png",
+      "bytes": 730691,
+      "sha256": "0cbd1d7b20e97ac71651df02f8fac447e44b00167abd1e2352d7b933376c6214"
+    },
+    {
+      "path": "artwork/interference-study/interference-study.svg",
+      "bytes": 63857,
+      "sha256": "70dd0d045d4956f27d153f17cdfa44a67047b07ca23b90f634f4fea5e6794d6f"
+    },
+    {
+      "path": "artwork/quiet-ridge/QuietRidgeArtwork.tsx",
+      "bytes": 18050,
+      "sha256": "0ceba921b908ee1eea16d2f05725600648b25f79a8e8e9fd3e3f5b1a5bd7ad1e"
+    },
+    {
+      "path": "artwork/quiet-ridge/quiet-ridge.contour.json",
+      "bytes": 1992,
+      "sha256": "9faa9adc617808b41b49c200ffc1bade8c7f988b512644c11886fb231147587c"
+    },
+    {
+      "path": "artwork/quiet-ridge/quiet-ridge.png",
+      "bytes": 426204,
+      "sha256": "57661fefc18b5ed893a9bed23a94bf418d301d38723b465466d0b55a136ed34e"
+    },
+    {
+      "path": "artwork/quiet-ridge/quiet-ridge.svg",
+      "bytes": 17366,
+      "sha256": "a69f6433f893d51c295c18182be0cb6f38ae6651d1d422aa9c94e59cd2fc360a"
+    },
+    {
+      "path": "docs/media/cover.png",
+      "bytes": 660710,
+      "sha256": "5ea838f8943299af46874a4ba5ac773b39daaee8e90dcec352451a63862e7fc5"
+    },
+    {
+      "path": "docs/media/editor.png",
+      "bytes": 647829,
+      "sha256": "4571c34c224133a4902c00306bbd931621e6edb58987b12b492abb989a8d76d7"
+    },
+    {
+      "path": "docs/media/empty.png",
+      "bytes": 210010,
+      "sha256": "0dc1132cd51567df67650560eb48e85130208a5098b088f5c226d1b7f92df42e"
+    },
+    {
+      "path": "docs/media/error.png",
+      "bytes": 541908,
+      "sha256": "85948d4cc4a1f7fef0f38bc5bf9227c00aeda34f7da6a4c3948281c309e4fb05"
+    },
+    {
+      "path": "docs/media/export.png",
+      "bytes": 529340,
+      "sha256": "bed5c4f65888f1e707ba79dcfca2546bd603928b371232356dcc50fb9b88f616"
+    },
+    {
+      "path": "docs/media/narrow-320.png",
+      "bytes": 140526,
+      "sha256": "46c1d52057cb6141383f93b51d54f8b7ed9526e6418c91534b68db1e25b9571e"
+    },
+    {
+      "path": "docs/media/nodes.png",
+      "bytes": 534246,
+      "sha256": "f52d1094e013c5a9356c8620f94698edaa35512c300e167e2c189b2cfa0579c9"
+    },
+    {
+      "path": "docs/media/phone-export.png",
+      "bytes": 188620,
+      "sha256": "f297114a4cce7bf05c2b111adddc9cae164436e13b1fcb83e6f07a14c888c055"
+    },
+    {
+      "path": "docs/media/phone.png",
+      "bytes": 173481,
+      "sha256": "688bb7f2ba6de6dfde55cbe56961c16662a083c25243e26974b765f94deab2b7"
+    },
+    {
+      "path": "docs/media/refining.png",
+      "bytes": 3378261,
+      "sha256": "adc57c03bdc5e1ea5da0127b50970e95cd542b9f258a6841d3d16e670fc31758"
+    },
+    {
+      "path": "docs/media/signature.mp4",
+      "bytes": 820373,
+      "sha256": "8f44bd30213ffcd64cdaba2e944a1102e745b967a61e013659a600776151ac79"
+    },
+    {
+      "path": "docs/media/tablet-768.png",
+      "bytes": 326724,
+      "sha256": "99eecd25c5f629a70782f1edfaba7944825abb1bdd1c6faccd94dd8e5338fb05"
+    },
+    {
+      "path": "docs/media/walkthrough.mp4",
+      "bytes": 2685816,
+      "sha256": "8b80f05512ea3f61f50a4d708a2b36c43aa78c56e10d38782d77952cd3678dd5"
+    },
+    {
+      "path": "release/contour-studio-demo-0.1.0.tar.gz",
+      "bytes": 305691,
+      "sha256": "f01ab87c98fecdb11fefaa9e7f8ad2d810631e7ef3915c69e82fae81ec4e5b5c"
+    }
+  ]
+}
