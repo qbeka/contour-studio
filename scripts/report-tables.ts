@@ -42,6 +42,11 @@ function stageTable(group: string): string {
   ].join('\n');
 }
 
+const SCENES: Record<string, string> = {
+  target: 'Target, 512, 16 levels',
+  stress: 'Stress, 1024, 64 levels',
+};
+
 const MODES: Record<string, string> = {
   worker: 'Worker',
   main: 'Main thread, time sliced',
@@ -50,19 +55,20 @@ const MODES: Record<string, string> = {
 
 function browserTable(): string {
   const head =
-    '| Mode | CPU | Drafts per run | Draft p50 ms | Draft p95 ms | First frame p95 ms | Final ms | Long tasks | Largest frame gap ms |\n|---|---|---|---|---|---|---|---|---|';
+    '| Scene | Mode | CPU | Drafts per run | Input to draft, p50 | Input to draft, p95 | To next frame, p95 | Input to final | Long tasks | Largest frame gap |\n|---|---|---|---|---|---|---|---|---|---|';
   return [
     head,
     ...summary.browser.map(
-      (b: Record<string, Stat> & { mode: string; throttle: number }) =>
-        `| ${MODES[b.mode]} | ${b.throttle}x | ${b.draftCommitsPerRun.mean.toFixed(0)} | ${range(b.draftCommitMedianMs)} | ${range(b.draftCommitP95Ms)} | ${ms(b.draftFrameP95Ms)} | ${range(b.finalCommitMs, 0)} | ${b.longTaskCount.mean.toFixed(1)} | ${range(b.longestRafGapMs, 0)} |`,
+      (b: Record<string, Stat> & { mode: string; throttle: number; scene: string }) =>
+        `| ${SCENES[b.scene]} | ${MODES[b.mode]} | ${b.throttle}x | ${b.draftCommitsPerRun.mean.toFixed(0)} | ${range(b.draftCommitMedianMs)} | ${range(b.draftCommitP95Ms)} | ${ms(b.draftFrameP95Ms)} | ${range(b.finalCommitMs, 0)} | ${b.longTaskCount.mean.toFixed(1)} | ${range(b.longestRafGapMs, 0)} |`,
     ),
   ].join('\n');
 }
 
 function chromiumStages(): string {
   const main = summary.browser.find(
-    (b: { mode: string; throttle: number }) => b.mode === 'worker' && b.throttle === 1,
+    (b: { mode: string; throttle: number; scene: string }) =>
+      b.mode === 'worker' && b.throttle === 1 && b.scene === 'target',
   );
   const head =
     '| Grid | Field | Extract | Join | Clip | Simplify | Topology | Serialize | Pipeline total |\n|---|---|---|---|---|---|---|---|---|';

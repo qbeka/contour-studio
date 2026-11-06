@@ -74,6 +74,8 @@ export class EditorStore {
   private listeners = new Set<Listener>();
   private gestureBase: Scene | null = null;
   private lastCoalesce: { key: string; at: number } | null = null;
+  /** The time of the input behind the next scene change, on the performance clock. */
+  private inputAt: number | null = null;
 
   constructor(scene: Scene) {
     this.state = {
@@ -123,6 +125,17 @@ export class EditorStore {
 
   get previewState(): PreviewState {
     return previewState(this.state.shown, this.state.revision);
+  }
+
+  /** Notes when a pointer event happened, which can be before it was handled. */
+  markInput(timeStamp: number): void {
+    this.inputAt = timeStamp;
+  }
+
+  takeInput(): number | null {
+    const at = this.inputAt;
+    this.inputAt = null;
+    return at;
   }
 
   /** A complete edit. Calls with the same key in quick succession merge. */

@@ -124,26 +124,24 @@ interface BrowserFile {
 async function browserRuns() {
   const preview = await startPreview();
   const url = `http://localhost:${PORT}`;
+  const engines = ['worker', 'main', 'blocking'];
   const configs = smoke
-    ? [{ mode: 'worker', throttle: 1 }]
+    ? [{ mode: 'worker', throttle: 1, scene: 'target' }]
     : [
-        { mode: 'worker', throttle: 1 },
-        { mode: 'main', throttle: 1 },
-        { mode: 'blocking', throttle: 1 },
-        { mode: 'worker', throttle: 4 },
-        { mode: 'main', throttle: 4 },
-        { mode: 'blocking', throttle: 4 },
+        ...engines.map((mode) => ({ mode, throttle: 1, scene: 'target' })),
+        ...engines.map((mode) => ({ mode, throttle: 4, scene: 'target' })),
+        ...engines.map((mode) => ({ mode, throttle: 1, scene: 'stress' })),
       ];
   const runs = smoke ? 1 : BROWSER_RUNS;
   const summary = [];
   let browserVersion = '';
   try {
-    for (const { mode, throttle } of configs) {
+    for (const { mode, throttle, scene } of configs) {
       const files: BrowserFile[] = [];
       for (let r = 0; r < runs; r++) {
-        console.log(`Browser ${mode} x${throttle}, run ${r + 1} of ${runs}`);
-        const out = join(folder, 'raw', `browser-${mode}-x${throttle}-${r + 1}.json`);
-        await run(['bench/browser-run.ts', url, mode, String(throttle), out]);
+        console.log(`Browser ${scene} ${mode} x${throttle}, run ${r + 1} of ${runs}`);
+        const out = join(folder, 'raw', `browser-${scene}-${mode}-x${throttle}-${r + 1}.json`);
+        await run(['bench/browser-run.ts', url, mode, String(throttle), scene, out]);
         files.push(JSON.parse(readFileSync(out, 'utf8')));
       }
       browserVersion = files[0].browser;
@@ -155,6 +153,7 @@ async function browserRuns() {
           .map((e) => (e.frameAt as number) - e.startedAt);
       const perRun = (pick: (f: BrowserFile) => number) => stats(files.map(pick));
       summary.push({
+        scene,
         mode,
         throttle,
         draftCommitsPerRun: perRun((f) => latency('draft')(f).length),
@@ -167,7 +166,7 @@ async function browserRuns() {
         longTaskCount: perRun((f) => f.longTasks.length),
         drawP95Ms: perRun((f) => percentile(f.draws, 0.95)),
         stages:
-          throttle === 1
+          throttle === 1 && scene === 'target'
             ? Object.fromEntries(
                 RESOLUTIONS.map((res) => [
                   res,
@@ -245,9 +244,11 @@ interface Row {
   id: string;
   group: string;
 }
-const browserNominal = browserSummary.find((b) => b.mode === 'worker' && b.throttle === 1);
+const browserNominal = browserSummary.find(
+  (b) => b.mode === 'worker' && b.throttle === 1 && b.scene === 'target',
+);
 const refined = browserSummary
-  .filter((b) => b.throttle === 1)
+  .filter((b) => b.stages)
   .map((b) => b.stages?.[512]?.total.max ?? Infinity);
 const nodeRefined = (stageSummary as (Row & { total: { max: number } })[])
   .filter((r) => r.group === 'target' && r.id.endsWith('/512'))

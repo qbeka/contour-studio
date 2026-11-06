@@ -23,8 +23,8 @@ The browser workload is the interference study at 512 with 16 levels, the denses
 ## Metrics
 
 - **Stage times**: field, extract, join, clip, simplify, topology, serialize, and their total.
-- **Edit to draft**: scene edit to draft geometry committed, and to the first animation frame after that.
-- **Edit to final**: scene edit to final geometry committed. This includes the 90 ms wait for the scene to go still.
+- **Input to draft**: pointer event to draft geometry committed, and to the next animation frame after that.
+- **Input to final**: pointer event to final geometry committed. This includes the 90 ms wait for the scene to go still.
 - **Main thread availability**: long tasks, and the largest gap between animation frames. These do not prove displayed frame rate.
 - **Size**: nodes, paths, bytes, gzip bytes (level 9), against the unsimplified file for the same composition at the same decimals.
 - **Error**: declared bound, sampled distance from the parsed SVG to the extracted lines at 0.25 unit spacing, its guard, and a sampled grid error estimate.
@@ -56,3 +56,12 @@ A missed target is reported as missed, with the next bounded improvement.
 The first full run, kept in `results/bench-2026-11-06T07-27-37-828Z`, showed a main thread draft of 142 ms against a pipeline of about 15 ms. That gap came from the baseline and not from the work. It yielded through `setTimeout` after each step, and browsers clamp chained timers to 4 ms, which stacked up across levels. Comparing the worker with it would have overstated the worker's value.
 
 So I changed the baseline after seeing a result, and I am stating that here. The main thread path now yields in the same time slices and by the same method as the worker. I added a blocking form as the other extreme. The criteria, workloads and metrics did not change. The first run's worker numbers stand, and its main thread numbers must not be quoted.
+
+## Amendment after the second run
+
+With a fair baseline, the worker lost on draft latency, 8 ms against 2 ms. Two things in the measurement needed correcting before drawing a conclusion. Both changes were made after seeing that result, and the second run is kept in `results/bench-2026-11-06T07-32-09-549Z`.
+
+1. **The clock.** Edit to draft started when the handler ran, so input queued behind a busy main thread cost nothing. That favoured blocking work. The clock now starts at the pointer event's own timestamp, and the metric is called input to draft.
+2. **The workload.** The target drag scene finishes within a frame on this machine, so it cannot show when a worker matters. The declared stress scene now also runs the same drag at 1x.
+
+Pass criteria did not change.

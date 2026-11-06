@@ -9,10 +9,10 @@
 import { writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import { PRESETS } from '../src/core/presets';
-import { serializeScene } from '../src/core/scene';
-import { withLevels } from './workload';
+import { serializeScene, type Scene } from '../src/core/scene';
+import { stressScene, withLevels } from './workload';
 
-const [url, mode, throttleText, out] = process.argv.slice(2);
+const [url, mode, throttleText, sceneName, out] = process.argv.slice(2);
 const throttle = Number(throttleText);
 const DRAG_STEPS = 150;
 const PACE_MS = 16;
@@ -28,7 +28,10 @@ const engines: Record<string, string> = { main: '&worker=off', blocking: '&worke
 await page.goto(`${url}/?hook=1${engines[mode] ?? ''}`);
 await page.waitForSelector('.status-state[data-state=final]', { timeout: 30_000 });
 
-const scene = withLevels(PRESETS[2].scene, 16);
+const scene: Scene =
+  sceneName === 'stress'
+    ? { ...stressScene(), export: { ...stressScene().export, resolution: 1024 } }
+    : withLevels(PRESETS[2].scene, 16);
 await page.locator('input[type=file]').setInputFiles({
   name: 'bench.contour.json',
   mimeType: 'application/json',
@@ -101,7 +104,7 @@ const data = await page.evaluate(() => {
 
 // Geometry stages in this engine, on the main thread, for all three grids.
 if (throttle > 1) await client.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-const stages = await page.evaluate(
+const stages = sceneName === 'stress' ? {} : await page.evaluate(
   ({ text }) => {
     const { computeGeometry, toSvg } = (window as any).__contour.core;
     const parsed = JSON.parse(text);
@@ -123,4 +126,4 @@ const stages = await page.evaluate(
 );
 
 await browser.close();
-writeFileSync(out, JSON.stringify({ ...data, browser: version, mode, throttle, stages }));
+writeFileSync(out, JSON.stringify({ ...data, browser: version, mode, throttle, scene: sceneName, stages }));

@@ -31,6 +31,15 @@ export interface Cell {
   group: 'target' | 'default' | 'stress';
 }
 
+export function stressScene(): Scene {
+  const dense = PRESETS[2].scene;
+  return {
+    ...withLevels(dense, 64),
+    noise: { ...dense.noise, octaves: 4 },
+    export: { ...dense.export, tolerance: 0.05, decimals: 3 },
+  };
+}
+
 export function cells(): Cell[] {
   const out: Cell[] = [];
   for (const preset of PRESETS) {
@@ -49,14 +58,9 @@ export function cells(): Cell[] {
       group: 'default',
     });
   }
-  const dense = PRESETS[2].scene;
   out.push({
     id: 'interference-study/stress-64-levels/1024',
-    scene: {
-      ...withLevels(dense, 64),
-      noise: { ...dense.noise, octaves: 4 },
-      export: { ...dense.export, tolerance: 0.05, decimals: 3 },
-    },
+    scene: stressScene(),
     resolution: 1024,
     group: 'stress',
   });

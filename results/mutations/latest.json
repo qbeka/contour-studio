@@ -1,5 +1,5 @@
 {
-  "commit": "b71782035614eb2f9d0b3a64792f9f80d3d32250",
+  "commit": "a2e7d33391e3aae153e6413de22ce64898edc8da",
   "unmodifiedSuitePassed": true,
   "total": 57,
   "killed": 56,
@@ -233,7 +233,6 @@
       "status": "killed",
       "failed": [
         "noise is bounded by 1 for every octave count",
-        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "random scenes coordinates of a known scene stay byte stable"
       ],
       "suiteErrors": 0
@@ -626,6 +625,7 @@
       "why": "The guard is not an upper bound.",
       "status": "killed",
       "failed": [
+        "sampled distance a sample budget widens the spacing and keeps the guard true",
         "sampled distance the guard covers a maximum that the samples miss"
       ],
       "suiteErrors": 0

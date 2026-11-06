@@ -422,6 +422,7 @@ function SourceHandle(props: HandleProps) {
 
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!dragging) return;
+    store.markInput(event.timeStamp);
     const element = stage.current as HTMLDivElement;
     const { px, py } = eventPoint(element, event);
     const model = toModel(px, py);

@@ -23,7 +23,7 @@ export interface SessionOptions {
 
 export interface Session {
   client: GeometryClient;
-  /** Time from scene edit to geometry on screen, for the benchmark. */
+  /** Time from input to geometry on screen, for the benchmark. */
   log: {
     revision: number;
     quality: string;
@@ -88,7 +88,9 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
     if (revision === lastRevision) return;
     const first = lastRevision === 0;
     lastRevision = revision;
-    startedAt.set(revision, performance.now());
+    // From the input event when there is one, so that time spent queued behind a
+    // busy main thread counts against that thread.
+    startedAt.set(revision, store.takeInput() ?? performance.now());
     if (startedAt.size > 256) startedAt.delete(startedAt.keys().next().value as number);
 
     clearTimeout(refineTimer);
