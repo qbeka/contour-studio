@@ -79,6 +79,15 @@ describe('sampled distance', () => {
     expect(sampledHausdorff(geometry.source.flat(), [], 0.25).sampled).toBe(Infinity);
   });
 
+  it('stays bounded on a wildly wrong file and widens its spacing honestly', () => {
+    const a: Polyline = { points: new Float64Array([0, 0, 100, 0]), closed: false };
+    const far: Polyline = { points: new Float64Array([0, 1e9, 1e9, 1e9]), closed: false };
+    const distance = sampledHausdorff([a], [far], 0.25);
+    expect(distance.sampled).toBeGreaterThan(1e8);
+    expect(distance.spacing).toBeGreaterThan(0.25);
+    expect(distance.samples).toBeLessThanOrEqual(4_000_010);
+  });
+
   it('the guard is an upper bound for a known exact distance', () => {
     const a: Polyline = { points: new Float64Array([0, 0, 100, 0]), closed: false };
     const b: Polyline = { points: new Float64Array([0, 0, 50, 7, 100, 0]), closed: false };

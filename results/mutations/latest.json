@@ -1,8 +1,9 @@
 {
-  "commit": "6063bf8485075ba0f400baf2186a2c221c5a9b56",
+  "commit": "7036bcc1816b27e0041bc4ce2ea25f63a21c10f4",
   "unmodifiedSuitePassed": true,
   "total": 37,
-  "killed": 37,
+  "killed": 36,
+  "timedOut": 1,
   "results": [
     {
       "id": "tie-up",
@@ -347,10 +348,8 @@
       "id": "relative-lattice",
       "file": "src/core/svg.ts",
       "why": "Relative commands accumulate a wrong y.",
-      "status": "killed",
-      "failed": [
-        "SVG file expanded bounds grow the viewBox and report a limited margin"
-      ],
+      "status": "timed-out",
+      "failed": [],
       "suiteErrors": 0
     },
     {

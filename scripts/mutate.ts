@@ -9,8 +9,17 @@
  *   pnpm exec tsx scripts/mutate.ts
  */
 
-import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -71,19 +80,39 @@ symlinkSync(join(repo, 'node_modules'), join(sandbox, 'node_modules'));
 
 interface Outcome {
   passed: boolean;
+  /** The run hit the time limit. Usually a mutant that makes a test spin. */
+  timedOut: boolean;
   failed: string[];
   suiteErrors: number;
 }
 
-function runTests(): Outcome {
+const TIME_LIMIT_MS = 45_000;
+
+async function runTests(): Promise<Outcome> {
   const report = join(sandbox, 'report.json');
-  spawnSync('node_modules/.bin/vitest', ['run', '--reporter=json', `--outputFile=${report}`], {
+  // A stale report would be read as this mutant's result, so it goes first.
+  rmSync(report, { force: true });
+  const child = spawn('node_modules/.bin/vitest', ['run', '--reporter=json', `--outputFile=${report}`], {
     cwd: sandbox,
     stdio: 'ignore',
-    timeout: 120_000,
+    detached: true,
   });
+  let timedOut = false;
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(() => {
+      timedOut = true;
+      // The negative pid reaches vitest's forked workers as well.
+      process.kill(-(child.pid as number), 'SIGKILL');
+    }, TIME_LIMIT_MS);
+    child.on('exit', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+  if (timedOut || !existsSync(report)) {
+    return { passed: false, timedOut: true, failed: [], suiteErrors: 0 };
+  }
   const json = JSON.parse(readFileSync(report, 'utf8')) as {
-    numFailedTests: number;
     testResults: { status: string; assertionResults: { status: string; fullName: string }[] }[];
   };
   const failed = json.testResults.flatMap((file) =>
@@ -92,36 +121,45 @@ function runTests(): Outcome {
   const suiteErrors = json.testResults.filter(
     (file) => file.status === 'failed' && file.assertionResults.length === 0,
   ).length;
-  return { passed: failed.length === 0 && suiteErrors === 0, failed, suiteErrors };
+  return { passed: failed.length === 0 && suiteErrors === 0, timedOut: false, failed, suiteErrors };
 }
 
-const baseline = runTests();
+const baseline = await runTests();
 if (!baseline.passed) {
   console.error('The unmodified suite fails in the sandbox, so results would mean nothing.');
   console.error(baseline.failed);
   process.exit(1);
 }
 
-const results = MUTATIONS.map((mutation) => {
+const results = [];
+for (const mutation of MUTATIONS) {
   const path = join(sandbox, mutation.file);
   const original = readFileSync(path, 'utf8');
   if (!original.includes(mutation.find)) {
-    return { id: mutation.id, file: mutation.file, why: mutation.why, status: 'not-applied', failed: [] as string[] };
+    results.push({
+      id: mutation.id,
+      file: mutation.file,
+      why: mutation.why,
+      status: 'not-applied',
+      failed: [] as string[],
+      suiteErrors: 0,
+    });
+    continue;
   }
   writeFileSync(path, original.replace(mutation.find, mutation.replace));
-  const outcome = runTests();
+  const outcome = await runTests();
   writeFileSync(path, original);
-  const status = outcome.passed ? 'survived' : 'killed';
+  const status = outcome.timedOut ? 'timed-out' : outcome.passed ? 'survived' : 'killed';
   console.log(`${status.padEnd(12)} ${mutation.id.padEnd(20)} ${outcome.failed.length} failing`);
-  return {
+  results.push({
     id: mutation.id,
     file: mutation.file,
     why: mutation.why,
     status,
     failed: outcome.failed,
     suiteErrors: outcome.suiteErrors,
-  };
-});
+  });
+}
 
 rmSync(sandbox, { recursive: true, force: true });
 
@@ -129,8 +167,8 @@ const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding:
 mkdirSync(join(repo, 'results/mutations'), { recursive: true });
 writeFileSync(
   join(repo, 'results/mutations/latest.json'),
-  `${JSON.stringify({ commit, unmodifiedSuitePassed: true, total: results.length, killed: results.filter((r) => r.status === 'killed').length, results }, null, 2)}\n`,
+  `${JSON.stringify({ commit, unmodifiedSuitePassed: true, total: results.length, killed: results.filter((r) => r.status === 'killed').length, timedOut: results.filter((r) => r.status === 'timed-out').length, results }, null, 2)}\n`,
 );
 const survivors = results.filter((r) => r.status !== 'killed');
-console.log(`\n${results.length - survivors.length} of ${results.length} killed.`);
+console.log(`\n${results.length - survivors.length} of ${results.length} killed by a named test.`);
 for (const s of survivors) console.log(`${s.status}: ${s.id} (${s.why})`);

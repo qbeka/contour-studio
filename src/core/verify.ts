@@ -250,6 +250,17 @@ function samplePaths(
   return samples;
 }
 
+/** Upper limit on samples per side, so that a wildly wrong file cannot hang the check. */
+const MAX_SAMPLES = 4_000_000;
+
+function totalLength(segments: Float64Array): number {
+  let sum = 0;
+  for (let s = 0; s < segments.length; s += 4) {
+    sum += Math.hypot(segments[s + 2] - segments[s], segments[s + 3] - segments[s + 1]);
+  }
+  return sum;
+}
+
 export interface SampledDistance {
   /** Largest distance from a sample on A to B. */
   forward: number;
@@ -259,6 +270,7 @@ export interface SampledDistance {
   sampled: number;
   /** sampled + spacing / 2, which is a true upper bound. See docs/GEOMETRY.md. */
   guard: number;
+  /** The spacing used. Wider than requested only if the sample limit was reached. */
   spacing: number;
   samples: number;
 }
@@ -270,12 +282,19 @@ export interface SampledDistance {
 export function sampledHausdorff(
   a: readonly Polyline[],
   b: readonly Polyline[],
-  spacing: number,
+  requested: number,
 ): SampledDistance {
   const segA = pathSegments(a);
   const segB = pathSegments(b);
   if (segA.length === 0 && segB.length === 0) {
-    return { forward: 0, backward: 0, sampled: 0, guard: spacing / 2, spacing, samples: 0 };
+    return {
+      forward: 0,
+      backward: 0,
+      sampled: 0,
+      guard: requested / 2,
+      spacing: requested,
+      samples: 0,
+    };
   }
   if (segA.length === 0 || segB.length === 0) {
     return {
@@ -283,24 +302,28 @@ export function sampledHausdorff(
       backward: Infinity,
       sampled: Infinity,
       guard: Infinity,
-      spacing,
+      spacing: requested,
       samples: 0,
     };
   }
   const toB = new DistanceIndex(segB);
   const toA = new DistanceIndex(segA);
+  const used = Math.max(
+    requested,
+    Math.max(totalLength(segA), totalLength(segB)) / MAX_SAMPLES,
+  );
   let forward = 0;
   let backward = 0;
-  let samples = samplePaths(a, spacing, (x, y) => {
+  let samples = samplePaths(a, used, (x, y) => {
     const d = toB.distance(x, y);
     if (d > forward) forward = d;
   });
-  samples += samplePaths(b, spacing, (x, y) => {
+  samples += samplePaths(b, used, (x, y) => {
     const d = toA.distance(x, y);
     if (d > backward) backward = d;
   });
   const sampled = Math.max(forward, backward);
-  return { forward, backward, sampled, guard: sampled + spacing / 2, spacing, samples };
+  return { forward, backward, sampled, guard: sampled + used / 2, spacing: used, samples };
 }
 
 export interface GridErrorEstimate {

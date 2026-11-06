@@ -42,6 +42,16 @@ describe('path data', () => {
     back[0].points.forEach((v, i) => expect(v).toBeCloseTo(path.points[i], 9));
   });
 
+  it('every vertex of a real path survives the trip through relative commands', () => {
+    // Bounded on purpose: a wrong delta fails here at once, without any walk along
+    // a far away path.
+    const values: number[] = [];
+    for (let i = 0; i < 90; i++) values.push(i * 2.25, 40 + 20 * Math.sin(i * 0.4));
+    const rounded = values.map((v) => Math.round(v * 100) / 100);
+    const [back] = parsePathData(pathData(output(rounded, 2)));
+    back.points.forEach((v, i) => expect(v).toBeCloseTo(rounded[i], 9));
+  });
+
   it('closes loops with z and does not repeat the first point', () => {
     const d = pathData(output([0, 0, 10, 0, 10, 10], 0, true));
     expect(d.endsWith('z')).toBe(true);
