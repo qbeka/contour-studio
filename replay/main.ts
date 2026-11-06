@@ -86,9 +86,14 @@ function handleLimits() {
   };
 }
 
+/** Room the hint needs on either side of the handle. */
+const HINT_REACH = 130;
+
 function placeHandle(px: number, py: number): void {
   handle.style.transform = `translate3d(${px}px, ${py}px, 0)`;
   stage.toggleAttribute('data-hint-below', py < 48);
+  const edge = px < HINT_REACH ? 'start' : px > stage.clientWidth - HINT_REACH ? 'end' : 'middle';
+  if (stage.dataset.hintEdge !== edge) stage.dataset.hintEdge = edge;
 }
 
 function syncHandle(): void {

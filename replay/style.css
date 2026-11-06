@@ -57,6 +57,8 @@ html { scroll-behavior: smooth; }
   opacity: 0; transition: opacity .12s;
 }
 .stage[data-hint-below] .hint { bottom: auto; top: calc(100% - 2px); }
+.stage[data-hint-edge='start'] .hint { left: 0; transform: none; }
+.stage[data-hint-edge='end'] .hint { left: auto; right: 0; transform: none; }
 .hint .keys { display: none; }
 @media (hover: hover) {
   .handle:hover .hint { opacity: 1; transition-delay: .35s; }
@@ -164,3 +166,4 @@ html { scroll-behavior: smooth; }
   .field { padding: 1px 0 0; }
   .toolbar { bottom: 8px; }
 }
+noscript .prose { margin: 24px; }
