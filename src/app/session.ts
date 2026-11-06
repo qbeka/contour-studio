@@ -24,7 +24,13 @@ export interface SessionOptions {
 export interface Session {
   client: GeometryClient;
   /** Time from scene edit to geometry on screen, for the benchmark. */
-  log: { revision: number; quality: string; startedAt: number; committedAt: number }[];
+  log: {
+    revision: number;
+    quality: string;
+    startedAt: number;
+    committedAt: number;
+    frameAt: number | null;
+  }[];
 }
 
 export function startSession(store: EditorStore, options: SessionOptions): Session {
@@ -38,11 +44,16 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
         if (committed) {
           const start = startedAt.get(revision);
           if (start !== undefined && log.length < 5000) {
-            log.push({
+            const entry: Session['log'][number] = {
               revision,
               quality: geometry.quality,
               startedAt: start,
               committedAt: performance.now(),
+              frameAt: null,
+            };
+            log.push(entry);
+            requestAnimationFrame(() => {
+              entry.frameAt = performance.now();
             });
           }
         }

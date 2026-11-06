@@ -10,6 +10,9 @@ import type { Geometry } from '../core/pipeline';
 import type { Scene } from '../core/scene';
 import { levelStyle } from '../core/svg';
 
+/** Recent draw times in ms, for the browser benchmark. Bounded on purpose. */
+export const drawLog: number[] = [];
+
 /** Path2D objects per geometry, so that pan and zoom never rebuild them. */
 const cache = new WeakMap<Geometry, Path2D[]>();
 
@@ -43,6 +46,7 @@ export function drawArtwork(
   scene: Scene,
   t: DrawTransform,
 ): void {
+  const started = performance.now();
   const { rect } = geometry;
   ctx.save();
   ctx.setTransform(t.dpr * t.scale, 0, 0, t.dpr * t.scale, t.dpr * t.x, t.dpr * t.y);
@@ -65,6 +69,7 @@ export function drawArtwork(
     ctx.stroke(paths[i]);
   });
   ctx.restore();
+  if (drawLog.length < 4096) drawLog.push(performance.now() - started);
 }
 
 export function drawNodes(
