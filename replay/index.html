@@ -4,114 +4,119 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contour</title>
-<meta name="description" content="Drag a source and every contour follows, running Contour's real geometry code in your browser.">
+<meta name="description" content="Move a point. The lines follow.">
+<link rel="preload" href="/fonts/GeistSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/Geist-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<div class="page">
-  <header class="hero">
-    <p class="eyebrow">Contour, a tool for original line artwork</p>
-    <h1>Drag a source. <br>Every line follows.</h1>
-    <p class="lede">This page runs Contour's real geometry code in your browser. Play the recorded
-    drag or take the handle yourself. The size and error under the drawing are worked out for
-    exactly what you see.</p>
-    <p class="recorded">The four figures below come from the recorded benchmark on an Apple M5 Pro.
-    The figures under the drawing are computed live on your device.</p>
-  </header>
-
-  <svg class="ridge" id="ridge" aria-hidden="true" preserveAspectRatio="none"></svg>
-
-  <dl class="stats">
-    <div class="stat"><dd>12 to 20 ms</dd><dt>Refined geometry at 512 cells and 16 levels</dt></div>
-    <div class="stat"><dd>83 to 15 KB</dd><dt>Quiet ridge file with the same composition</dt></div>
-    <div class="stat"><dd>0.22 units</dd><dt>Most the export can move a line, proved</dt></div>
-    <div class="stat"><dd>0</dd><dt>Crossings across 420 random scenes</dt></div>
-  </dl>
+<div class="shell">
+  <div class="topbar">
+    <a class="quiet back" href="https://www.qendrimbeka.com/">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back
+    </a>
+    <nav aria-label="More about Contour">
+      <a class="quiet" href="#details">Details</a>
+      <a class="quiet" href="https://github.com/qbeka/contour-studio">GitHub</a>
+    </nav>
+  </div>
 
   <main>
-    <section aria-labelledby="replay-title">
-      <h2 id="replay-title">One drag, computed as you watch</h2>
-      <p class="note">While the source moves you see a fast draft. When it stops, the drawing
-      switches to export geometry, the same numbers the SVG file prints.</p>
+    <header class="title">
+      <h1>Contour</h1>
+      <a class="control outline" href="app/index.html">Open studio</a>
+      <p>Move a point. The lines follow.</p>
+    </header>
 
-      <div class="controls">
-        <button class="pill" id="play" type="button">Play</button>
-        <select class="field" id="scene" aria-label="Scene"></select>
-        <select class="field" id="detail" aria-label="Line detail">
-          <option value="0">Full detail</option>
-          <option value="0.05">Fine detail</option>
-          <option value="0.15" selected>Balanced detail</option>
-          <option value="0.5">Light detail</option>
-        </select>
-        <button class="pill ghost" id="nodes" type="button" aria-pressed="false">Show nodes</button>
-      </div>
-      <div class="scrub-row">
-        <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the recorded drag">
-      </div>
+    <section class="stage" id="stage" aria-label="Drawing" data-invite>
+      <canvas id="art" role="img" aria-label="Contour lines"></canvas>
+      <canvas id="fade" aria-hidden="true"></canvas>
+      <div class="sheet" id="sheet" hidden></div>
 
-      <div class="stage" id="stage">
-        <svg id="art" role="img" aria-label="Contour lines"></svg>
-        <button class="handle" id="handle" type="button"><span></span></button>
-      </div>
+      <button class="handle" id="handle" type="button" aria-expanded="false" aria-controls="inspector">
+        <i></i>
+        <span class="hint" aria-hidden="true"><span class="mouse">Drag it, or click for settings</span><span class="keys">Arrow keys move it. Enter opens settings</span></span>
+      </button>
 
-      <div class="state"><i id="dot"></i><span id="state" role="status"></span></div>
+      <aside class="inspector float" id="inspector" aria-label="Point and line settings" hidden>
+        <header>
+          <h2 id="point-name"></h2>
+          <button class="control close" id="close" type="button" aria-label="Close settings">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </button>
+        </header>
+        <div class="wrap">
+          <fieldset class="fields">
+            <legend>Point</legend>
+            <label class="field"><span>Height <output id="height-out"></output></span><input id="height" type="range" min="-1.5" max="1.5" step="0.01"></label>
+            <label class="field"><span>Reach <output id="radius-out"></output></span><input id="radius" type="range" min="40" max="640" step="1"></label>
+          </fieldset>
+          <fieldset class="fields">
+            <legend>Lines</legend>
+            <label class="field"><span>Line gap <output id="gap-out"></output></span><input id="gap" type="range" min="0.04" max="0.2" step="0.005"></label>
+            <label class="field"><span>Texture <output id="texture-out"></output></span><input id="texture" type="range" min="0" max="0.12" step="0.002"></label>
+          </fieldset>
+        </div>
+      </aside>
 
-      <dl class="readout" id="readout">
-        <div><dt>Nodes</dt><dd id="r-nodes"></dd></div>
-        <div><dt>File size</dt><dd id="r-size"></dd></div>
-        <div><dt>Moved at most</dt><dd id="r-bound"></dd></div>
-        <div><dt>Crossings</dt><dd id="r-cross"></dd></div>
-      </dl>
-
-      <div class="actions">
-        <a class="pill" href="app/index.html">Open the full studio</a>
-        <button class="pill ghost" id="download" type="button">Download this SVG</button>
+      <div class="toolbar float" id="toolbar" role="group" aria-label="Drawing tools">
+        <div class="presets" id="presets" role="group" aria-label="Composition"></div>
+        <span class="divider"></span>
+        <div class="actions">
+          <button class="control" id="undo" type="button" aria-disabled="true">Undo</button>
+          <button class="control" id="reset" type="button" aria-disabled="true">Reset</button>
+          <button class="control primary" id="export" type="button">
+            <span class="on" data-label="idle">Export SVG</span>
+            <span data-label="holding">Finishing</span>
+            <span data-label="saved">Saved</span>
+            <span data-label="failed">Try again</span>
+          </button>
+        </div>
       </div>
     </section>
 
-    <section aria-labelledby="watch-title">
-      <h2 id="watch-title">The whole workflow</h2>
-      <p class="note">Placing sources, shaping a ridge, tuning export quality and saving the file,
-      in 68 seconds with captions.</p>
-      <video class="film" controls preload="none" poster="cover.png" width="1280" height="800">
+    <section class="reading" id="details" aria-labelledby="details-title">
+      <h2 id="details-title">Details</h2>
+      <p class="prose">Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the lines follow. Export SVG gives you the drawing you see above, and every line stays its own path.</p>
+      <p class="prose">The <a href="app/index.html">studio</a> is the same drawing engine with the rest of the tools: more sources, ridges, line styling, and React and PNG export.</p>
+      <video class="film" id="film" controls preload="none" width="1280" height="800" data-poster="cover.png">
         <source src="walkthrough.mp4" type="video/mp4">
       </video>
-    </section>
 
-    <section aria-labelledby="evidence-title">
-      <h2 id="evidence-title">Why you can trust this</h2>
-      <ul class="claims">
-        <li><b>Same numbers</b><span>Once the preview settles, the canvas and the SVG read one shared
-        geometry. There is no separate preview to drift away from the file.</span></li>
-        <li><b>Proved error</b><span>Each path carries a bound for simplifying and rounding. On the quiet
-        ridge the bound is 0.22 units, and the sampled distance is 0.19 units.</span></li>
-        <li><b>Lines stay apart</b><span>0 crossings and 0 lost paths across 9 size table rows and 420
-        random scenes. A path that fails a topology rule is retried at finer settings.</span></li>
-        <li><b>Repeatable files</b><span>One workflow's scene gave identical bytes in Chromium, Firefox,
-        WebKit and Node. Chromium, Firefox, WebKit and resvg drew three scenes within 1 px.</span></li>
-        <li><b>Tests that can fail</b><span>178 unit tests and 41 browser tests. 69 of 70 seeded bugs were
-        caught by a named test, and the last one timed out.</span></li>
-        <li><b>The worker's real job</b><span>It made drafts slower, 17 ms against 10 ms. It stays because
-        it cut the largest frame gap on a heavy scene from 204 ms to 25 ms.</span></li>
-      </ul>
-      <h3>What this does not show</h3>
+      <h3>Results</h3>
+      <dl class="results">
+        <div><dt>Nodes in the file</dt><dd><b>12,104 to 1,771</b>Quiet ridge scene in the repo at tolerance 0.15, against the same scene with nothing removed. That is 85 percent fewer.</dd></div>
+        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>Same scene, same tolerance, same comparison. That is 71 percent smaller.</dd></div>
+        <div><dt>How far lines moved</dt><dd><b>0.19 units sampled, 0.221 proved</b>Same file, against the extracted lines. The bound is proved. The sample is only an estimate.</dd></div>
+        <div><dt>Repeatable files</dt><dd><b>Identical bytes</b>Chromium, Firefox, WebKit and Node, for the one workflow tested.</dd></div>
+        <div><dt>Largest frame gap</dt><dd><b>25 ms against 204 ms</b>Worker against blocking on the stress scene. The worker keeps the page from freezing, and it makes drafts slower.</dd></div>
+        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>On top of that, 70 seeded bugs: 69 caught by a named test and 1 by a timeout.</dd></div>
+      </dl>
+
+      <h3>Limits</h3>
       <ul class="limits">
-        <li>All timings come from one fast laptop with other work running on it.</li>
-        <li>Nobody outside this project has used it yet.</li>
-        <li>Path editing was checked in paper.js, not in a desktop vector editor.</li>
-        <li>Grid error is not part of the export bound. It reaches about 0.79 units on the quiet ridge.</li>
+        <li>All timings come from one fast laptop.</li>
+        <li>Grid error is not part of the proved bound. It reaches about 0.79 units on the quiet ridge.</li>
         <li>Exports are polylines, so smooth lines need many nodes.</li>
+        <li>I checked path editing in paper.js. I have not tested Figma, Illustrator or Inkscape.</li>
+        <li>Nobody outside this project has used it yet.</li>
       </ul>
-    </section>
-  </main>
 
-  <footer>
-    <p>This page runs on the main thread and uses Contour's own field, contour, simplify and SVG
-    code. The studio does the same work in a worker.</p>
-    <p><a href="https://github.com/qbeka/contour-studio">Source on GitHub</a>.
-    <a href="https://github.com/qbeka/contour-studio/blob/main/docs/REPORT.md">Report, raw data and failures</a>.</p>
-  </footer>
+      <h3>Method</h3>
+      <p class="prose">The <a href="https://github.com/qbeka/contour-studio/blob/main/docs/REPORT.md">report</a> has the tables, raw data and failures. The <a href="https://github.com/qbeka/contour-studio/blob/main/docs/GEOMETRY.md">geometry notes</a> have the model and the proofs.</p>
+    </section>
+
+    <div class="page-end">
+      <a class="quiet back" href="https://www.qendrimbeka.com/">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </a>
+      <a class="quiet" href="https://github.com/qbeka/contour-studio">GitHub</a>
+    </div>
+  </main>
 </div>
+<div class="sr-only" id="status" role="status"></div>
 <script type="module" src="./main.ts"></script>
 </body>
 </html>
