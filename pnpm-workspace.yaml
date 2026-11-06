@@ -1,0 +1,3 @@
+# esbuild ships its platform binary through an install script. tsx needs it.
+allowBuilds:
+  esbuild: true
