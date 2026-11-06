@@ -37,7 +37,7 @@ Storyboard:
 1. Open the app. The ridge starter is on the canvas, so the first screen is real content.
 2. Press `P`, click to place a peak. Its row appears selected in the list.
 3. Drag the peak. A coarse preview follows the pointer and the status reads "Draft".
-4. Release. The status reads "Refining", then "Export geometry". The lines you now see are the exact lines that go in the file.
+4. Release. The status reads "Refining", then "Export geometry". The lines you now see are the numbers that go in the file.
 5. Open Export. Choose a line detail. See node count, file size and error bound change for this composition.
 6. Download the SVG and open it anywhere.
 
@@ -83,7 +83,7 @@ Controls say what changes in the drawing, not which algorithm runs.
 | First line | The height of the lowest line | `levels.base` |
 | Texture | How much the lines wander | `noise.amplitude` |
 | Texture size | The size of each wander | `noise.scale` |
-| Line detail | How closely exported paths follow the exact lines | `export.tolerance` |
+| Line detail | How far simplifying may move a line | `export.tolerance` |
 
 Advanced sections hold grid resolution, coordinate precision and noise octaves.
 

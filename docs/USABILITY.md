@@ -11,7 +11,7 @@ Run this with 3 to 5 people who make visual work and have not seen the tool. Use
 3. Make the lines closer together, and add a slight wander.
 4. You changed your mind. Go back to before you added the wander.
 5. Save your work, close the tab, and open it again.
-6. Export a file that is under 20 KB. Tell me how far the exported lines may sit from the exact lines.
+6. Export a file that is under 20 KB. Tell me how far simplifying could have moved the lines.
 7. Open the file somewhere else.
 
 Follow up: What did "Line detail" mean to you? What did the status line tell you during a drag? What would you remove?
@@ -23,7 +23,7 @@ I reviewed real renders against Nielsen's heuristics. Severity is 0 to 3.
 | Heuristic | Finding | Severity | Action |
 |---|---|---|---|
 | Visibility of status | The status line says Draft, Refining or Export geometry, with the grid and time | 0 | None |
-| Match with the real world | "Line detail" is less exact than "tolerance", but it names what changes | 1 | Test in task 6 |
+| Match with the real world | "Line detail" is less precise than "tolerance", but it names what changes | 1 | Test in task 6 |
 | User control | Undo covers every scene edit, opening a file and loading a starter | 0 | None |
 | Consistency | Sources can be selected from the list or the sheet, and both show the same selection | 0 | None |
 | Error prevention | Invalid numbers are refused with the allowed range. A bad file changes nothing | 0 | None |

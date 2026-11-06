@@ -1,8 +1,9 @@
 {
-  "commit": "a2e7d33391e3aae153e6413de22ce64898edc8da",
+  "commit": "68a6eafa2946affd4c11122577284c81a51795c6",
   "unmodifiedSuitePassed": true,
-  "total": 57,
-  "killed": 56,
+  "unmodifiedBrowserSuitePassed": true,
+  "total": 68,
+  "killed": 64,
   "timedOut": 1,
   "results": [
     {
@@ -676,7 +677,8 @@
       "why": "An old final can overwrite a newer draft.",
       "status": "killed",
       "failed": [
-        "commit rule an old final never overwrites a newer draft"
+        "commit rule an old final never overwrites a newer draft",
+        "editor store an old result never replaces a newer one"
       ],
       "suiteErrors": 0
     },
@@ -708,6 +710,110 @@
       "failed": [
         "history undo and redo walk through states and a new edit clears redo"
       ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "typing-reset",
+      "file": "src/app/controls.tsx",
+      "why": "Typing a negative number resets the field.",
+      "status": "survived",
+      "failed": [],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ridge-limit",
+      "file": "src/app/Stage.tsx",
+      "why": "A ridge can pass the source limit.",
+      "status": "survived",
+      "failed": [],
+      "suiteErrors": 0
+    },
+    {
+      "id": "place-limit",
+      "file": "src/app/Stage.tsx",
+      "why": "Placing a source ignores the limit.",
+      "status": "killed",
+      "failed": [
+        "a full source list stays usable"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "right-click",
+      "file": "src/app/Stage.tsx",
+      "why": "Right click places a source.",
+      "status": "killed",
+      "failed": [
+        "right click places nothing, and a double click adds no extra point"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "double-click",
+      "file": "src/app/Stage.tsx",
+      "why": "A double click repeats a ridge point.",
+      "status": "killed",
+      "failed": [
+        "right click places nothing, and a double click adds no extra point"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "slider-delete",
+      "file": "src/app/App.tsx",
+      "why": "Backspace on a slider deletes the source.",
+      "status": "killed",
+      "failed": [
+        "backspace on a focused slider leaves the source alone"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "no-flush",
+      "file": "src/app/session.ts",
+      "why": "A reload inside the delay loses the edit.",
+      "status": "killed",
+      "failed": [
+        "a reload right after an edit keeps it"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "save-state",
+      "file": "src/app/session.ts",
+      "why": "Failed storage reads as saved.",
+      "status": "killed",
+      "failed": [
+        "failed storage is stated, not hidden"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "peak-clamp",
+      "file": "src/app/edits.ts",
+      "why": "A peak can land outside the format.",
+      "status": "killed",
+      "failed": [
+        "a peak placed far out at the lowest zoom stays in the format"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "cancel-off",
+      "file": "src/app/geometry.worker.ts",
+      "why": "The worker ignores cancel messages.",
+      "status": "killed",
+      "failed": [
+        "a heavy final is superseded by a newer edit"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "export-stale",
+      "file": "src/app/Panels.tsx",
+      "why": "Export is allowed while geometry is stale.",
+      "status": "survived",
+      "failed": [],
       "suiteErrors": 0
     }
   ]

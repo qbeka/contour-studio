@@ -8,7 +8,7 @@
 
 No hosted demo yet. Run it locally with the three commands below. It needs no account, no server and no API key.
 
-Contour is a local design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines respond. What you see is the exact geometry that goes in the file. The Export panel tells you the file size and how far the exported lines can sit from the exact ones, for your composition.
+Contour is a local design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines respond. Once the preview settles, it draws the same numbers the file contains. The Export panel tells you the file size and how far simplifying moved the lines, for your composition.
 
 Shader tools make good pictures quickly, but the picture is an effect. You cannot edit it as vectors, or say how far a traced copy differs from what you saw. Contour's contribution is controlled authorship and a file you can trust.
 
@@ -33,7 +33,7 @@ The worker result is smaller than I first measured. An early baseline made it lo
 
 ## Run it
 
-You need Node 22.16 or later and pnpm 12.
+You need Node 22.16 or later and pnpm 12. The app itself needs nothing else.
 
 ```bash
 pnpm install
@@ -47,7 +47,7 @@ Open http://localhost:5173. It starts on a real scene. Press `?` for shortcuts.
 
 ## A short example
 
-Drag `Left summit` on the sheet, open Export, and choose Balanced. Then download the SVG:
+This is the start of the quiet ridge starter, exported as it opens:
 
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 1440 480" width="1440" height="480"
@@ -101,6 +101,14 @@ The full model and proofs are in [docs/GEOMETRY.md](docs/GEOMETRY.md).
 | `pnpm bench` | The frozen plan in [docs/BENCH_PLAN.md](docs/BENCH_PLAN.md). Takes a few minutes |
 
 Further checks are in `scripts/`: a mutation run, renderer comparison, a clean consumer build and a clean checkout run. [docs/REPORT.md](docs/REPORT.md) lists the commands.
+
+Browser tests need Playwright's browsers once:
+
+```bash
+pnpm exec playwright install chromium firefox webkit
+```
+
+`pnpm bench` reads hardware details with macOS tools (`sw_vers`, `sysctl`, `pmset`), so it runs on macOS. The renderer comparison needs `xmllint`.
 
 ## Documents
 

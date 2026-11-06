@@ -1,6 +1,6 @@
 {
-  "commit": "a2e7d33391e3aae153e6413de22ce64898edc8da",
-  "date": "2026-11-06T07:36:44.609Z",
+  "commit": "68a6eafa2946affd4c11122577284c81a51795c6",
+  "date": "2026-11-06T08:18:01.211Z",
   "renderWidth": 1200,
   "reference": "chromium 148.0.7778.96",
   "renderers": {
@@ -122,20 +122,30 @@
       }
     }
   ],
+  "fixedStroke": {
+    "note": "Ink at 2000 px over ink at 1000 px, over 2. Line length doubles, so 1 means the line weight stayed the same, and 2 means it scaled.",
+    "chromium": 1.0005238303727795,
+    "firefox": 1.0002346279582675,
+    "webkit": 0.9997765411452627,
+    "resvg": 1.5472283148975117
+  },
   "vectorModel": {
     "tool": "paper.js 0.17.0",
     "note": "A vector scripting library with its own path model. It is not a desktop editor.",
     "expected": {
       "quiet-ridge": {
         "paths": 27,
+        "nodes": 1986,
         "closed": 4
       },
       "asymmetric-basin": {
         "paths": 27,
+        "nodes": 2720,
         "closed": 12
       },
       "interference-study": {
         "paths": 75,
+        "nodes": 6316,
         "closed": 34
       }
     },
