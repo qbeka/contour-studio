@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "vite --port 5173 --strictPort",
     "build": "tsc --noEmit && vite build",
+    "build:site": "tsx scripts/build-site.ts",
     "preview": "vite preview --port 5173 --strictPort",
     "check": "tsc --noEmit",
     "test": "vitest run",
