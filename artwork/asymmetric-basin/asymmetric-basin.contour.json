@@ -1,0 +1,105 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Asymmetric basin",
+  "seed": 613,
+  "domain": {
+    "width": 1000,
+    "height": 1000
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 1000,
+    "height": 1000
+  },
+  "sources": [
+    {
+      "id": "bowl",
+      "name": "Main bowl",
+      "kind": "peak",
+      "enabled": true,
+      "x": 430,
+      "y": 560,
+      "radius": 560,
+      "height": -1.1
+    },
+    {
+      "id": "wall",
+      "name": "Steep wall",
+      "kind": "ridge",
+      "enabled": true,
+      "points": [
+        {
+          "x": 120,
+          "y": 90
+        },
+        {
+          "x": 380,
+          "y": 150
+        },
+        {
+          "x": 700,
+          "y": 90
+        },
+        {
+          "x": 940,
+          "y": 300
+        },
+        {
+          "x": 905,
+          "y": 620
+        }
+      ],
+      "radius": 240,
+      "height": 0.75
+    },
+    {
+      "id": "island",
+      "name": "Island",
+      "kind": "peak",
+      "enabled": true,
+      "x": 560,
+      "y": 690,
+      "radius": 150,
+      "height": 0.46
+    },
+    {
+      "id": "notch",
+      "name": "Outlet",
+      "kind": "peak",
+      "enabled": true,
+      "x": 150,
+      "y": 860,
+      "radius": 240,
+      "height": -0.42
+    }
+  ],
+  "noise": {
+    "amplitude": 0.035,
+    "scale": 260,
+    "octaves": 2
+  },
+  "levels": {
+    "base": -0.95,
+    "spacing": 0.1,
+    "count": 20
+  },
+  "style": {
+    "stroke": "#111511",
+    "strokeWidth": 0.9,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 5,
+    "indexWidth": 1.7
+  },
+  "export": {
+    "resolution": 512,
+    "tolerance": 0.15,
+    "decimals": 2,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Quiet ridge",
+  "seed": 2719,
+  "domain": {
+    "width": 1600,
+    "height": 640
+  },
+  "clip": {
+    "x": 80,
+    "y": 80,
+    "width": 1440,
+    "height": 480
+  },
+  "sources": [
+    {
+      "id": "crest",
+      "name": "Long crest",
+      "kind": "ridge",
+      "enabled": true,
+      "points": [
+        {
+          "x": -60,
+          "y": 470
+        },
+        {
+          "x": 240,
+          "y": 300
+        },
+        {
+          "x": 560,
+          "y": 395
+        },
+        {
+          "x": 900,
+          "y": 450
+        },
+        {
+          "x": 1230,
+          "y": 285
+        },
+        {
+          "x": 1680,
+          "y": 180
+        }
+      ],
+      "radius": 210,
+      "height": 0.82
+    },
+    {
+      "id": "summit",
+      "name": "Left summit",
+      "kind": "peak",
+      "enabled": true,
+      "x": 262,
+      "y": 262,
+      "radius": 170,
+      "height": 0.34
+    },
+    {
+      "id": "shoulder",
+      "name": "Far shoulder",
+      "kind": "ridge",
+      "enabled": true,
+      "points": [
+        {
+          "x": 1050,
+          "y": 120
+        },
+        {
+          "x": 1320,
+          "y": 210
+        },
+        {
+          "x": 1620,
+          "y": 110
+        }
+      ],
+      "radius": 150,
+      "height": 0.3
+    },
+    {
+      "id": "valley",
+      "name": "Valley floor",
+      "kind": "peak",
+      "enabled": true,
+      "x": 860,
+      "y": 560,
+      "radius": 210,
+      "height": -0.2
+    }
+  ],
+  "noise": {
+    "amplitude": 0.022,
+    "scale": 210,
+    "octaves": 3
+  },
+  "levels": {
+    "base": 0.09,
+    "spacing": 0.085,
+    "count": 14
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 0.8,
+    "fade": 0.72,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 512,
+    "tolerance": 0.12,
+    "decimals": 1,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

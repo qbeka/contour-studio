@@ -1,0 +1,166 @@
+{
+  "commit": "45382c1471897b4627a21c1d4ff375e0dfe4d631",
+  "date": "2026-11-06T07:00:16.845Z",
+  "renderWidth": 1200,
+  "reference": "chromium 148.0.7778.96",
+  "renderers": {
+    "firefox": "157.0",
+    "webkit": "27.2",
+    "resvg": "@resvg/resvg-js 2.6.2"
+  },
+  "metric": "Pixels with ink above 0.02 are compared by distance to the nearest ink in the other render, both ways, using a 3-4 chamfer. It resolves whole pixels and cannot see subpixel differences.",
+  "control": "The longest path moved down 4 units. The comparison must report more than any real renderer pair.",
+  "xmlWellFormed": [
+    "quiet-ridge",
+    "asymmetric-basin",
+    "interference-study"
+  ],
+  "render": [
+    {
+      "scene": "quiet-ridge",
+      "firefox": {
+        "maxPx": 1,
+        "p999Px": 0,
+        "inkPixels": [
+          44374,
+          44374
+        ]
+      },
+      "webkit": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          44374,
+          46310
+        ]
+      },
+      "resvg": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          44374,
+          44144
+        ]
+      },
+      "seededControl": {
+        "maxPx": 4,
+        "p999Px": 3.6666666666666665,
+        "inkPixels": [
+          44374,
+          44374
+        ]
+      }
+    },
+    {
+      "scene": "asymmetric-basin",
+      "firefox": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          87444,
+          87291
+        ]
+      },
+      "webkit": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          87444,
+          88845
+        ]
+      },
+      "resvg": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          87444,
+          84941
+        ]
+      },
+      "seededControl": {
+        "maxPx": 5,
+        "p999Px": 5,
+        "inkPixels": [
+          87444,
+          87446
+        ]
+      }
+    },
+    {
+      "scene": "interference-study",
+      "firefox": {
+        "maxPx": 1,
+        "p999Px": 0,
+        "inkPixels": [
+          94202,
+          94208
+        ]
+      },
+      "webkit": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          94202,
+          106968
+        ]
+      },
+      "resvg": {
+        "maxPx": 1,
+        "p999Px": 1,
+        "inkPixels": [
+          94202,
+          93849
+        ]
+      },
+      "seededControl": {
+        "maxPx": 4,
+        "p999Px": 3.6666666666666665,
+        "inkPixels": [
+          94202,
+          94202
+        ]
+      }
+    }
+  ],
+  "vectorModel": {
+    "tool": "paper.js 0.17.0",
+    "note": "A vector scripting library with its own path model. It is not a desktop editor.",
+    "expected": {
+      "quiet-ridge": {
+        "paths": 27,
+        "closed": 4
+      },
+      "asymmetric-basin": {
+        "paths": 27,
+        "closed": 12
+      },
+      "interference-study": {
+        "paths": 75,
+        "closed": 34
+      }
+    },
+    "measured": {
+      "quiet-ridge": {
+        "pathItems": 27,
+        "segments": 1986,
+        "closed": 4,
+        "nodeEditWorked": true,
+        "writtenBytes": 20874
+      },
+      "asymmetric-basin": {
+        "pathItems": 27,
+        "segments": 2720,
+        "closed": 12,
+        "nodeEditWorked": true,
+        "writtenBytes": 33079
+      },
+      "interference-study": {
+        "pathItems": 75,
+        "segments": 6316,
+        "closed": 34,
+        "nodeEditWorked": true,
+        "writtenBytes": 77528
+      }
+    }
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Interference study",
+  "seed": 90210,
+  "domain": {
+    "width": 1200,
+    "height": 800
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800
+  },
+  "sources": [
+    {
+      "id": "s1",
+      "name": "Source 1",
+      "kind": "peak",
+      "enabled": true,
+      "x": 170,
+      "y": 190,
+      "radius": 340,
+      "height": 0.9
+    },
+    {
+      "id": "s2",
+      "name": "Source 2",
+      "kind": "peak",
+      "enabled": true,
+      "x": 420,
+      "y": 150,
+      "radius": 340,
+      "height": -0.8
+    },
+    {
+      "id": "s3",
+      "name": "Source 3",
+      "kind": "peak",
+      "enabled": true,
+      "x": 690,
+      "y": 210,
+      "radius": 340,
+      "height": 1
+    },
+    {
+      "id": "s4",
+      "name": "Source 4",
+      "kind": "peak",
+      "enabled": true,
+      "x": 950,
+      "y": 160,
+      "radius": 340,
+      "height": -0.9
+    },
+    {
+      "id": "s5",
+      "name": "Source 5",
+      "kind": "peak",
+      "enabled": true,
+      "x": 290,
+      "y": 420,
+      "radius": 340,
+      "height": -1
+    },
+    {
+      "id": "s6",
+      "name": "Source 6",
+      "kind": "peak",
+      "enabled": true,
+      "x": 560,
+      "y": 400,
+      "radius": 340,
+      "height": 0.85
+    },
+    {
+      "id": "s7",
+      "name": "Source 7",
+      "kind": "peak",
+      "enabled": true,
+      "x": 840,
+      "y": 450,
+      "radius": 340,
+      "height": -0.75
+    },
+    {
+      "id": "s8",
+      "name": "Source 8",
+      "kind": "peak",
+      "enabled": true,
+      "x": 1060,
+      "y": 380,
+      "radius": 340,
+      "height": 0.9
+    },
+    {
+      "id": "s9",
+      "name": "Source 9",
+      "kind": "peak",
+      "enabled": true,
+      "x": 140,
+      "y": 620,
+      "radius": 340,
+      "height": 0.8
+    },
+    {
+      "id": "s10",
+      "name": "Source 10",
+      "kind": "peak",
+      "enabled": true,
+      "x": 430,
+      "y": 660,
+      "radius": 340,
+      "height": -0.9
+    },
+    {
+      "id": "s11",
+      "name": "Source 11",
+      "kind": "peak",
+      "enabled": true,
+      "x": 720,
+      "y": 640,
+      "radius": 340,
+      "height": 0.95
+    },
+    {
+      "id": "s12",
+      "name": "Source 12",
+      "kind": "peak",
+      "enabled": true,
+      "x": 990,
+      "y": 630,
+      "radius": 340,
+      "height": -1
+    }
+  ],
+  "noise": {
+    "amplitude": 0.04,
+    "scale": 120,
+    "octaves": 3
+  },
+  "levels": {
+    "base": -1.15,
+    "spacing": 0.1,
+    "count": 24
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 0.7,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 512,
+    "tolerance": 0.1,
+    "decimals": 2,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}
