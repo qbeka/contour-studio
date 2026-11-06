@@ -4,9 +4,9 @@ What Contour measures, what the evidence shows, and where it stops. The plan was
 
 ## Summary
 
-All four pass criteria passed on the reference laptop. A refined 512 by 512 scene with 16 levels takes 15 to 25 ms in Node and about 15 ms in Chromium, against a 500 ms target. That target was written for a slower machine, so this margin says little about other hardware.
+All four pass criteria passed on the reference laptop. A refined 512 by 512 scene with 16 levels takes 14 to 25 ms in Node and about 15 ms in Chromium, against a 500 ms target. That target was written for a slower machine, so this margin says little about other hardware.
 
-Simplifying the same composition removes about 82 to 87 percent of its nodes and about 71 percent of its gzipped size at the Balanced setting, with no crossing and no lost path in any row.
+Simplifying the same composition removes 83 to 87 percent of its nodes and 72 to 80 percent of its gzipped size at the Balanced setting, with no crossing and no lost path in any row.
 
 The worker does not make drafts faster. It limits the worst stall. On the stress scene the largest frame gap is 40 ms with the worker, against 157 ms with blocking work on the main thread.
 
