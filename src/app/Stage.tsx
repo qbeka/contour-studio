@@ -8,7 +8,16 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { flattenRidge } from '../core/field';
 import { LIMITS, type Source } from '../core/scene';
-import { addPeak, addRidge, clamp, setHandle, snapPoint, updateSource, moveSource } from './edits';
+import {
+  addPeak,
+  addRidge,
+  clamp,
+  hasRoom,
+  moveSource,
+  setHandle,
+  snapPoint,
+  updateSource,
+} from './edits';
 import { drawArtwork, drawNodes } from './render';
 import type { EditorState, EditorStore } from './store';
 
@@ -23,6 +32,14 @@ function useCanvasDraw(
   state: EditorState,
 ) {
   const frame = useRef(0);
+  const [dprTick, setDprTick] = useState(0);
+  // Moving a window to another display changes the pixel ratio and fires no resize.
+  useEffect(() => {
+    const query = matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    const onChange = () => setDprTick((tick) => tick + 1);
+    query.addEventListener('change', onChange, { once: true });
+    return () => query.removeEventListener('change', onChange);
+  }, [dprTick]);
   useEffect(() => {
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -111,7 +128,7 @@ function useCanvasDraw(
       }
     });
     return () => cancelAnimationFrame(frame.current);
-  }, [canvas, store, state.geometry, state.view, state.stage, state.showNodes, state.selection, state.draftRidge, state.history, state.pointer]);
+  }, [canvas, store, state.geometry, state.view, state.stage, state.showNodes, state.selection, state.draftRidge, state.history, state.pointer, dprTick]);
 }
 
 function tracePolyline(
@@ -235,12 +252,16 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
       panning.current = true;
       return;
     }
+    // Only the main button places anything. Right click belongs to the browser.
+    if (event.button !== 0) return;
     const at = placed(model.x, model.y, event.altKey);
-    if (tool === 'peak') {
-      if (store.scene.sources.length >= LIMITS.sources) {
+    if (tool === 'peak' || tool === 'ridge') {
+      if (!hasRoom(store.scene)) {
         store.notify({ kind: 'info', title: `A scene can hold ${LIMITS.sources} sources.` });
         return;
       }
+    }
+    if (tool === 'peak') {
       const { scene, id } = addPeak(store.scene, at.x, at.y);
       store.edit(scene);
       store.set({ selection: { sourceId: id, handle: null }, tool: 'select' });
@@ -282,8 +303,14 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
   };
 
   const onDoubleClick = () => {
-    const { tool, draftRidge } = store.getState();
-    if (tool === 'ridge') finishRidge(store, draftRidge);
+    const { tool, draftRidge, view } = store.getState();
+    if (tool !== 'ridge') return;
+    // The two clicks of a double click each placed a point at the same spot.
+    const last = draftRidge[draftRidge.length - 1];
+    const before = draftRidge[draftRidge.length - 2];
+    const repeated =
+      last && before && Math.hypot(last.x - before.x, last.y - before.y) * view.scale < 4;
+    finishRidge(store, repeated ? draftRidge.slice(0, -1) : draftRidge);
   };
 
   const scene = store.scene;
@@ -374,7 +401,7 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
 }
 
 export function finishRidge(store: EditorStore, points: { x: number; y: number }[]): void {
-  if (points.length >= 2) {
+  if (points.length >= 2 && hasRoom(store.scene)) {
     const { scene, id } = addRidge(store.scene, points);
     store.edit(scene);
     store.set({ selection: { sourceId: id, handle: null } });
@@ -407,7 +434,7 @@ function SourceHandle(props: HandleProps) {
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (store.getState().tool !== 'select') return;
+    if (store.getState().tool !== 'select' || event.button !== 0) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     store.select({ sourceId: source.id, handle: index });

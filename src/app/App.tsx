@@ -35,6 +35,8 @@ function useShortcuts(store: EditorStore, save: () => void) {
       const key = event.key;
       if (command && key.toLowerCase() === 'z') {
         event.preventDefault();
+        // History cannot move under a drag that has not finished.
+        if (store.inGesture) return;
         if (event.shiftKey) store.redo();
         else store.undo();
         return;
@@ -86,7 +88,12 @@ function useShortcuts(store: EditorStore, save: () => void) {
                   ? {
                       ...s,
                       points: s.points.map((p, i) =>
-                        i === handle ? { x: p.x + dx * step, y: p.y + dy * step } : p,
+                        i === handle
+                          ? {
+                              x: clamp(p.x + dx * step, LIMITS.position.min, LIMITS.position.max),
+                              y: clamp(p.y + dy * step, LIMITS.position.min, LIMITS.position.max),
+                            }
+                          : p,
                       ),
                     }
                   : s,
@@ -163,7 +170,8 @@ function useShortcuts(store: EditorStore, save: () => void) {
           break;
         case 'Backspace':
         case 'Delete':
-          if (!source) return;
+          // A focused slider or checkbox is not an instruction to delete.
+          if (!source || (event.target as HTMLElement | null)?.tagName === 'INPUT') return;
           event.preventDefault();
           if (
             source.kind === 'ridge' &&
@@ -299,7 +307,8 @@ export function App({ store, session }: { store: EditorStore; session: Session }
           />
         </label>
         <span className="bar-saved hide-narrow" aria-live="polite">
-          {state.savedAt ? 'Saved in this browser' : ''}
+          {state.saveState === 'saved' && 'Saved in this browser'}
+          {state.saveState === 'failed' && 'Not saved in this browser. Use Save to keep your work'}
         </span>
         <div className="bar-actions">
           <button type="button" className="pill" onClick={() => store.set({ dialog: 'starters' })}>

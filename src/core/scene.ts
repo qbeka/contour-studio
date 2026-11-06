@@ -266,7 +266,11 @@ export function validateScene(value: unknown): ParseResult {
   if (root.version !== SCENE_VERSION) {
     return {
       ok: false,
-      errors: [`Scene version ${String(root.version)} is not supported. This build reads version ${SCENE_VERSION}.`],
+      errors: [
+        typeof root.version === 'number'
+          ? `Scene version ${root.version} is not supported. This build reads version ${SCENE_VERSION}.`
+          : 'The scene version is missing or not a number.',
+      ],
     };
   }
 

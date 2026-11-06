@@ -16,7 +16,7 @@ import type { WorkerRequest, WorkerResponse } from './geometry.worker';
 export interface ClientEvents {
   onGeometry(result: { revision: number; geometry: Geometry }): void;
   onReport(result: { revision: number; report: ExportReport }): void;
-  onFailure(message: string): void;
+  onFailure(result: { revision: number; message: string }): void;
 }
 
 export type Engine = 'worker' | 'sliced' | 'blocking';
@@ -105,7 +105,10 @@ export class GeometryClient {
         this.next(message.id);
         break;
       case 'failed':
-        this.events.onFailure(message.message);
+        this.events.onFailure({
+          revision: this.slots.running?.revision ?? 0,
+          message: message.message,
+        });
         this.next(message.id);
         break;
     }
@@ -141,7 +144,10 @@ export class GeometryClient {
         }
       }
     } catch (error) {
-      this.events.onFailure(error instanceof Error ? error.message : 'Geometry failed.');
+      this.events.onFailure({
+        revision: job.revision,
+        message: error instanceof Error ? error.message : 'Geometry failed.',
+      });
       this.next(job.id);
     }
   }

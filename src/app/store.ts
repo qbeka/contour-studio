@@ -60,7 +60,8 @@ export interface EditorState {
   failedRevision: number | null;
   notice: Notice | null;
   dialog: 'starters' | 'shortcuts' | null;
-  savedAt: number | null;
+  /** Where the scene stands in this browser's storage. */
+  saveState: 'idle' | 'saved' | 'failed';
   pointer: { x: number; y: number } | null;
 }
 
@@ -98,7 +99,7 @@ export class EditorStore {
       failedRevision: null,
       notice: null,
       dialog: null,
-      savedAt: null,
+      saveState: 'idle',
       pointer: null,
     };
   }
@@ -187,12 +188,18 @@ export class EditorStore {
   }
 
   private applyHistory(history: History<Scene>): void {
-    const selection = this.state.selection;
-    const stillThere = selection && history.present.sources.some((s) => s.id === selection.sourceId);
+    // A later edit to the same field must start a new undo step here.
+    this.lastCoalesce = null;
+    const before = this.scene;
+    const after = history.present;
+    const sheetChanged =
+      before.clip !== after.clip &&
+      JSON.stringify([before.clip, before.domain]) !== JSON.stringify([after.clip, after.domain]);
     this.set({
       history,
       revision: this.state.revision + 1,
-      selection: stillThere ? selection : null,
+      selection: repairSelection(this.state.selection, after),
+      fitPending: sheetChanged || this.state.fitPending,
     });
   }
 
@@ -248,6 +255,17 @@ export class EditorStore {
   notify(notice: Notice | null): void {
     this.set({ notice });
   }
+}
+
+/** Keeps a selection only if what it points at still exists. */
+function repairSelection(selection: Selection | null, scene: Scene): Selection | null {
+  if (!selection) return null;
+  const source = scene.sources.find((s) => s.id === selection.sourceId);
+  if (!source) return null;
+  const { handle } = selection;
+  if (handle === null) return selection;
+  const valid = source.kind === 'ridge' && handle < source.points.length;
+  return valid ? selection : { sourceId: selection.sourceId, handle: null };
 }
 
 export function firstScene(): Scene {

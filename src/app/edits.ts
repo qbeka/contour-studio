@@ -28,6 +28,11 @@ export function defaultReach(scene: Scene): number {
   return Math.round(Math.min(scene.clip.width, scene.clip.height) * 0.35);
 }
 
+/** Every way of adding a source checks this, so a scene cannot outgrow the format. */
+export function hasRoom(scene: Scene): boolean {
+  return scene.sources.length < LIMITS.sources;
+}
+
 export function addPeak(scene: Scene, x: number, y: number): { scene: Scene; id: string } {
   const id = nextId(scene);
   const source: PeakSource = {
@@ -35,8 +40,8 @@ export function addPeak(scene: Scene, x: number, y: number): { scene: Scene; id:
     name: nextName(scene, 'Peak'),
     kind: 'peak',
     enabled: true,
-    x,
-    y,
+    x: clampPosition(x),
+    y: clampPosition(y),
     radius: defaultReach(scene),
     height: 1,
   };
@@ -53,7 +58,7 @@ export function addRidge(
     name: nextName(scene, 'Ridge'),
     kind: 'ridge',
     enabled: true,
-    points: points.map((p) => ({ ...p })),
+    points: points.map((p) => ({ x: clampPosition(p.x), y: clampPosition(p.y) })),
     radius: Math.round(defaultReach(scene) * 0.6),
     height: 0.8,
   };
@@ -108,7 +113,7 @@ export function addHandle(scene: Scene, id: string, after: number): Scene {
       const b = s.points[Math.min(s.points.length - 1, after + 1)];
       const extra =
         a === b
-          ? { x: a.x + 80, y: a.y }
+          ? { x: clampPosition(a.x + 80), y: a.y }
           : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const points = [...s.points];
       points.splice(after + 1, 0, extra);
@@ -129,18 +134,27 @@ export function removeHandle(scene: Scene, id: string, index: number): Scene {
 
 export function duplicateSource(scene: Scene, id: string): { scene: Scene; id: string } | null {
   const source = scene.sources.find((s) => s.id === id);
-  if (!source || scene.sources.length >= LIMITS.sources) return null;
+  if (!source || !hasRoom(scene)) return null;
   const copyId = nextId(scene);
   const offset = 40;
   const name = `${source.name} copy`.slice(0, LIMITS.name);
   const copy: Source =
     source.kind === 'peak'
-      ? { ...source, id: copyId, name, x: source.x + offset, y: source.y + offset }
+      ? {
+          ...source,
+          id: copyId,
+          name,
+          x: clampPosition(source.x + offset),
+          y: clampPosition(source.y + offset),
+        }
       : {
           ...source,
           id: copyId,
           name,
-          points: source.points.map((p) => ({ x: p.x + offset, y: p.y + offset })),
+          points: source.points.map((p) => ({
+            x: clampPosition(p.x + offset),
+            y: clampPosition(p.y + offset),
+          })),
         };
   const index = scene.sources.findIndex((s) => s.id === id);
   const sources = [...scene.sources];

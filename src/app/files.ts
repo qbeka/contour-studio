@@ -1,8 +1,9 @@
 /** Saving, opening and autosaving. Storage can always fail, so all of it is guarded. */
 
-import { parseScene, serializeScene, type ParseResult, type Scene } from '../core/scene';
+import { parseScene, serializeScene, validateScene, type ParseResult, type Scene } from '../core/scene';
 
 const AUTOSAVE_KEY = 'contour.scene.v1';
+const UNREADABLE_KEY = 'contour.scene.unreadable';
 
 export function saveDownload(name: string, text: string, type: string): void {
   saveBlob(name, new Blob([text], { type }));
@@ -28,6 +29,9 @@ export function fileStem(scene: Scene): string {
 }
 
 export function autosave(scene: Scene): boolean {
+  // A scene that fails validation could not be read back, so it must not replace
+  // one that can.
+  if (!validateScene(scene).ok) return false;
   try {
     localStorage.setItem(AUTOSAVE_KEY, serializeScene(scene));
     return true;
@@ -50,7 +54,14 @@ export function readAutosave(): AutosaveResult {
   }
   if (text === null) return { status: 'none' };
   const parsed = parseScene(text);
-  return parsed.ok ? { status: 'ok', scene: parsed.scene } : { status: 'corrupt' };
+  if (parsed.ok) return { status: 'ok', scene: parsed.scene };
+  // Autosave is about to overwrite this, so keep a copy for recovery.
+  try {
+    localStorage.setItem(UNREADABLE_KEY, text);
+  } catch {
+    // Nothing more can be done here. The message to the user still shows.
+  }
+  return { status: 'corrupt' };
 }
 
 export async function readSceneFile(file: File): Promise<ParseResult> {

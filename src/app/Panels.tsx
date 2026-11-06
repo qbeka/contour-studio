@@ -413,7 +413,7 @@ function ExportReportTable({ state }: { state: EditorState }) {
     return <p className="report-wait" role="status">These lines could not be computed, so there is nothing to export yet.</p>;
   }
   if (!geometry || !current || geometry.quality !== 'final') {
-    return <p className="report-wait" role="status">Refining. The numbers will follow the exact lines.</p>;
+    return <p className="report-wait" role="status">Refining. The numbers will follow.</p>;
   }
   const stats = geometry.stats;
   const fresh = report && report.revision === revision ? report.report : null;
@@ -453,15 +453,15 @@ function ExportReportTable({ state }: { state: EditorState }) {
       </table>
       <dl>
         <div>
-          <dt>Largest allowed error</dt>
+          <dt>Largest possible move</dt>
           <dd>{stats.maxBound.toFixed(3)} units</dd>
         </div>
         <div>
-          <dt title={`Sampled estimate, every ${(fresh?.distance.spacing ?? SAMPLE_SPACING).toFixed(2)} units`}>Measured in the file</dt>
+          <dt title={`Sampled estimate against the full lines, every ${(fresh?.distance.spacing ?? SAMPLE_SPACING).toFixed(2)} units`}>Measured in the file</dt>
           <dd>{fresh ? `${fresh.distance.sampled.toFixed(3)} units` : '...'}</dd>
         </div>
         <div>
-          <dt title={`First-order estimate, every ${(fresh?.grid.spacing ?? GRID_SAMPLE_SPACING).toFixed(1)} units`}>Grid error, worst estimate</dt>
+          <dt title={`How far the full lines may sit from the true field. A finer grid reduces this. First-order estimate, every ${(fresh?.grid.spacing ?? GRID_SAMPLE_SPACING).toFixed(1)} units`}>Grid error, worst estimate</dt>
           <dd>{fresh ? `${fresh.grid.max.toFixed(3)} units` : '...'}</dd>
         </div>
       </dl>
@@ -529,12 +529,12 @@ export function ExportPanel({ store, state }: PanelProps) {
         step={0.01}
         digits={3}
         unit="units"
-        hint="The largest distance an exported line may sit from the exact line. 0 keeps every node."
+        hint="How far simplifying may move a line, before rounding. 0 keeps every node."
         onChange={(tolerance) => set({ tolerance }, 'tolerance')}
       />
       <div className="presets" role="group" aria-label="Line detail presets">
         {[
-          ['Exact', 0],
+          ['Full', 0],
           ['Fine', 0.05],
           ['Balanced', 0.15],
           ['Light', 0.5],

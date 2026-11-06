@@ -4,6 +4,7 @@ import {
   addPeak,
   addRidge,
   duplicateSource,
+  hasRoom,
   moveSource,
   removeHandle,
   removeSource,
@@ -38,6 +39,23 @@ describe('edits', () => {
     const { scene, id } = addPeak(emptyScene(), 0, 0);
     const moved = moveSource(scene, id, 1e9, -1e9);
     expect(parseScene(serializeScene(moved)).ok).toBe(true);
+  });
+
+  it('keeps a new source inside the format limits', () => {
+    const far = addPeak(emptyScene(), 1e7, -1e7);
+    expect(parseScene(serializeScene(far.scene)).ok).toBe(true);
+    const ridge = addRidge(emptyScene(), [{ x: 1e7, y: 0 }, { x: 0, y: -1e7 }]);
+    expect(parseScene(serializeScene(ridge.scene)).ok).toBe(true);
+    const edge = addPeak(emptyScene(), 24570, 24570);
+    const copy = duplicateSource(edge.scene, edge.id);
+    expect(parseScene(serializeScene(copy!.scene)).ok).toBe(true);
+  });
+
+  it('reports when a scene has no room for another source', () => {
+    let s = emptyScene();
+    for (let i = 0; i < 64; i++) s = addPeak(s, i, i).scene;
+    expect(hasRoom(s)).toBe(false);
+    expect(duplicateSource(s, s.sources[0].id)).toBeNull();
   });
 
   it('a ridge cannot go below two handles', () => {

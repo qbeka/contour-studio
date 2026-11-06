@@ -17,7 +17,8 @@ const store = new EditorStore(saved.status === 'ok' ? saved.scene : firstScene()
 if (saved.status === 'corrupt') {
   store.notify({
     kind: 'error',
-    title: 'The saved scene in this browser could not be read, so a starter opened instead.',
+    title:
+      'The saved scene in this browser could not be read, so a starter opened instead. A copy is kept in browser storage as contour.scene.unreadable.',
   });
 }
 

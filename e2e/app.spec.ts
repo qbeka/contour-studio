@@ -396,6 +396,119 @@ test('an invalid number is refused and explained', async ({ page }) => {
   await expect(lines).toHaveValue('14');
 });
 
+test('typing key by key keeps a negative number', async ({ page }) => {
+  await open(page);
+  await page.locator('.source-row').first().click();
+  const height = page.getByLabel('Height', { exact: true });
+  await height.click();
+  await height.press('ControlOrMeta+a');
+  await height.pressSequentially('-0.5');
+  await expect(height).toHaveValue('-0.5');
+  expect(JSON.parse((await readHook(page)).sceneJson).sources[0].height).toBe(-0.5);
+});
+
+test('typing a decimal key by key survives the digits rounding', async ({ page }) => {
+  await open(page);
+  const gap = page.getByRole('spinbutton', { name: 'Line gap' });
+  await gap.click();
+  await gap.press('ControlOrMeta+a');
+  await gap.pressSequentially('0.05');
+  await expect(gap).toHaveValue('0.05');
+  expect(JSON.parse((await readHook(page)).sceneJson).levels.spacing).toBe(0.05);
+});
+
+test('no way of adding a source can pass the limit', async ({ page }) => {
+  await open(page);
+  const scene: Scene = {
+    ...emptyScene(),
+    name: 'Full',
+    sources: Array.from({ length: 64 }, (_, i) => ({
+      id: `p${i}`, name: `P ${i}`, kind: 'peak' as const, enabled: true,
+      x: (i % 8) * 150 + 40, y: Math.floor(i / 8) * 90 + 40, radius: 60, height: 1,
+    })),
+  };
+  await loadScene(page, scene);
+  await page.keyboard.press('r');
+  for (const [x, y] of [[100, 600], [300, 700]]) {
+    const p = await stagePoint(page, x, y);
+    await page.mouse.click(p.x, p.y);
+  }
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.source-row')).toHaveCount(64);
+  const saved = await downloadText(page, () =>
+    page.getByRole('button', { name: 'Save', exact: true }).click(),
+  );
+  expect(parseScene(saved.text).ok).toBe(true);
+});
+
+test('a peak placed far out at the lowest zoom stays in the format', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => {
+    const { store } = (window as any).__contour;
+    store.set({ view: { scale: 0.02, x: -600, y: -400 }, autoFit: false });
+  });
+  await page.keyboard.press('p');
+  await page.mouse.click(1000, 200);
+  await page.waitForTimeout(600);
+  const { sceneJson } = await readHook(page);
+  expect(parseScene(sceneJson).ok).toBe(true);
+  await page.reload();
+  await waitForFinal(page);
+  expect(JSON.parse((await readHook(page)).sceneJson).sources).toHaveLength(5);
+});
+
+test('a reload right after an edit keeps it', async ({ page }) => {
+  await open(page);
+  await page.getByRole('spinbutton', { name: 'Lines' }).fill('11');
+  await page.reload();
+  await waitForFinal(page);
+  expect(JSON.parse((await readHook(page)).sceneJson).levels.count).toBe(11);
+});
+
+test('failed storage is stated, not hidden', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new Error('Quota exceeded');
+    };
+  });
+  await page.getByRole('spinbutton', { name: 'Lines' }).fill('12');
+  await expect(page.locator('.bar-saved')).toContainText('Not saved in this browser');
+});
+
+test('backspace on a focused slider leaves the source alone', async ({ page }) => {
+  await open(page);
+  await page.locator('.source-row').first().click();
+  await page.getByLabel('Reach slider').focus();
+  await page.keyboard.press('Backspace');
+  await expect(page.locator('.source-row')).toHaveCount(4);
+});
+
+test('right click places nothing, and a double click adds no extra point', async ({ page }) => {
+  await open(page);
+  await page.keyboard.press('p');
+  const p = await stagePoint(page, 600, 300);
+  await page.mouse.click(p.x, p.y, { button: 'right' });
+  await expect(page.locator('.source-row')).toHaveCount(4);
+  await page.keyboard.press('r');
+  const a = await stagePoint(page, 300, 300);
+  const b = await stagePoint(page, 700, 400);
+  await page.mouse.click(a.x, a.y);
+  await page.mouse.dblclick(b.x, b.y);
+  await expect(page.locator('.source-row')).toHaveCount(5);
+  const ridge = JSON.parse((await readHook(page)).sceneJson).sources[4];
+  expect(ridge.points).toHaveLength(2);
+});
+
+test('opening a file then undoing refits the view', async ({ page }) => {
+  await open(page);
+  const start = (await readHook(page)).view.scale;
+  await loadScene(page, { ...PRESETS[0].scene, domain: { width: 8000, height: 8000 }, clip: { x: 0, y: 0, width: 8000, height: 8000 } });
+  await page.keyboard.press('ControlOrMeta+z');
+  await waitForFinal(page);
+  expect((await readHook(page)).view.scale).toBeCloseTo(start, 5);
+});
+
 test('export numbers follow the composition and hold their bound', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: 'Export', exact: true }).first().click();

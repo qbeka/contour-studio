@@ -1,0 +1,15 @@
+{
+  "tarball": "contour-studio-demo-0.1.0.tar.gz",
+  "bytes": 305008,
+  "files": 9,
+  "subPath": "/projects/contour/",
+  "worker": true,
+  "fontsLoaded": [
+    "Geist",
+    "Geist Serif",
+    "Geist Mono"
+  ],
+  "failures": [],
+  "offOrigin": [],
+  "commit": "a2e7d33391e3aae153e6413de22ce64898edc8da"
+}

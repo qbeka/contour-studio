@@ -34,7 +34,8 @@ export function NumberField(props: NumberProps) {
   const [invalid, setInvalid] = useState(false);
 
   useEffect(() => {
-    setText(show(value));
+    // Leave partial typing alone. "-0" on the way to "-0.5" already equals 0.
+    setText((current) => (Number(current) === value ? current : show(value)));
     setInvalid(false);
   }, [value, digits]);
 
@@ -43,7 +44,8 @@ export function NumberField(props: NumberProps) {
     const parsed = Number(raw);
     const ok = raw.trim() !== '' && Number.isFinite(parsed) && parsed >= min && parsed <= max;
     setInvalid(!ok);
-    if (ok) onChange(parsed);
+    // Adding 0 turns -0 into 0, so that a scene never stores a negative zero.
+    if (ok) onChange(parsed + 0);
   };
 
   return (

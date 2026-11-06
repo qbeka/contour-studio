@@ -38,6 +38,11 @@ describe('scene files', () => {
     expect(errors[0]).toContain('version 2');
   });
 
+  it('survives a version value that cannot become text', () => {
+    const result = parseScene('{"format":"contour-scene","version":{"toString":0}}');
+    expect(result.ok === false && result.errors[0]).toContain('version');
+  });
+
   it('rejects an oversized file before parsing', () => {
     const result = parseScene(' '.repeat(LIMITS.fileBytes + 1));
     expect(result.ok === false && result.errors[0]).toContain('larger');

@@ -61,9 +61,16 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
       onReport({ revision, report }) {
         if (revision === store.getState().revision) store.set({ report: { revision, report } });
       },
-      onFailure(message) {
-        store.set({ failedRevision: store.getState().revision });
-        store.notify({ kind: 'error', title: 'These lines could not be computed.', details: [message] });
+      onFailure({ revision, message }) {
+        store.set({ failedRevision: revision });
+        // A failure for an older scene needs no message. A newer job is running.
+        if (revision === store.getState().revision) {
+          store.notify({
+            kind: 'error',
+            title: 'These lines could not be computed.',
+            details: [message],
+          });
+        }
       },
     },
     { engine: options.engine },
@@ -72,6 +79,12 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
   let refineTimer: ReturnType<typeof setTimeout> | undefined;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let lastRevision = 0;
+
+  let dirty = false;
+  const save = () => {
+    dirty = false;
+    store.set({ saveState: options.persist(store.scene) ? 'saved' : 'failed' });
+  };
 
   const refine = () => {
     const state = store.getState();
@@ -110,12 +123,17 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
     }
 
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      if (options.persist(store.scene)) store.set({ savedAt: Date.now() });
-    }, AUTOSAVE_DELAY_MS);
+    dirty = !first;
+    saveTimer = setTimeout(save, AUTOSAVE_DELAY_MS);
   };
 
   store.subscribe(onScene);
   onScene();
+
+  // A reload inside the delay would otherwise lose the last edit.
+  window.addEventListener('pagehide', () => {
+    clearTimeout(saveTimer);
+    if (dirty) save();
+  });
   return { client, log };
 }
