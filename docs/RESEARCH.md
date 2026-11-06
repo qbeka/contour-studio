@@ -45,16 +45,3 @@ Read from [SVG 2 paths](https://www.w3.org/TR/SVG2/paths.html) and [SVG 2 coordi
 [Pointer events](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events): `setPointerCapture` keeps a drag on its handle, and `touch-action: none` stops the browser taking over a touch and firing `pointercancel`.
 
 [OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas): widely available. Not used. Canvas draw calls take about 0.2 ms of main thread time, so moving them off the thread has nothing measurable to win yet. That figure covers only recording commands, since the browser rasterises later, and raster cost was not measured separately. WebGL is not used, for the same reason and because the preview must show exact paths. There is one CPU path, so the only fallback to maintain is the worker's.
-
-## Name
-
-On 2026-11-06, `qbeka/contour-studio` and the npm name `contour-studio` were both free. Other public GitHub repositories use the same name, for terrain tools and an image tool among others, so the name is not unique. The app calls itself Contour. It is not published to npm.
-
-## Decisions changed by evidence
-
-1. **Rule 1.** The first version banned proper crossings only, and the proof left rounding out. An independent review found rounded paths crossing through a vertex and swapping sides. Rule 1 became a separation rule with its own proof.
-2. **Is rule 1 redundant?** I suspected rule 3 made it so. A search with rule 1 removed found crossings in 5 of 63 random scenes, which settled that. A test scene now keeps that case.
-3. **Report cost.** The Export numbers were computed inside the job. They held up every draft on a large scene, until a test that counted real cancellations failed.
-4. **Render comparison.** Comparing ink amount failed its own seeded control, because WebKit's antialiasing outweighed a moved path. It now compares where ink lies.
-5. **The worker's value.** I expected it to win on draft latency. It first appeared 18 times faster. A fair baseline then showed it losing on drafts, and a review showed that the measurement still hid the largest stalls. It loses on drafts and prevents a frozen page. See `docs/BENCH_PLAN.md`.
-6. **Curve fitting.** Cubic fitting would cut nodes, but it needs its own error model and a topology check on curves. It is left for later. Polylines already reach the size target with a proved bound.

@@ -52,7 +52,7 @@ These are tests, separate from the performance numbers below.
 
 The test oracles in `test/support/oracle.ts` share no code with the path builder or the topology checks. Scenes that once failed are kept in `test/regressions`.
 
-Automated accessibility checks do not establish accessibility. See [USABILITY.md](USABILITY.md).
+Automated accessibility checks do not establish accessibility.
 
 ## Performance
 
@@ -134,7 +134,7 @@ What the worker prevents is a frozen page. The largest frame gap, from mouse dow
 
 So the worker is justified. It trades a few milliseconds of latency for a page that stays responsive after a heavy edit.
 
-Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs stay in the results folder.
+Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs are kept at tag `v0.1.0`.
 <!-- /results -->
 
 ## Size and error
@@ -193,7 +193,7 @@ Touch was driven through Chrome's touch emulation on a phone-sized viewport. I h
 
 ## What failed
 
-Real failures, kept here because they changed the design. Details are in [RESEARCH.md](RESEARCH.md).
+Real failures, kept here because they changed the design.
 
 - **Topology claim.** My first proof left out rounding. An independent review found rounded paths crossing through a vertex and swapping sides, with the crossing check reporting 0. That is fixed with a separation rule.
 - **The superseded job test.** It passed for a long time with no job ever being cancelled. Counting real cancellations exposed a bug in which the export report blocked every draft.
@@ -207,7 +207,7 @@ Real failures, kept here because they changed the design. Details are in [RESEAR
 
 - **One machine.** All timings come from one fast laptop. Other work was running on it during the runs, so these are not quiet machine numbers. The manifest records this.
 - **No slower machine.** Chrome's CPU throttle does not reach the worker, so it cannot compare the two fairly, and no slower laptop was available. Latency on one is unknown.
-- **No users.** Nobody outside this project has used it. There is a task script and a self review only.
+- **No users.** Nobody outside this project has used it.
 - **Lab numbers.** These are lab timings from scripted input. They are not field INP. Animation frame callbacks show when the main thread was free, and they do not prove what was displayed.
 - **Polylines only.** There is no curve fitting, so a smooth line needs many nodes. Editing nearly 2,000 nodes by hand is possible but tedious.
 - **Whole path fallback.** One conflict tightens a whole path, which can cost more nodes than needed.
