@@ -14,7 +14,22 @@ Shader tools make good pictures quickly, but the picture is an effect. You canno
 
 ## Results
 
-PENDING-RESULTS
+Measured on an Apple M5 Pro laptop on AC power, with other work running on it. Full tables, raw data and limits are in [docs/REPORT.md](docs/REPORT.md).
+
+| Result | Measured | Compared with | Workload |
+|---|---|---|---|
+| Time to refined geometry | 14 to 25 ms in Node, 15 ms in Chromium | Target of 500 ms | 512 by 512, 16 levels, three scenes, 7 runs in Node and 5 in Chromium |
+| Time from input to draft | 17 ms at the 95th percentile | Target of 33 ms | 150 step drag, 5 runs. It is not faster than the main thread, at 9 ms |
+| Largest frame gap, heavy scene | 40 ms with the worker | 157 ms blocking, 65 ms time sliced | 1024 grid, 64 levels, same drag, 5 runs |
+| File size, same composition | 83 KB to 15 KB, or 19 KB to 5.4 KB gzipped | The same scene with nothing removed | Quiet ridge, Balanced |
+| Distance from exported to extracted lines | 0.19 units measured, 0.22 allowed | Proved bound | Same file, sampled every 0.25 units |
+| Topology | 0 crossings, 0 lost paths | Extracted lines | 9 rows of the size table, plus 420 random scenes |
+| Output repeatability | Identical bytes | Chromium, Firefox, WebKit, Node | One workflow's scene |
+| Renderers | Within 1 px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads 4 px or more |
+
+Three things this does not show. All timings come from one fast machine. No outside person has used the tool. No desktop vector editor has opened the files yet: path editing was checked in paper.js only.
+
+The worker result is smaller than I first measured. An early baseline made it look 18 times faster, because of a flaw in the baseline. See [the report](docs/REPORT.md#performance).
 
 ## Run it
 
@@ -39,7 +54,7 @@ Drag `Left summit` on the sheet, open Export, and choose Balanced. Then download
      fill="none" stroke="#1d3a2a" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round">
 <title>Quiet ridge</title>
 <g stroke-opacity=".28">
-<path d="M80 366.2l41.9-27.7 37.3-20.1 ..."/>
+<path d="M1410.7 80l-16.7 4.3-25.7 6.2-14 3.2-16.8 3-22.1 3.2 ..."/>
 ```
 
 There are no scripts, styles, external references or hidden data. Every contour is its own `<path>`, so it stays editable. The same export is available as a static React component:
@@ -50,7 +65,7 @@ import { QuietRidgeArtwork } from './QuietRidgeArtwork';
 <QuietRidgeArtwork className="hero-lines" aria-hidden="true" />;
 ```
 
-Finished examples are in [artwork/](artwork). Each has the SVG, its editable scene, a React component and a PNG fallback.
+Finished examples are in [artwork/](artwork). Each has the SVG, its editable scene, a React component and a PNG fallback. The quiet ridge SVG is 17 KB, or 6 KB gzipped.
 
 ## How it works
 
@@ -69,7 +84,7 @@ output geometry  ->  canvas preview and SVG print the same numbers
 - **Crossings are identified by grid edge**, never by position. Neighbouring cells share an integer, so cracks cannot occur and no joining tolerance exists.
 - **Ambiguous cells** use the asymptotic decider. Ties have one written rule.
 - **Simplification** has a proved bound. Paths that would break a topology rule are retried at finer settings, per path, and the export reports it.
-- **Drafts and finals** run in a worker. A newer edit cancels a running final, and results commit in scene order, so an old render cannot overwrite a newer drag.
+- **Drafts and finals** run in a worker, with a main thread fallback. A newer edit cancels a running final, and results commit in scene order, so an old render cannot overwrite a newer drag.
 
 The full model and proofs are in [docs/GEOMETRY.md](docs/GEOMETRY.md).
 

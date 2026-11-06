@@ -44,7 +44,7 @@ Read from [SVG 2 paths](https://www.w3.org/TR/SVG2/paths.html) and [SVG 2 coordi
 
 [Pointer events](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events): `setPointerCapture` keeps a drag on its handle, and `touch-action: none` stops the browser taking over a touch and firing `pointercancel`.
 
-[OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas): widely available. Not used. The expensive work is geometry, not drawing, as the render stage in `docs/REPORT.md` shows, so moving drawing off the thread has nothing to win yet. WebGL is not used for the same reason. The CPU path is the only path, so there is no browser fallback to maintain beyond the worker fallback.
+[OffscreenCanvas](https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvas): widely available. Not used. Canvas draw calls take about 0.2 ms of main thread time, so moving them off the thread has nothing measurable to win yet. That figure covers only recording commands, since the browser rasterises later, and raster cost was not measured separately. WebGL is not used, for the same reason and because the preview must show exact paths. There is one CPU path, so the only fallback to maintain is the worker's.
 
 ## Decisions changed by evidence
 
@@ -52,4 +52,5 @@ Read from [SVG 2 paths](https://www.w3.org/TR/SVG2/paths.html) and [SVG 2 coordi
 2. **Is rule 1 redundant?** I suspected rule 3 made it so. A search with rule 1 removed found crossings in 5 of 63 random scenes, which settled that. A test scene now keeps that case.
 3. **Report cost.** The Export numbers were computed inside the job. They held up every draft on a large scene, until a test that counted real cancellations failed.
 4. **Render comparison.** Comparing ink amount failed its own seeded control, because WebKit's antialiasing outweighed a moved path. It now compares where ink lies.
-5. **Curve fitting.** Cubic fitting would cut nodes, but it needs its own error model and a topology check on curves. It is left for later. Polylines already reach the size target with a proved bound.
+5. **The worker's value.** I expected it to win on draft latency. It first appeared 18 times faster, then a fair baseline showed it losing on drafts and winning on worst stalls. See `docs/BENCH_PLAN.md`.
+6. **Curve fitting.** Cubic fitting would cut nodes, but it needs its own error model and a topology check on curves. It is left for later. Polylines already reach the size target with a proved bound.

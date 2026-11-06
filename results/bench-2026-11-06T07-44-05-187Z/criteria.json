@@ -1,0 +1,6 @@
+{
+  "refined512Within500Ms": true,
+  "draftP95Within33Ms": true,
+  "noLongTaskDuringDrag": true,
+  "sizeTableClean": true
+}
