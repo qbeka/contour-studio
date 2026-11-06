@@ -1,6 +1,6 @@
 {
   "tarball": "contour-studio-demo-0.1.0.tar.gz",
-  "bytes": 305628,
+  "bytes": 305691,
   "files": 9,
   "subPath": "/projects/contour/",
   "worker": true,
@@ -11,5 +11,5 @@
   ],
   "failures": [],
   "offOrigin": [],
-  "commit": "68a6eafa2946affd4c11122577284c81a51795c6"
+  "commit": "8427d38491bca70747f3a78fe8f2a810a0f10fa5"
 }

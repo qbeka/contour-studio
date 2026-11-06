@@ -1,9 +1,9 @@
 {
-  "commit": "68a6eafa2946affd4c11122577284c81a51795c6",
+  "commit": "8427d38491bca70747f3a78fe8f2a810a0f10fa5",
   "unmodifiedSuitePassed": true,
   "unmodifiedBrowserSuitePassed": true,
-  "total": 68,
-  "killed": 64,
+  "total": 70,
+  "killed": 69,
   "timedOut": 1,
   "results": [
     {
@@ -672,6 +672,36 @@
       "suiteErrors": 0
     },
     {
+      "id": "export-stale",
+      "file": "src/app/store.ts",
+      "why": "Export is allowed while geometry is stale.",
+      "status": "killed",
+      "failed": [
+        "editor store export waits for a final of the scene on screen"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "coalesce-reset",
+      "file": "src/app/store.ts",
+      "why": "An edit after undo loses a step.",
+      "status": "killed",
+      "failed": [
+        "editor store an edit right after undo starts a new step and keeps the old one"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "selection-repair",
+      "file": "src/app/store.ts",
+      "why": "Undo leaves a handle that no longer exists.",
+      "status": "killed",
+      "failed": [
+        "editor store undo drops a selected handle that no longer exists"
+      ],
+      "suiteErrors": 0
+    },
+    {
       "id": "commit-order",
       "file": "src/app/jobs.ts",
       "why": "An old final can overwrite a newer draft.",
@@ -715,17 +745,21 @@
     {
       "id": "typing-reset",
       "file": "src/app/controls.tsx",
-      "why": "Typing a negative number resets the field.",
-      "status": "survived",
-      "failed": [],
+      "why": "Typing a negative number loses its sign.",
+      "status": "killed",
+      "failed": [
+        "typing key by key keeps a negative number"
+      ],
       "suiteErrors": 0
     },
     {
       "id": "ridge-limit",
       "file": "src/app/Stage.tsx",
       "why": "A ridge can pass the source limit.",
-      "status": "survived",
-      "failed": [],
+      "status": "killed",
+      "failed": [
+        "a duplicate during a ridge draft still cannot pass the limit"
+      ],
       "suiteErrors": 0
     },
     {
@@ -806,14 +840,6 @@
       "failed": [
         "a heavy final is superseded by a newer edit"
       ],
-      "suiteErrors": 0
-    },
-    {
-      "id": "export-stale",
-      "file": "src/app/Panels.tsx",
-      "why": "Export is allowed while geometry is stale.",
-      "status": "survived",
-      "failed": [],
       "suiteErrors": 0
     }
   ]
