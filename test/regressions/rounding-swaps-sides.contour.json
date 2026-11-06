@@ -1,0 +1,55 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Rounding swaps sides",
+  "seed": 1,
+  "domain": {
+    "width": 16,
+    "height": 24
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 16,
+    "height": 24
+  },
+  "sources": [
+    {
+      "id": "p",
+      "name": "Peak",
+      "kind": "peak",
+      "enabled": true,
+      "x": 8.22,
+      "y": 8.77,
+      "radius": 5.29,
+      "height": -2
+    }
+  ],
+  "noise": {
+    "amplitude": 0,
+    "scale": 240,
+    "octaves": 2
+  },
+  "levels": {
+    "base": -2.31,
+    "spacing": 0.05,
+    "count": 16
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 1,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 24,
+    "tolerance": 0,
+    "decimals": 0,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

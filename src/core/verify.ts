@@ -165,6 +165,7 @@ class DistanceIndex {
           segments[i * 4 + 1],
           segments[i * 4 + 2],
           segments[i * 4 + 3],
+          0,
           visit,
         ),
     );

@@ -1,0 +1,55 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Crossing through a vertex",
+  "seed": 1,
+  "domain": {
+    "width": 16,
+    "height": 16
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 16,
+    "height": 16
+  },
+  "sources": [
+    {
+      "id": "p",
+      "name": "Peak",
+      "kind": "peak",
+      "enabled": true,
+      "x": 8.8236,
+      "y": 7.129,
+      "radius": 1.4014,
+      "height": 100
+    }
+  ],
+  "noise": {
+    "amplitude": 0,
+    "scale": 240,
+    "octaves": 2
+  },
+  "levels": {
+    "base": 99.7212,
+    "spacing": 0.05,
+    "count": 12
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 1,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 2048,
+    "tolerance": 0.005,
+    "decimals": 2,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

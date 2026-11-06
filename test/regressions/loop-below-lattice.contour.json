@@ -1,0 +1,55 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Loop below the finest lattice",
+  "seed": 1,
+  "domain": {
+    "width": 512,
+    "height": 512
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 512,
+    "height": 512
+  },
+  "sources": [
+    {
+      "id": "p",
+      "name": "Peak",
+      "kind": "peak",
+      "enabled": true,
+      "x": 256,
+      "y": 256,
+      "radius": 100,
+      "height": 1
+    }
+  ],
+  "noise": {
+    "amplitude": 0,
+    "scale": 240,
+    "octaves": 2
+  },
+  "levels": {
+    "base": 0.9999999999,
+    "spacing": 1,
+    "count": 1
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 1,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 512,
+    "tolerance": 0.15,
+    "decimals": 2,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

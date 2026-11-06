@@ -1,8 +1,8 @@
 {
-  "commit": "7036bcc1816b27e0041bc4ce2ea25f63a21c10f4",
+  "commit": "b71782035614eb2f9d0b3a64792f9f80d3d32250",
   "unmodifiedSuitePassed": true,
-  "total": 37,
-  "killed": 36,
+  "total": 57,
+  "killed": 56,
   "timedOut": 1,
   "results": [
     {
@@ -41,6 +41,16 @@
       "suiteErrors": 0
     },
     {
+      "id": "decider-tie-b",
+      "file": "src/core/contour.ts",
+      "why": "An exact saddle tie on the other diagonal counts as above.",
+      "status": "killed",
+      "failed": [
+        "ambiguous cells an exact tie on the other diagonal also counts the centre as below"
+      ],
+      "suiteErrors": 0
+    },
+    {
       "id": "case-swap",
       "file": "src/core/contour.ts",
       "why": "One case is reversed.",
@@ -57,18 +67,26 @@
         "ties and degenerate shapes marks every level crossing once even in a 2 by 2 grid of saddles",
         "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings",
         "peak kernel its contours are circles at the known radius",
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "random scenes every rule holds in every scene",
         "random scenes extracted vertices sit on the level of the interpolated field",
         "random scenes is fully deterministic",
         "random scenes coordinates of a known scene stay byte stable",
         "saved scenes close-lines.contour.json holds every rule",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes loop-below-lattice.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
         "saved scenes swept-pit.contour.json holds every rule",
+        "saved scenes a loop below the finest lattice is reported, never written as one point",
+        "saved scenes the reported crossing count is checked on the final output",
         "saved scenes the pit stays on the same side of the contour",
         "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it",
         "saved scenes lines closer than the tolerance stay apart and keep most of the saving",
         "pipeline keeps every path, closes every loop and never crosses at a coarse tolerance",
         "pipeline the declared bound holds per path against the extracted path",
+        "pipeline two strands meeting at a tied corner are not reported as a crossing",
+        "pipeline stops with a clear message past the vertex limit",
         "pipeline a duplicate of the same geometry is a fixed point of contour extraction"
       ],
       "suiteErrors": 2
@@ -85,10 +103,19 @@
         "analytic fixtures a level exactly on grid values follows the row without duplicates",
         "ties and degenerate shapes a single raised corner at the level drops as degenerate",
         "ties and degenerate shapes a contour through tied corners has no repeated points",
+        "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings",
         "peak kernel its contours are circles at the known radius",
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "random scenes every rule holds in every scene",
         "random scenes coordinates of a known scene stay byte stable",
-        "saved scenes the pit stays on the same side of the contour"
+        "saved scenes close-lines.contour.json holds every rule",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
+        "saved scenes a loop below the finest lattice is reported, never written as one point",
+        "saved scenes the reported crossing count is checked on the final output",
+        "saved scenes the pit stays on the same side of the contour",
+        "pipeline two strands meeting at a tied corner are not reported as a crossing"
       ],
       "suiteErrors": 0
     },
@@ -132,11 +159,20 @@
         "analytic fixtures two separated bumps give two disjoint loops, then one when they merge",
         "ties and degenerate shapes a pit reaching exactly the level with a real neighbour keeps its shape",
         "ties and degenerate shapes a plateau at exactly the level gets an outline where the field rises",
+        "invariants on random corner values no cracks, right orientation, same path count as brute force, no crossings",
         "peak kernel its contours are circles at the known radius",
+        "crossing check catches a crossing injected in real output",
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "random scenes every rule holds in every scene",
         "random scenes coordinates of a known scene stay byte stable",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
+        "saved scenes swept-pit.contour.json holds every rule",
+        "saved scenes the reported crossing count is checked on the final output",
         "saved scenes the pit stays on the same side of the contour",
-        "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it"
+        "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it",
+        "pipeline keeps every path, closes every loop and never crosses at a coarse tolerance"
       ],
       "suiteErrors": 0
     },
@@ -146,8 +182,10 @@
       "why": "Pointwise peak profile differs from the sampler.",
       "status": "killed",
       "failed": [
+        "grid error estimate reads a known offset, which needs the division by slope",
         "sampling the grid matches pointwise evaluation bit for bit",
-        "random scenes extracted vertices sit on the level of the interpolated field"
+        "random scenes extracted vertices sit on the level of the interpolated field",
+        "pipeline two strands meeting at a tied corner are not reported as a crossing"
       ],
       "suiteErrors": 0
     },
@@ -195,6 +233,7 @@
       "status": "killed",
       "failed": [
         "noise is bounded by 1 for every octave count",
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "random scenes coordinates of a known scene stay byte stable"
       ],
       "suiteErrors": 0
@@ -206,6 +245,7 @@
       "status": "killed",
       "failed": [
         "clipping keeps a fragment whole when the loop starts inside",
+        "random scenes every rule holds in every scene",
         "random scenes coordinates of a known scene stay byte stable"
       ],
       "suiteErrors": 0
@@ -226,7 +266,9 @@
       "why": "Distance to the infinite line, not the segment.",
       "status": "killed",
       "failed": [
-        "Douglas-Peucker uses distance to the segment, so a point past the end still counts"
+        "sampled distance the guard covers a maximum that the samples miss",
+        "Douglas-Peucker uses distance to the segment, so a point past the end still counts",
+        "topology checks agrees with brute force on random segments"
       ],
       "suiteErrors": 0
     },
@@ -240,6 +282,7 @@
         "random scenes coordinates of a known scene stay byte stable",
         "saved scenes close-lines.contour.json holds every rule",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
         "Douglas-Peucker stays within the tolerance, both ways, on a measured check",
         "pipeline the declared bound holds per path against the extracted path",
         "SVG file measured distance to the extracted lines is within the declared bound"
@@ -264,6 +307,8 @@
       "failed": [
         "random scenes every rule holds in every scene",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
         "rounding moves each vertex no further than the declared bound",
         "SVG file measured distance to the extracted lines is within the declared bound"
       ],
@@ -275,8 +320,91 @@
       "why": "Only one path of a crossing is blamed.",
       "status": "killed",
       "failed": [
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
         "topology checks finds a proper crossing and blames both paths"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "touch-ignored",
+      "file": "src/core/topology.ts",
+      "why": "Exact contact is never found.",
+      "status": "killed",
+      "failed": [
+        "crossing check catches a crossing injected in real output",
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
+        "topology checks finds a proper crossing and blames both paths",
+        "topology checks finds a crossing that passes exactly through a vertex",
+        "topology checks finds a touch, and two paths sharing a vertex",
+        "topology checks finds collinear overlap",
+        "topology checks finds a self crossing but ignores neighbouring segments",
+        "topology checks checks the closing segment of a loop",
+        "topology checks agrees with brute force on random segments"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "margin-ignored",
+      "file": "src/core/topology.ts",
+      "why": "Paths may sit closer than rounding can move them.",
+      "status": "killed",
+      "failed": [
+        "topology checks finds paths closer than their margins, and passes those further apart",
+        "topology checks a margin reaches past the bucket a segment sits in"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "cover-no-pad",
+      "file": "src/core/topology.ts",
+      "why": "Buckets ignore the margin.",
+      "status": "killed",
+      "failed": [
+        "topology checks finds paths closer than their margins, and passes those further apart",
+        "topology checks a margin reaches past the bucket a segment sits in"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "closing-skip",
+      "file": "src/core/topology.ts",
+      "why": "The closing segment of a loop is not checked.",
+      "status": "killed",
+      "failed": [
+        "topology checks checks the closing segment of a loop"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ring-no-chord",
+      "file": "src/core/topology.ts",
+      "why": "The swept region has no chord edge.",
+      "status": "killed",
+      "failed": [
+        "topology checks counts the chord as an edge of the swept region",
+        "topology checks checks the closing span of a loop"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "sweep-no-wrap",
+      "file": "src/core/topology.ts",
+      "why": "A loop never checks its closing span.",
+      "status": "killed",
+      "failed": [
+        "topology checks checks the closing span of a loop"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "area-origin",
+      "file": "src/core/topology.ts",
+      "why": "Small far loops lose their area.",
+      "status": "killed",
+      "failed": [
+        "topology checks measures the area of a tiny loop far from the origin"
       ],
       "suiteErrors": 0
     },
@@ -288,7 +416,9 @@
       "failed": [
         "saved scenes at the same tolerance, plain Douglas-Peucker would have swept it",
         "saved scenes lines closer than the tolerance stay apart and keep most of the saving",
-        "topology checks finds a chord that sweeps over a small loop with no crossing"
+        "topology checks finds a chord that sweeps over a small loop with no crossing",
+        "topology checks counts the chord as an edge of the swept region",
+        "topology checks checks the closing span of a loop"
       ],
       "suiteErrors": 0
     },
@@ -308,7 +438,11 @@
       "why": "The pipeline ignores crossings.",
       "status": "killed",
       "failed": [
-        "saved scenes crossing-chords.contour.json holds every rule"
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
+        "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
+        "pipeline two strands meeting at a tied corner are not reported as a crossing"
       ],
       "suiteErrors": 0
     },
@@ -330,7 +464,82 @@
       "failed": [
         "random scenes every rule holds in every scene",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
         "SVG file measured distance to the extracted lines is within the declared bound"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ladder-factor",
+      "file": "src/core/pipeline.ts",
+      "why": "Retries tighten too slowly.",
+      "status": "killed",
+      "failed": [
+        "retry ladder tightens by a factor of 4 and adds a decimal at each step"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ladder-decimals",
+      "file": "src/core/pipeline.ts",
+      "why": "Retries never add decimals.",
+      "status": "killed",
+      "failed": [
+        "crowded scenes rounding never makes a contact or moves a loop to the other side",
+        "retry ladder tightens by a factor of 4 and adds a decimal at each step",
+        "retry ladder never rounds more finely than the retained lattice"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "ladder-short",
+      "file": "src/core/pipeline.ts",
+      "why": "Full detail is reached after one retry.",
+      "status": "killed",
+      "failed": [
+        "retry ladder tightens by a factor of 4 and adds a decimal at each step"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "retained-coarse",
+      "file": "src/core/pipeline.ts",
+      "why": "Full detail keeps a coarse lattice.",
+      "status": "killed",
+      "failed": [
+        "retry ladder tightens by a factor of 4 and adds a decimal at each step"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "stale-count",
+      "file": "src/core/pipeline.ts",
+      "why": "The crossing count is not from the final output.",
+      "status": "killed",
+      "failed": [
+        "pipeline two strands meeting at a tied corner are not reported as a crossing"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "keep-pointlike",
+      "file": "src/core/pipeline.ts",
+      "why": "A loop below the lattice is written as one point.",
+      "status": "killed",
+      "failed": [
+        "saved scenes loop-below-lattice.contour.json holds every rule",
+        "saved scenes a loop below the finest lattice is reported, never written as one point"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "vertex-cap",
+      "file": "src/core/pipeline.ts",
+      "why": "No limit on total extracted vertices.",
+      "status": "killed",
+      "failed": [
+        "pipeline stops with a clear message past the vertex limit"
       ],
       "suiteErrors": 0
     },
@@ -340,7 +549,8 @@
       "why": "Expanded bounds leave the domain.",
       "status": "killed",
       "failed": [
-        "SVG file expanded bounds grow the viewBox and report a limited margin"
+        "SVG file expanded bounds grow the viewBox and report a limited margin",
+        "SVG file each side of the sheet can limit the margin"
       ],
       "suiteErrors": 0
     },
@@ -363,6 +573,16 @@
       "suiteErrors": 0
     },
     {
+      "id": "xml-chars",
+      "file": "src/core/svg.ts",
+      "why": "A title can hold characters XML forbids.",
+      "status": "killed",
+      "failed": [
+        "SVG file drops characters XML does not allow from the title"
+      ],
+      "suiteErrors": 0
+    },
+    {
       "id": "no-escape",
       "file": "src/core/svg.ts",
       "why": "Scene names can inject markup.",
@@ -381,6 +601,8 @@
       "failed": [
         "sampled distance finds a single displaced vertex at about its true size",
         "saved scenes crossing-chords.contour.json holds every rule",
+        "saved scenes crossing-through-vertex.contour.json holds every rule",
+        "saved scenes rounding-swaps-sides.contour.json holds every rule",
         "saved scenes swept-pit.contour.json holds every rule",
         "path data closes loops with z and does not repeat the first point",
         "SVG file parses back to the same geometry the pipeline produced",
@@ -395,6 +617,46 @@
       "status": "killed",
       "failed": [
         "scene files rejects a colour that could carry markup"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "guard-half",
+      "file": "src/core/verify.ts",
+      "why": "The guard is not an upper bound.",
+      "status": "killed",
+      "failed": [
+        "sampled distance the guard covers a maximum that the samples miss"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "end-sample",
+      "file": "src/core/verify.ts",
+      "why": "The last point of an open path is never sampled.",
+      "status": "killed",
+      "failed": [
+        "sampled distance reaches the last point of an open path"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "grid-no-slope",
+      "file": "src/core/verify.ts",
+      "why": "Grid error is a height, not a distance.",
+      "status": "killed",
+      "failed": [
+        "grid error estimate reads a known offset, which needs the division by slope"
+      ],
+      "suiteErrors": 0
+    },
+    {
+      "id": "snap-closing",
+      "file": "src/core/simplify.ts",
+      "why": "Rounding can repeat the first point at the end.",
+      "status": "killed",
+      "failed": [
+        "snapping removes a closing duplicate made by rounding"
       ],
       "suiteErrors": 0
     },

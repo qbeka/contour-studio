@@ -14,7 +14,7 @@ import { extractSegments, JoinTables, joinSegments, type Polyline } from './cont
 import { sampleField, type Grid } from './field';
 import { gridSize, levelValues, type Rect, type Scene } from './scene';
 import { roundingBound, simplifyIndices, snapPath } from './simplify';
-import { findCrossings, findSweeps, loopSurvives, type SweepInput } from './topology';
+import { findContacts, findSweeps, loopSurvives, type SweepInput } from './topology';
 
 export interface OutputPath extends Polyline {
   /** Decimals this path was rounded to. Each path carries its own. */
@@ -77,6 +77,8 @@ export interface GeometryOptions {
   quality: 'draft' | 'final';
   /** Grid cells along the long side. Defaults to the scene's export setting. */
   resolution?: number;
+  /** Stop past this many extracted vertices. Defaults to MAX_SOURCE_VERTICES. */
+  maxVertices?: number;
 }
 
 /** The rectangle paths are clipped to and the SVG shows. */
@@ -101,10 +103,16 @@ export function outputRect(scene: Scene): { rect: Rect; limited: boolean } {
  * Steps are a factor of 4 because a conflict usually means two lines closer than
  * the tolerance, and halving would mostly waste passes on the way to their gap.
  */
-const LAST_ATTEMPT = 4;
-const RETAINED_DECIMALS = 6;
+export const LAST_ATTEMPT = 4;
+export const RETAINED_DECIMALS = 6;
 
-function attemptSettings(
+/**
+ * A run stops once it passes this many extracted vertices: about 160 MB of
+ * coordinates, and far past anything a browser can write as one SVG string.
+ */
+export const MAX_SOURCE_VERTICES = 20_000_000;
+
+export function attemptSettings(
   attempt: number,
   tolerance: number,
   decimals: number,
@@ -135,6 +143,27 @@ function refine(run: PathRun, tolerance: number, decimals: number): void {
     decimals: settings.decimals,
     bound: settings.tolerance + roundingBound(settings.decimals),
   };
+}
+
+/**
+ * Contacts left in the output that the extracted lines do not also have. Ties can
+ * make two extracted strands meet at a grid corner, and that is not a defect. It
+ * compares positions at the retained lattice, where such a point lands exactly.
+ */
+function unexplainedContacts(runs: readonly PathRun[], anyLeft: boolean): number {
+  if (!anyLeft) return 0;
+  const left = findContacts(runs.map((run) => run.output));
+  if (left.count === 0) return 0;
+  const scale = 10 ** RETAINED_DECIMALS;
+  const key = (x: number, y: number) => `${Math.round(x * scale)},${Math.round(y * scale)}`;
+  const original = findContacts(runs.map((run) => run.source)).points;
+  const known = new Set<string>();
+  for (let k = 0; k < original.length; k += 2) known.add(key(original[k], original[k + 1]));
+  let unexplained = 0;
+  for (let k = 0; k < left.points.length; k += 2) {
+    if (!known.has(key(left.points[k], left.points[k + 1]))) unexplained++;
+  }
+  return unexplained;
 }
 
 function now(): number {
@@ -192,6 +221,11 @@ export function* geometrySteps(
     }
     sourcePaths += clipped.length;
     clippedByLevel.push(clipped);
+    if (sourceVertices > (options.maxVertices ?? MAX_SOURCE_VERTICES)) {
+      throw new Error(
+        'This scene makes too many lines to compute. Use fewer lines, a larger line gap or a coarser grid.',
+      );
+    }
     times.clip += now() - afterJoin;
     yield;
   }
@@ -251,15 +285,23 @@ export function* geometrySteps(
   yield;
 
   // Check, tighten what failed, and check again. Each path can only move toward
-  // full detail, so this ends within LAST_ATTEMPT + 1 passes.
-  for (let pass = 0; pass <= LAST_ATTEMPT; pass++) {
+  // full detail, so this ends. The loop leaves only after a check that changed
+  // nothing, so the final output has always been checked.
+  for (;;) {
     mark = now();
     const blamed = new Set<number>();
     runs.forEach((run, index) => {
       if (!loopSurvives(run.source, run.output)) blamed.add(index);
     });
-    const crossings = findCrossings(runs.map((run) => run.output));
-    for (const index of crossings.blamed) blamed.add(index);
+    // Rounding moves a path by at most q. Paths more than 2(q_a + q_b) apart stay
+    // more than q_a + q_b apart before rounding, so rounding cannot bring them
+    // together or swap their sides. See docs/GEOMETRY.md.
+    const margins = Float64Array.from(runs, (run) => 2 * roundingBound(run.output.decimals));
+    const contacts = findContacts(
+      runs.map((run) => run.output),
+      margins,
+    );
+    for (const index of contacts.blamed) blamed.add(index);
     const sweeps: SweepInput[] = runs.map((run) => ({
       original: run.source,
       kept: run.kept,
@@ -267,7 +309,6 @@ export function* geometrySteps(
     }));
     for (const index of findSweeps(sweeps)) blamed.add(index);
     times.topology += now() - mark;
-    stats.crossings = crossings.count;
 
     mark = now();
     let changed = false;
@@ -279,14 +320,27 @@ export function* geometrySteps(
       changed = true;
     }
     times.simplify += now() - mark;
-    if (!changed) break;
+    if (!changed) {
+      mark = now();
+      stats.crossings = unexplainedContacts(runs, contacts.blamed.size > 0);
+      times.topology += now() - mark;
+      break;
+    }
     yield;
   }
 
   const levels: OutputLevel[] = values.map((value, index) => ({ index, value, paths: [] }));
   let outputVertices = 0;
   let closedPaths = 0;
+  let kept = 0;
   for (const run of runs) {
+    // At full detail, a path that still has no shape is smaller than the finest
+    // lattice. It cannot be written, so it is counted as degenerate.
+    if (!loopSurvives(run.source, run.output)) {
+      stats.degeneratePaths++;
+      continue;
+    }
+    kept++;
     levels[run.level].paths.push(run.output);
     outputVertices += run.output.points.length / 2;
     if (run.output.closed) closedPaths++;
@@ -295,7 +349,7 @@ export function* geometrySteps(
     if (run.output.bound > stats.maxBound) stats.maxBound = run.output.bound;
   }
   stats.outputVertices = outputVertices;
-  stats.outputPaths = runs.length;
+  stats.outputPaths = kept;
   stats.closedPaths = closedPaths;
   times.total = now() - started;
 

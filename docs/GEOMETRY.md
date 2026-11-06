@@ -160,7 +160,7 @@ This bound is against the **extracted** polyline. The distance to the true isoli
 
 | Error | Meaning | Status |
 |---|---|---|
-| Simplification plus rounding | Exported path against extracted path | Proved bound `e + q` |
+| Simplification plus rounding | Exported path against extracted path | Proved bound `e + q`, per path |
 | Measured export error | Parsed SVG against extracted path | Sampled estimate, with a conservative guard below |
 | Grid error | Extracted path against the true isoline | Sampled first-order estimate |
 
@@ -176,21 +176,37 @@ At sample points on an extracted path, the first-order distance to the true isol
 
 ## Topology rules
 
-The simplified output must be topologically the same as the extracted lines, which have no crossings:
+The output must be topologically the same as the extracted lines, which have no crossings. Let `q` be a path's rounding bound. A first version of these rules left rounding out. An independent review found rounded paths that crossed through a shared vertex or swapped sides, so rule 1 is now stated with `q`.
 
-1. **No crossings.** No two output segments properly cross, within or between paths and levels. Touching at a point is allowed, since ties can produce it.
-2. **No lost loops.** Every path remains. A closed path keeps at least 3 vertices and keeps the sign of its area.
-3. **Nothing swept.** When a chord replaces a run of points, the region between them contains no vertex of any original path. Without this, a small loop could end up on the wrong side of a neighbour with no crossing to reveal it. Saalfeld (1999) describes this failure of plain Douglas-Peucker.
+1. **Separation.** Two different output paths stay more than `2(q_a + q_b)` apart. A path never touches itself, apart from neighbouring segments sharing a point. A contact includes a crossing through a vertex, a touch and a collinear overlap.
+2. **No lost loops.** A closed path keeps at least 3 vertices and the sign of its area.
+3. **Nothing swept.** When a chord replaces a run of points, the region between them contains no vertex of any original path. Without this, a small loop could end up on the wrong side of a neighbour with no contact to reveal it. Saalfeld (1999) describes this failure of plain Douglas-Peucker.
 
-Rule 3 is conservative. It can refuse a chord that would have been fine. That costs a few bytes and never correctness.
+Rules 1 and 3 are conservative. They can refuse something that would have been fine. That costs a few bytes and never correctness.
 
-### Why rules 1 and 3 are enough
+### Why these rules are enough
 
-Suppose no original vertex lies in a swept region, and a straight original edge entered that region. It could only leave through the chord or the replaced run. It cannot cross the run, since originals do not cross. A straight edge cannot cross the straight chord twice. So no original edge enters. The simplified path has the same relation to the original paths as before. Rule 1 then covers two simplified paths against each other.
+The argument has two steps: from the extracted lines to the simplified paths before rounding, then to the rounded output.
+
+**Simplification.** Suppose no original vertex lies in a swept region, and a straight original edge entered that region. It could only leave through the chord or the replaced run. It cannot cross the run, since originals do not cross. A straight edge cannot cross the straight chord twice. So no original edge enters, and each simplified path relates to the original paths as before. Two simplified paths could still cross each other: chords of neighbouring paths can meet with nothing swept. A test scene shows this happening, and rule 1 catches it.
+
+**Rounding.** Take two paths with output distance `d > 2(q_a + q_b)`. Rounding moved each point by at most its `q`, so before rounding they were at least `d - q_a - q_b > q_a + q_b` apart. Move each vertex in a straight line to its rounded position. No point travels further than its `q`, so at no moment do the two paths touch. A continuous motion with no contact cannot change which side one path is on. So rounding keeps the arrangement.
+
+A path is not compared with itself at a clearance. Its neighbouring segments share ends and can be short, and the arrangement between paths does not depend on it. It only has to stay simple, which the exact contact test checks.
+
+### Limits
+
+Rule 1 is judged on doubles, without exact arithmetic. At the end of the ladder paths sit on a `1e-6` lattice, so two paths closer than about `3e-6` units may fail rule 1 with nothing left to tighten. The output is then checked for exact contact. Two strands that meet at a tied corner in the extracted lines are allowed to meet in the output, and any other contact is reported to the user as a crossing.
 
 ### Fallback
 
-A path that breaks a rule retries with tighter settings. Each step divides the tolerance by 4 and adds one decimal. After three steps it is retained unsimplified at 6 decimals. Each path carries its final tolerance and decimals, so the declared bound stays true per path. The export reports how many paths fell back.
+A path that breaks a rule retries with tighter settings. Each step divides the tolerance by 4 and adds one decimal. After three steps it is retained unsimplified at 6 decimals. Each path carries its final tolerance and decimals, so the declared bound stays true per path. The export reports how many paths fell back. The loop only ends after a check that changed nothing, so the reported count always describes the final output.
+
+A loop smaller than the `1e-6` lattice cannot be written as a loop at all. It rounds to a point, so it is dropped and counted with the degenerate paths.
+
+### Resource limit
+
+A run stops with a clear message once it passes 20 million extracted vertices. That is about 160 MB of coordinates, and past what a browser can hold as a single SVG string.
 
 ## SVG output
 

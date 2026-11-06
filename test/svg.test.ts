@@ -94,6 +94,12 @@ describe('SVG file', () => {
     expect(svg).toContain('<title>Test &amp; &lt;scene&gt;</title>');
   });
 
+  it('drops characters XML does not allow from the title', () => {
+    const named = { ...scene, name: 'bad\u0001na\ufffeme\ud800' };
+    const text = toSvg(computeGeometry(named, { quality: 'final', resolution: 32 }), named);
+    expect(text).toContain('<title>badname</title>');
+  });
+
   it('has a viewBox matching the frame', () => {
     expect(svg).toContain('viewBox="0 0 1200 800"');
     expect(svg).toContain('width="1200"');
@@ -129,6 +135,18 @@ describe('SVG file', () => {
     const limited = computeGeometry(tight, { quality: 'final', resolution: 64 });
     expect(limited.marginLimited).toBe(true);
     expect(toSvg(limited, tight)).toContain('viewBox="0 0 1200 800"');
+  });
+
+  it('each side of the sheet can limit the margin', () => {
+    const near = (clip: Scene['clip']) => {
+      const s = { ...scene, clip, export: { ...scene.export, bounds: 'expanded' as const, margin: 50 } };
+      return computeGeometry(s, { quality: 'draft', resolution: 32 }).marginLimited;
+    };
+    expect(near({ x: 100, y: 100, width: 1000, height: 600 })).toBe(false);
+    expect(near({ x: 10, y: 100, width: 1000, height: 600 })).toBe(true);
+    expect(near({ x: 100, y: 10, width: 1000, height: 600 })).toBe(true);
+    expect(near({ x: 190, y: 100, width: 1000, height: 600 })).toBe(true);
+    expect(near({ x: 100, y: 190, width: 1000, height: 600 })).toBe(true);
   });
 
   it('fixed stroke mode marks every path, and only that mode does', () => {

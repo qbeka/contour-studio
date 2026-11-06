@@ -5,7 +5,7 @@ import { parseScene } from '../src/core/scene';
 import { toSvg } from '../src/core/svg';
 import { findSweeps } from '../src/core/topology';
 import { parseSvgPaths, sampledHausdorff } from '../src/core/verify';
-import { bruteCrossings, pointsOf } from './support/oracle';
+import { bruteContacts, nesting, pointsOf } from './support/oracle';
 
 const folder = new URL('./regressions/', import.meta.url);
 
@@ -21,16 +21,37 @@ describe('saved scenes', () => {
       const scene = load(name);
       const geometry = computeGeometry(scene, { quality: 'final' });
       const output = geometry.levels.flatMap((l) => l.paths);
-      expect(output.length).toBe(geometry.source.flat().length);
-      expect(bruteCrossings(output)).toBe(0);
-      const distance = sampledHausdorff(
-        geometry.source.flat(),
-        parseSvgPaths(toSvg(geometry, scene)),
-        0.25,
+      expect(output.length + geometry.stats.degeneratePaths).toBeGreaterThanOrEqual(
+        geometry.source.flat().length,
       );
-      expect(distance.sampled).toBeLessThanOrEqual(geometry.stats.maxBound);
+      expect(bruteContacts(output)).toBe(0);
+      if (output.length === geometry.source.flat().length) {
+        expect(nesting(output)).toEqual(nesting(geometry.source.flat()));
+        const distance = sampledHausdorff(
+          geometry.source.flat(),
+          parseSvgPaths(toSvg(geometry, scene)),
+          0.25,
+        );
+        expect(distance.sampled).toBeLessThanOrEqual(geometry.stats.maxBound);
+      }
     });
   }
+
+  it('a loop below the finest lattice is reported, never written as one point', () => {
+    const scene = load('loop-below-lattice.contour.json');
+    const geometry = computeGeometry(scene, { quality: 'final' });
+    expect(geometry.stats.outputPaths).toBe(0);
+    expect(geometry.stats.degeneratePaths).toBe(1);
+    expect(toSvg(geometry, scene)).not.toContain('<path');
+  });
+
+  it('the reported crossing count is checked on the final output', () => {
+    const scene = load('rounding-swaps-sides.contour.json');
+    const geometry = computeGeometry(scene, { quality: 'final' });
+    const output = geometry.levels.flatMap((l) => l.paths);
+    expect(geometry.stats.fallbackPaths).toBeGreaterThan(0);
+    expect(bruteContacts(output)).toBe(geometry.stats.crossings);
+  });
 
   it('the pit stays on the same side of the contour', () => {
     const scene = load('swept-pit.contour.json');

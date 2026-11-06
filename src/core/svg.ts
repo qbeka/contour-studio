@@ -156,8 +156,15 @@ function buildTree(geometry: Geometry, scene: Scene): Element {
   return root;
 }
 
+/** Characters XML 1.0 forbids, including lone surrogates. */
+const NOT_XML = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
+
 function escapeText(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return text
+    .replace(NOT_XML, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function printSvg(element: Element): string {

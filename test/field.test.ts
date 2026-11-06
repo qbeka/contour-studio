@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { contourLevel } from '../src/core/contour';
 import { fieldFunction, flattenRidge, fractalNoise, gridCoord, sampleField } from '../src/core/field';
 import { emptyScene, type Scene } from '../src/core/scene';
+import type { Geometry } from '../src/core/pipeline';
+import { estimateGridError } from '../src/core/verify';
 import { pointsOf } from './support/oracle';
 
 function scene(partial: Partial<Scene>): Scene {
@@ -148,6 +150,30 @@ describe('noise', () => {
   it('changes with the seed and repeats with the same seed', () => {
     expect(fractalNoise(1.3, 2.7, 1, 3)).toBe(fractalNoise(1.3, 2.7, 1, 3));
     expect(fractalNoise(1.3, 2.7, 1, 3)).not.toBe(fractalNoise(1.3, 2.7, 2, 3));
+  });
+});
+
+describe('grid error estimate', () => {
+  it('reads a known offset, which needs the division by slope', () => {
+    const R = 300;
+    const s = scene({ sources: [peak(600, 400, R, 1)] });
+    const level = 0.5;
+    const radius = R * Math.sqrt(1 - Math.cbrt(level));
+    const offset = 1.5;
+    const points: number[] = [];
+    for (let i = 0; i < 64; i++) {
+      const angle = (i / 64) * Math.PI * 2;
+      points.push(600 + (radius + offset) * Math.cos(angle), 400 + (radius + offset) * Math.sin(angle));
+    }
+    const geometry = {
+      resolution: 512,
+      levels: [{ index: 0, value: level, paths: [] }],
+      source: [[{ points: new Float64Array(points), closed: true }]],
+    } as unknown as Geometry;
+    const estimate = estimateGridError(s, geometry, 4);
+    expect(estimate.max).toBeGreaterThan(offset * 0.95);
+    expect(estimate.max).toBeLessThan(offset * 1.05);
+    expect(estimate.skipped).toBe(0);
   });
 });
 

@@ -162,8 +162,20 @@ export function polygonArea(path: Polyline): number {
   return sum / 2;
 }
 
-/** Slow proper-crossing search across a set of paths. */
-export function bruteCrossings(paths: Polyline[]): number {
+/** Whether a point is on a segment, by exact arithmetic on the doubles given. */
+function onSegment(px: number, py: number, s: number[]): boolean {
+  const [ax, ay, bx, by] = s;
+  if ((bx - ax) * (py - ay) - (by - ay) * (px - ax) !== 0) return false;
+  return (
+    px >= Math.min(ax, bx) && px <= Math.max(ax, bx) && py >= Math.min(ay, by) && py <= Math.max(ay, by)
+  );
+}
+
+/**
+ * Slow search for any contact across a set of paths: a crossing, a touch, or one
+ * through a vertex. Only neighbouring segments of one path are allowed to meet.
+ */
+export function bruteContacts(paths: Polyline[]): number {
   const segs: { p: number; k: number; n: number; c: boolean; s: number[] }[] = [];
   paths.forEach((path, p) => {
     const pts = pointsOf(path);
@@ -177,7 +189,7 @@ export function bruteCrossings(paths: Polyline[]): number {
   });
   const orient = (ax: number, ay: number, bx: number, by: number, cx: number, cy: number) =>
     (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-  let crossings = 0;
+  let contacts = 0;
   for (let i = 0; i < segs.length; i++) {
     for (let j = i + 1; j < segs.length; j++) {
       const a = segs[i];
@@ -192,8 +204,41 @@ export function bruteCrossings(paths: Polyline[]): number {
       const d2 = orient(x1, y1, x2, y2, x4, y4);
       const d3 = orient(x3, y3, x4, y4, x1, y1);
       const d4 = orient(x3, y3, x4, y4, x2, y2);
-      if (d1 * d2 < 0 && d3 * d4 < 0) crossings++;
+      if (
+        (d1 * d2 < 0 && d3 * d4 < 0) ||
+        onSegment(x3, y3, a.s) ||
+        onSegment(x4, y4, a.s) ||
+        onSegment(x1, y1, b.s) ||
+        onSegment(x2, y2, b.s)
+      ) {
+        contacts++;
+      }
     }
   }
-  return crossings;
+  return contacts;
+}
+
+/** Even-odd containment, written here so that it shares nothing with production. */
+export function pointInLoop(x: number, y: number, path: Polyline): boolean {
+  const pts = pointsOf(path);
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i];
+    const [xj, yj] = pts[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * For every pair of closed paths, whether the first sits inside the second. If a
+ * loop changes side, this table changes, with or without a contact.
+ */
+export function nesting(paths: Polyline[]): boolean[][] {
+  return paths.map((a) =>
+    paths.map((b) => {
+      if (a === b || !a.closed || !b.closed) return false;
+      return pointInLoop(a.points[0], a.points[1], b);
+    }),
+  );
 }

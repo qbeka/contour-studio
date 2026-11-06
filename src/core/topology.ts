@@ -1,7 +1,8 @@
 /**
  * The topology rules from docs/GEOMETRY.md.
  *
- * Rule 1: no two output segments properly cross.
+ * Rule 1: different paths stay apart by more than rounding can move them, and no
+ *         path touches itself.
  * Rule 2: no closed path loses its shape.
  * Rule 3: a chord sweeps over no vertex of any original path.
  *
@@ -78,29 +79,31 @@ export class BucketGrid {
   }
 
   /**
-   * Visits the cells along a segment, row by row, plus one cell either side so
-   * rounding cannot miss one. Cost follows the segment length, where a bounding
-   * box would follow its area and make long diagonal chords very expensive.
+   * Visits the cells within `pad` of a segment, row by row, plus one cell either
+   * side so that rounding cannot miss one. Cost follows the segment length, where
+   * a bounding box would follow its area and make long diagonal chords expensive.
    */
   coverSegment(
     x0: number,
     y0: number,
     x1: number,
     y1: number,
+    pad: number,
     visit: (cell: number) => void,
   ): void {
-    const r0 = this.cellY(Math.min(y0, y1));
-    const r1 = this.cellY(Math.max(y0, y1));
+    const lowest = Math.min(y0, y1);
+    const highest = Math.max(y0, y1);
+    const r0 = this.cellY(lowest - pad);
+    const r1 = this.cellY(highest + pad);
     const slope = y1 === y0 ? 0 : (x1 - x0) / (y1 - y0);
     for (let r = r0; r <= r1; r++) {
       const top = this.minY + r * this.cellH;
-      const bottom = top + this.cellH;
-      const low = Math.max(top, Math.min(y0, y1));
-      const high = Math.min(bottom, Math.max(y0, y1));
+      const low = Math.min(highest, Math.max(lowest, top - pad));
+      const high = Math.max(lowest, Math.min(highest, top + this.cellH + pad));
       const xa = y1 === y0 ? Math.min(x0, x1) : x0 + (low - y0) * slope;
       const xb = y1 === y0 ? Math.max(x0, x1) : x0 + (high - y0) * slope;
-      const c0 = Math.max(0, this.cellX(Math.min(xa, xb)) - 1);
-      const c1 = Math.min(this.cols - 1, this.cellX(Math.max(xa, xb)) + 1);
+      const c0 = Math.max(0, this.cellX(Math.min(xa, xb) - pad) - 1);
+      const c1 = Math.min(this.cols - 1, this.cellX(Math.max(xa, xb) + pad) + 1);
       for (let c = c0; c <= c1; c++) visit(r * this.cols + c);
     }
   }
@@ -122,21 +125,84 @@ function boundsOf(paths: readonly Polyline[]): [number, number, number, number] 
   return [minX, minY, maxX, maxY];
 }
 
+export interface Contacts {
+  /** Paths that broke the rule. */
+  blamed: Set<number>;
+  /** Distinct pairs of segments that broke the rule. */
+  count: number;
+  /** Where exact contacts happened, as interleaved x, y. */
+  points: number[];
+}
+
+/** Distance between two segments, 0 when they touch or cross. */
+function segmentPairDistanceSquared(
+  ax0: number,
+  ay0: number,
+  ax1: number,
+  ay1: number,
+  bx0: number,
+  by0: number,
+  bx1: number,
+  by1: number,
+): number {
+  const d1 = orient(ax0, ay0, ax1, ay1, bx0, by0);
+  const d2 = orient(ax0, ay0, ax1, ay1, bx1, by1);
+  const d3 = orient(bx0, by0, bx1, by1, ax0, ay0);
+  const d4 = orient(bx0, by0, bx1, by1, ax1, ay1);
+  if (d1 * d2 < 0 && d3 * d4 < 0) return 0;
+  return Math.min(
+    segmentDistanceSquared(bx0, by0, ax0, ay0, ax1, ay1),
+    segmentDistanceSquared(bx1, by1, ax0, ay0, ax1, ay1),
+    segmentDistanceSquared(ax0, ay0, bx0, by0, bx1, by1),
+    segmentDistanceSquared(ax1, ay1, bx0, by0, bx1, by1),
+  );
+}
+
+/** Where two touching segments meet: their crossing, or the end that touches. */
+function contactPoint(
+  ax0: number,
+  ay0: number,
+  ax1: number,
+  ay1: number,
+  bx0: number,
+  by0: number,
+  bx1: number,
+  by1: number,
+): [number, number] {
+  if (segmentDistanceSquared(bx0, by0, ax0, ay0, ax1, ay1) === 0) return [bx0, by0];
+  if (segmentDistanceSquared(bx1, by1, ax0, ay0, ax1, ay1) === 0) return [bx1, by1];
+  if (segmentDistanceSquared(ax0, ay0, bx0, by0, bx1, by1) === 0) return [ax0, ay0];
+  if (segmentDistanceSquared(ax1, ay1, bx0, by0, bx1, by1) === 0) return [ax1, ay1];
+  const d1 = orient(ax0, ay0, ax1, ay1, bx0, by0);
+  const d2 = orient(ax0, ay0, ax1, ay1, bx1, by1);
+  const t = d1 / (d1 - d2);
+  return [bx0 + (bx1 - bx0) * t, by0 + (by1 - by0) * t];
+}
+
 /**
- * Rule 1. Returns the set of paths in a proper crossing. Touching at a point is
- * not a crossing, because exact ties can make two strands meet at a grid corner.
+ * Rule 1. `margins` holds a clearance per path. Two different paths break the rule
+ * when closer than the sum of their margins. With margins of zero, this finds any
+ * contact, including a crossing that passes exactly through a vertex.
+ *
+ * A path against itself is always tested at zero. Its segments share ends and can
+ * be short, so a clearance would flag every path, and a simple curve stays simple
+ * whatever its neighbours do. Neighbouring segments of a path are skipped.
  */
-export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>; count: number } {
+export function findContacts(
+  paths: readonly Polyline[],
+  margins?: Float64Array,
+): Contacts {
   let segmentCount = 0;
   for (const p of paths) {
     const n = p.points.length / 2;
     segmentCount += p.closed ? n : n - 1;
   }
   const blamed = new Set<number>();
-  if (segmentCount === 0) return { blamed, count: 0 };
+  if (segmentCount === 0) return { blamed, count: 0, points: [] };
 
   const coords = new Float64Array(segmentCount * 4);
   const owner = new Int32Array(segmentCount);
+  const position = new Int32Array(segmentCount);
   let s = 0;
   paths.forEach((path, index) => {
     const { points, closed } = path;
@@ -149,9 +215,13 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
       coords[s * 4 + 2] = points[next * 2];
       coords[s * 4 + 3] = points[next * 2 + 1];
       owner[s] = index;
+      position[s] = k;
       s++;
     }
   });
+
+  let largest = 0;
+  if (margins) for (const m of margins) if (m > largest) largest = m;
 
   const [minX, minY, maxX, maxY] = boundsOf(paths);
   const grid = new BucketGrid(
@@ -166,12 +236,16 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
         coords[i * 4 + 1],
         coords[i * 4 + 2],
         coords[i * 4 + 3],
+        // Two segments closer than m_a + m_b share a cell once each grows by the
+        // largest margin.
+        largest,
         visit,
       ),
   );
 
-  // A pair can meet in several cells, so crossings are counted through a set.
-  const crossings = new Set<number>();
+  // A pair can meet in several cells, so pairs are counted through a set.
+  const found = new Set<number>();
+  const points: number[] = [];
   const total = grid.cols * grid.rows;
   for (let cell = 0; cell < total; cell++) {
     const from = grid.starts[cell];
@@ -182,6 +256,10 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
       const ay0 = coords[a * 4 + 1];
       const ax1 = coords[a * 4 + 2];
       const ay1 = coords[a * 4 + 3];
+      const aMin = Math.min(ax0, ax1);
+      const aMax = Math.max(ax0, ax1);
+      const aLow = Math.min(ay0, ay1);
+      const aHigh = Math.max(ay0, ay1);
       for (let j = i + 1; j < to; j++) {
         const b = grid.items[j];
         const bx0 = coords[b * 4];
@@ -189,30 +267,55 @@ export function findCrossings(paths: readonly Polyline[]): { blamed: Set<number>
         const bx1 = coords[b * 4 + 2];
         const by1 = coords[b * 4 + 3];
 
-        // Neighbouring segments share a point, which makes one of these products
-        // exactly 0, so they need no special case.
-        const d1 = orient(ax0, ay0, ax1, ay1, bx0, by0);
-        const d2 = orient(ax0, ay0, ax1, ay1, bx1, by1);
-        if (d1 * d2 >= 0) continue;
-        const d3 = orient(bx0, by0, bx1, by1, ax0, ay0);
-        const d4 = orient(bx0, by0, bx1, by1, ax1, ay1);
-        if (d3 * d4 >= 0) continue;
+        const samePath = owner[a] === owner[b];
+        const limit = samePath || !margins ? 0 : margins[owner[a]] + margins[owner[b]];
 
-        crossings.add(Math.min(a, b) * segmentCount + Math.max(a, b));
+        // Boxes further apart than the limit cannot qualify.
+        if (
+          aMax + limit < Math.min(bx0, bx1) ||
+          Math.max(bx0, bx1) + limit < aMin ||
+          aHigh + limit < Math.min(by0, by1) ||
+          Math.max(by0, by1) + limit < aLow
+        ) {
+          continue;
+        }
+
+        if (samePath) {
+          const path = paths[owner[a]];
+          const n = path.points.length / 2;
+          const gap = Math.abs(position[a] - position[b]);
+          if (gap <= 1 || (path.closed && gap === n - 1)) continue;
+        }
+
+        const distance = segmentPairDistanceSquared(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
+        // At limit 0, a contact needs distance 0. Otherwise closer than the limit.
+        if (limit === 0 ? distance > 0 : distance >= limit * limit) continue;
+
+        const pair = Math.min(a, b) * segmentCount + Math.max(a, b);
+        if (found.has(pair)) continue;
+        found.add(pair);
         blamed.add(owner[a]);
         blamed.add(owner[b]);
+        if (distance === 0) {
+          const [x, y] = contactPoint(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1);
+          points.push(x, y);
+        }
       }
     }
   }
-  return { blamed, count: crossings.size };
+  return { blamed, count: found.size, points };
 }
 
 export function signedArea(points: Float64Array): number {
+  // Measured from the first vertex. Products of large coordinates would otherwise
+  // lose the area of a small loop far from the origin.
   let sum = 0;
   const n = points.length;
-  for (let k = 0; k < n; k += 2) {
-    const next = (k + 2) % n;
-    sum += points[k] * points[next + 1] - points[next] * points[k + 1];
+  const ox = points[0];
+  const oy = points[1];
+  for (let k = 2; k + 3 < n; k += 2) {
+    sum +=
+      (points[k] - ox) * (points[k + 3] - oy) - (points[k + 2] - ox) * (points[k + 1] - oy);
   }
   return sum / 2;
 }

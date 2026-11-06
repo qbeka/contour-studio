@@ -10,7 +10,7 @@ import { toSvg } from '../src/core/svg';
 import { signedArea } from '../src/core/topology';
 import { fieldFunction } from '../src/core/field';
 import { parseSvgPaths, sampledHausdorff } from '../src/core/verify';
-import { bruteCrossings } from './support/oracle';
+import { bruteContacts, nesting } from './support/oracle';
 
 export function rng(seed: number) {
   let s = seed >>> 0;
@@ -65,6 +65,58 @@ function randomScene(seed: number): Scene {
   };
 }
 
+/** Lines packed tighter than the rounding lattice. This is where rounding bites. */
+function crowdedScene(seed: number): Scene {
+  const r = rng(seed);
+  const base = emptyScene();
+  const side = 12 + Math.floor(r() * 40);
+  return {
+    ...base,
+    domain: { width: side, height: side },
+    clip: { x: 0, y: 0, width: side, height: side },
+    sources: [
+      {
+        id: 'p', name: 'p', kind: 'peak', enabled: true,
+        x: side * (0.3 + r() * 0.4), y: side * (0.3 + r() * 0.4),
+        radius: 2 + r() * side * 0.4, height: (r() < 0.5 ? -1 : 1) * (1 + r() * 3),
+      },
+    ],
+    noise: { amplitude: r() * 0.3, scale: 6 + r() * 10, octaves: 2 },
+    levels: { base: -2 + r(), spacing: 0.03 + r() * 0.2, count: 6 + Math.floor(r() * 12) },
+    export: {
+      ...base.export,
+      resolution: 24 + Math.floor(r() * 64),
+      tolerance: [0, 0.02, 0.2][Math.floor(r() * 3)],
+      decimals: Math.floor(r() * 3),
+    },
+  };
+}
+
+describe('crowded scenes', () => {
+  it('rounding never makes a contact or moves a loop to the other side', () => {
+    let tightened = 0;
+    let nested = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const scene = crowdedScene(seed);
+      const label = `seed ${seed}`;
+      const geometry = computeGeometry(scene, { quality: 'final' });
+      const output = geometry.levels.flatMap((l) => l.paths);
+      const source = geometry.source.flat();
+      expect(geometry.stats.crossings, label).toBe(0);
+      expect(bruteContacts(output), label).toBe(0);
+      expect(output.length + geometry.stats.degeneratePaths, label).toBeGreaterThanOrEqual(source.length);
+      if (output.length === source.length) {
+        expect(nesting(output), label).toEqual(nesting(source));
+        nested += nesting(source).flat().filter(Boolean).length;
+      }
+      tightened += geometry.stats.fallbackPaths;
+    }
+    // Guards against scenes that stopped being hard.
+    expect(tightened).toBeGreaterThan(100);
+    expect(nested).toBeGreaterThan(100);
+  });
+});
+
 describe('random scenes', () => {
   it('every rule holds in every scene', () => {
     let fallbacks = 0;
@@ -80,7 +132,7 @@ describe('random scenes', () => {
 
       expect(output.length, label).toBe(source.length);
       expect(geometry.stats.crossings, label).toBe(0);
-      expect(bruteCrossings(output), label).toBe(0);
+      expect(bruteContacts(output), label).toBe(0);
 
       output.forEach((path, i) => {
         if (path.closed) {

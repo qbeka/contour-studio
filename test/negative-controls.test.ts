@@ -10,9 +10,9 @@ import { sampleField } from '../src/core/field';
 import { computeGeometry } from '../src/core/pipeline';
 import { PRESETS } from '../src/core/presets';
 import { toSvg } from '../src/core/svg';
-import { findCrossings, loopSurvives } from '../src/core/topology';
+import { findContacts, loopSurvives } from '../src/core/topology';
 import { parseSvgPaths, sampledHausdorff } from '../src/core/verify';
-import { bruteCrossings, crackReport, gridFrom, orientationReport } from './support/oracle';
+import { bruteContacts, crackReport, gridFrom, orientationReport } from './support/oracle';
 
 const preset = PRESETS[2].scene;
 const grid = sampleField(preset, 128, 85);
@@ -88,13 +88,24 @@ describe('sampled distance', () => {
     expect(distance.samples).toBeLessThanOrEqual(4_000_010);
   });
 
-  it('the guard is an upper bound for a known exact distance', () => {
+  it('the guard covers a maximum that the samples miss', () => {
+    // The farthest point of a is at x = 50, between two short pieces of b. At this
+    // spacing the samples land at thirds, so the sampled value falls short of 49.
     const a: Polyline = { points: new Float64Array([0, 0, 100, 0]), closed: false };
-    const b: Polyline = { points: new Float64Array([0, 0, 50, 7, 100, 0]), closed: false };
-    // A very coarse spacing misses the apex. The guard must still cover it.
-    const distance = sampledHausdorff([a], [b], 40);
-    expect(distance.sampled).toBeLessThanOrEqual(7 + 1e-9);
-    expect(distance.guard).toBeGreaterThanOrEqual(7);
+    const b: Polyline[] = [
+      { points: new Float64Array([0, 0, 1, 0]), closed: false },
+      { points: new Float64Array([99, 0, 100, 0]), closed: false },
+    ];
+    const distance = sampledHausdorff([a], b, 40);
+    expect(distance.sampled).toBeLessThan(49);
+    expect(distance.guard).toBeGreaterThanOrEqual(49);
+  });
+
+  it('reaches the last point of an open path', () => {
+    // Everything matches except the far end, which only the end sample can see.
+    const a: Polyline = { points: new Float64Array([0, 0, 10, 0, 10, 8]), closed: false };
+    const b: Polyline = { points: new Float64Array([0, 0, 10, 0]), closed: false };
+    expect(sampledHausdorff([a], [b], 100).sampled).toBe(8);
   });
 });
 
@@ -102,15 +113,15 @@ describe('crossing check', () => {
   it('catches a crossing injected in real output', () => {
     const geometry = computeGeometry(preset, { quality: 'final', resolution: 128 });
     const paths = geometry.levels.flatMap((l) => l.paths);
-    expect(findCrossings(paths).count).toBe(0);
+    expect(findContacts(paths).count).toBe(0);
     const longest = paths.reduce((a, b) => (b.points.length > a.points.length ? b : a));
     const broken = paths.map((p) => (p === longest ? { ...p, points: p.points.slice() } : p));
     const target = broken[paths.indexOf(longest)];
     // Pull one vertex far across its neighbours.
     target.points[40] += 90;
     target.points[41] += 90;
-    expect(findCrossings(broken).count).toBeGreaterThan(0);
-    expect(bruteCrossings(broken)).toBeGreaterThan(0);
+    expect(findContacts(broken).count).toBeGreaterThan(0);
+    expect(bruteContacts(broken)).toBeGreaterThan(0);
   });
 });
 
