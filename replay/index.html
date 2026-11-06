@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contour</title>
+<meta name="description" content="Drag a source and every contour follows, running Contour's real geometry code in your browser.">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <p class="eyebrow">Contour, a tool for original line artwork</p>
+    <h1>Drag a source. <br>Every line follows.</h1>
+    <p class="lede">This page runs Contour's real geometry code in your browser. Play the recorded
+    drag or take the handle yourself. The size and error under the drawing are worked out for
+    exactly what you see.</p>
+    <p class="recorded">The four figures below come from the recorded benchmark on an Apple M5 Pro.
+    The figures under the drawing are computed live on your device.</p>
+  </header>
+
+  <svg class="ridge" id="ridge" aria-hidden="true" preserveAspectRatio="none"></svg>
+
+  <dl class="stats">
+    <div class="stat"><dd>12 to 20 ms</dd><dt>Refined geometry at 512 cells and 16 levels</dt></div>
+    <div class="stat"><dd>83 to 15 KB</dd><dt>Quiet ridge file with the same composition</dt></div>
+    <div class="stat"><dd>0.22 units</dd><dt>Most the export can move a line, proved</dt></div>
+    <div class="stat"><dd>0</dd><dt>Crossings across 420 random scenes</dt></div>
+  </dl>
+
+  <main>
+    <section aria-labelledby="replay-title">
+      <h2 id="replay-title">One drag, computed as you watch</h2>
+      <p class="note">While the source moves you see a fast draft. When it stops, the drawing
+      switches to export geometry, the same numbers the SVG file prints.</p>
+
+      <div class="controls">
+        <button class="pill" id="play" type="button">Play</button>
+        <select class="field" id="scene" aria-label="Scene"></select>
+        <select class="field" id="detail" aria-label="Line detail">
+          <option value="0">Full detail</option>
+          <option value="0.05">Fine detail</option>
+          <option value="0.15" selected>Balanced detail</option>
+          <option value="0.5">Light detail</option>
+        </select>
+        <button class="pill ghost" id="nodes" type="button" aria-pressed="false">Show nodes</button>
+      </div>
+      <div class="scrub-row">
+        <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in the recorded drag">
+      </div>
+
+      <div class="stage" id="stage">
+        <svg id="art" role="img" aria-label="Contour lines"></svg>
+        <button class="handle" id="handle" type="button"><span></span></button>
+      </div>
+
+      <div class="state"><i id="dot"></i><span id="state" role="status"></span></div>
+
+      <dl class="readout" id="readout">
+        <div><dt>Nodes</dt><dd id="r-nodes"></dd></div>
+        <div><dt>File size</dt><dd id="r-size"></dd></div>
+        <div><dt>Moved at most</dt><dd id="r-bound"></dd></div>
+        <div><dt>Crossings</dt><dd id="r-cross"></dd></div>
+      </dl>
+
+      <div class="actions">
+        <a class="pill" href="app/index.html">Open the full studio</a>
+        <button class="pill ghost" id="download" type="button">Download this SVG</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="watch-title">
+      <h2 id="watch-title">The whole workflow</h2>
+      <p class="note">Placing sources, shaping a ridge, tuning export quality and saving the file,
+      in 68 seconds with captions.</p>
+      <video class="film" controls preload="none" poster="cover.png" width="1280" height="800">
+        <source src="walkthrough.mp4" type="video/mp4">
+      </video>
+    </section>
+
+    <section aria-labelledby="evidence-title">
+      <h2 id="evidence-title">Why you can trust this</h2>
+      <ul class="claims">
+        <li><b>Same numbers</b><span>Once the preview settles, the canvas and the SVG read one shared
+        geometry. There is no separate preview to drift away from the file.</span></li>
+        <li><b>Proved error</b><span>Each path carries a bound for simplifying and rounding. On the quiet
+        ridge the bound is 0.22 units, and the sampled distance is 0.19 units.</span></li>
+        <li><b>Lines stay apart</b><span>0 crossings and 0 lost paths across 9 size table rows and 420
+        random scenes. A path that fails a topology rule is retried at finer settings.</span></li>
+        <li><b>Repeatable files</b><span>One workflow's scene gave identical bytes in Chromium, Firefox,
+        WebKit and Node. Chromium, Firefox, WebKit and resvg drew three scenes within 1 px.</span></li>
+        <li><b>Tests that can fail</b><span>178 unit tests and 41 browser tests. 69 of 70 seeded bugs were
+        caught by a named test, and the last one timed out.</span></li>
+        <li><b>The worker's real job</b><span>It made drafts slower, 17 ms against 10 ms. It stays because
+        it cut the largest frame gap on a heavy scene from 204 ms to 25 ms.</span></li>
+      </ul>
+      <h3>What this does not show</h3>
+      <ul class="limits">
+        <li>All timings come from one fast laptop with other work running on it.</li>
+        <li>Nobody outside this project has used it yet.</li>
+        <li>Path editing was checked in paper.js, not in a desktop vector editor.</li>
+        <li>Grid error is not part of the export bound. It reaches about 0.79 units on the quiet ridge.</li>
+        <li>Exports are polylines, so smooth lines need many nodes.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>This page runs on the main thread and uses Contour's own field, contour, simplify and SVG
+    code. The studio does the same work in a worker.</p>
+    <p><a href="https://github.com/qbeka/contour-studio">Source on GitHub</a>.
+    <a href="https://github.com/qbeka/contour-studio/blob/main/docs/REPORT.md">Report, raw data and failures</a>.</p>
+  </footer>
+</div>
+<script type="module" src="./main.ts"></script>
+</body>
+</html>
