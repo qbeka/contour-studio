@@ -37,7 +37,7 @@
 
       <button class="handle" id="handle" type="button" aria-expanded="false" aria-controls="inspector">
         <i></i>
-        <span class="hint" aria-hidden="true"><span class="mouse">Drag it, or click for settings</span><span class="keys">Arrow keys move it. Enter opens settings</span></span>
+        <span class="hint" aria-hidden="true"><span class="mouse">Drag it, or click for settings</span><span class="keys">Arrow keys move it and Enter opens settings</span></span>
       </button>
 
       <aside class="inspector float" id="inspector" aria-label="Point and line settings" hidden>
@@ -87,20 +87,20 @@
 
       <h3>Results</h3>
       <dl class="results">
-        <div><dt>Nodes in the file</dt><dd><b>12,104 to 1,771</b>Quiet ridge scene in the repo at tolerance 0.15, against the same scene with nothing removed. That is 85 percent fewer.</dd></div>
-        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>Same scene, same tolerance, same comparison. That is 71 percent smaller.</dd></div>
-        <div><dt>How far lines moved</dt><dd><b>0.19 units sampled, 0.221 proved</b>Same file, against the extracted lines. The bound is proved. The sample is only an estimate.</dd></div>
-        <div><dt>Repeatable files</dt><dd><b>Identical bytes</b>Chromium, Firefox, WebKit and Node, for the one workflow tested.</dd></div>
-        <div><dt>Largest frame gap</dt><dd><b>25 ms against 204 ms</b>Worker against blocking on the stress scene. The worker keeps the page from freezing, and it makes drafts slower.</dd></div>
-        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>On top of that, 70 seeded bugs: 69 caught by a named test and 1 by a timeout.</dd></div>
+        <div><dt>Nodes in the file</dt><dd><b>12,104 to 1,771</b>Quiet ridge scene in the repo at tolerance 0.15, 85 percent fewer than the same scene with nothing removed</dd></div>
+        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>The same scene and tolerance, 71 percent smaller than with nothing removed</dd></div>
+        <div><dt>How far lines moved</dt><dd><b>0.19 units sampled, 0.221 proved</b>The same file against the extracted lines, where the bound is proved and the sample is an estimate</dd></div>
+        <div><dt>Repeatable files</dt><dd><b>Identical bytes</b>Chromium, Firefox, WebKit and Node, for the one workflow tested</dd></div>
+        <div><dt>Largest frame gap</dt><dd><b>25 ms against 204 ms</b>Worker against blocking on the stress scene, so the page stops freezing even though drafts get slower</dd></div>
+        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>Plus 70 seeded bugs, with 69 caught by a named test and 1 by a timeout</dd></div>
       </dl>
 
       <h3>Limits</h3>
       <ul class="limits">
         <li>All timings come from one fast laptop.</li>
-        <li>Grid error is not part of the proved bound. It reaches about 0.79 units on the quiet ridge.</li>
+        <li>Grid error is not part of the proved bound and reaches about 0.79 units on the quiet ridge.</li>
         <li>Exports are polylines, so smooth lines need many nodes.</li>
-        <li>I checked path editing in paper.js. I have not tested Figma, Illustrator or Inkscape.</li>
+        <li>I checked path editing in paper.js but have not tested Figma, Illustrator or Inkscape.</li>
         <li>Nobody outside this project has used it yet.</li>
       </ul>
 
