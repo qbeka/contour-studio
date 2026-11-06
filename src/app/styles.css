@@ -579,7 +579,7 @@ kbd { font: 400 11px var(--mono); white-space: nowrap; }
     grid-template:
       'bar' auto
       'rail' auto
-      'work' minmax(240px, 46dvh)
+      'work' minmax(200px, 38dvh)
       'side' minmax(0, 1fr) / minmax(0, 1fr);
   }
   .bar { flex-wrap: wrap; row-gap: 4px; padding: 6px 12px; }

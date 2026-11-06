@@ -130,6 +130,7 @@ function tracePolyline(
   }
 }
 
+/** One circle at the anchor the reach handle sits on, so a ridge stays readable. */
 function drawReach(
   ctx: CanvasRenderingContext2D,
   source: Source,
@@ -137,22 +138,10 @@ function drawReach(
   x: number,
   y: number,
 ): void {
-  const r = source.radius * scale;
-  if (source.kind === 'peak') {
-    ctx.beginPath();
-    ctx.arc(x + source.x * scale, y + source.y * scale, r, 0, Math.PI * 2);
-    ctx.stroke();
-    return;
-  }
-  ctx.save();
-  ctx.lineWidth = 1;
-  const line = flattenRidge(source.points);
-  for (let k = 0; k < line.length; k += 2 * 8) {
-    ctx.beginPath();
-    ctx.arc(x + line[k] * scale, y + line[k + 1] * scale, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  ctx.restore();
+  const anchor = source.kind === 'peak' ? source : source.points[0];
+  ctx.beginPath();
+  ctx.arc(x + anchor.x * scale, y + anchor.y * scale, source.radius * scale, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 function eventPoint(element: HTMLElement, event: { clientX: number; clientY: number }) {

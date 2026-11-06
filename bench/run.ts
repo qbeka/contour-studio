@@ -10,9 +10,8 @@
 
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { cpus, platform, release, totalmem } from 'node:os';
+import { cpus, loadavg, platform, release, totalmem } from 'node:os';
 import { join } from 'node:path';
-import { chromium } from '@playwright/test';
 import { sizeTable } from './size-table';
 import {
   BROWSER_RUNS,
@@ -211,6 +210,7 @@ function manifest(browserVersion: string) {
       memoryBytes: totalmem(),
     },
     power: sh('pmset', ['-g', 'batt']).split('\n')[0],
+    loadAverageAtEnd: loadavg(),
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
     seeds: Object.fromEntries(cells().map((c) => [c.id, c.scene.seed])),
@@ -231,7 +231,6 @@ function manifest(browserVersion: string) {
 const stageSummary = await stageRuns();
 const { summary: browserSummary, browserVersion } = await browserRuns();
 const table = sizeTable();
-await chromium.launch().then((b) => b.close());
 
 writeFileSync(join(folder, 'manifest.json'), `${JSON.stringify(manifest(browserVersion), null, 2)}\n`);
 writeFileSync(
@@ -239,6 +238,28 @@ writeFileSync(
   `${JSON.stringify({ stages: stageSummary, browser: browserSummary }, null, 2)}\n`,
 );
 writeFileSync(join(folder, 'size-error.json'), `${JSON.stringify(table, null, 2)}\n`);
+
+interface Row {
+  id: string;
+  group: string;
+}
+const browserNominal = browserSummary.find((b) => b.mode === 'worker' && b.throttle === 1);
+const refined = browserSummary
+  .filter((b) => b.throttle === 1)
+  .map((b) => b.stages?.[512]?.total.max ?? Infinity);
+const nodeRefined = (stageSummary as (Row & { total: { max: number } })[])
+  .filter((r) => r.group === 'target' && r.id.endsWith('/512'))
+  .map((r) => r.total.max);
+const criteria = {
+  refined512Within500Ms: Math.max(...refined, ...nodeRefined) <= 500,
+  draftP95Within33Ms: (browserNominal?.draftCommitP95Ms.max ?? Infinity) <= 33,
+  noLongTaskDuringDrag: (browserNominal?.longTaskCount.max ?? Infinity) === 0,
+  sizeTableClean: table.every(
+    (r) => r.crossings === 0 && r.paths === r.pathsBefore && r.sampledDistance <= r.declaredBound,
+  ),
+};
+writeFileSync(join(folder, 'criteria.json'), `${JSON.stringify(criteria, null, 2)}\n`);
+console.log(criteria);
 
 const failures: string[] = [];
 for (const row of table) {
