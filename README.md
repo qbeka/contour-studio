@@ -4,7 +4,7 @@
 
 ![Contour with the interference study open and one source selected](docs/media/cover.png)
 
-[Signature interaction, 22 s](docs/media/signature.mp4) | [Captioned walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
+[Signature interaction, 21 s](docs/media/signature.mp4) | [Captioned walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
 No hosted demo yet. Run it locally with the three commands below. It needs no account, no server and no API key.
 
@@ -39,7 +39,11 @@ The worker does not make drafts faster. It keeps the page from freezing on heavy
 You need Node 22.16 or later and pnpm 12. The app itself needs nothing else.
 
 ```bash
-pnpm install
+git clone https://github.com/qbeka/contour-studio.git
+```
+
+```bash
+cd contour-studio && pnpm install
 ```
 
 ```bash
