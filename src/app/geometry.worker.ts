@@ -9,6 +9,7 @@ import { geometrySteps, type Geometry } from '../core/pipeline';
 import type { Scene } from '../core/scene';
 import { buildReport, type ExportReport } from './report';
 import type { Job } from './jobs';
+import { sliceTimer, yieldToQueue } from './yield';
 
 export type WorkerRequest = { type: 'run'; job: Job } | { type: 'cancel'; id: number };
 
@@ -19,20 +20,6 @@ export type WorkerResponse =
   | { type: 'failed'; id: number; message: string };
 
 const cancelled = new Set<number>();
-const SLICE_MS = 6;
-
-const channel = new MessageChannel();
-let resume: (() => void) | null = null;
-channel.port1.onmessage = () => resume?.();
-
-/** A macrotask turn, so that queued messages run. setTimeout would clamp to 4 ms. */
-function yieldToQueue(): Promise<void> {
-  return new Promise((resolve) => {
-    resume = resolve;
-    channel.port2.postMessage(0);
-  });
-}
-
 function transferables(geometry: Geometry): Transferable[] {
   const buffers: Transferable[] = [];
   for (const level of geometry.levels) {
@@ -44,7 +31,7 @@ function transferables(geometry: Geometry): Transferable[] {
 async function run(job: Job): Promise<void> {
   const scene: Scene = job.scene;
   const steps = geometrySteps(scene, { quality: job.quality, resolution: job.resolution });
-  let lastYield = performance.now();
+  const slice = sliceTimer();
   for (;;) {
     const step = steps.next();
     if (step.done) {
@@ -77,14 +64,11 @@ async function run(job: Job): Promise<void> {
       self.postMessage(out);
       return;
     }
-    if (performance.now() - lastYield >= SLICE_MS) {
-      await yieldToQueue();
-      lastYield = performance.now();
-      if (cancelled.delete(job.id)) {
-        const end: WorkerResponse = { type: 'cancelled', id: job.id };
-        self.postMessage(end);
-        return;
-      }
+    await slice();
+    if (cancelled.delete(job.id)) {
+      const end: WorkerResponse = { type: 'cancelled', id: job.id };
+      self.postMessage(end);
+      return;
     }
   }
 }

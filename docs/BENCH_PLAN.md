@@ -39,7 +39,7 @@ The browser workload is the interference study at 512 with 16 levels, the denses
 
 ## Baselines
 
-- **Worker**: the same app on the main thread (`?worker=off`), with the same scene, the same drag and the same grids.
+- **Worker**: the same app on the main thread, with the same scene, the same drag and the same grids. Two forms bracket it: time sliced (`?worker=off`), and blocking with no yields (`?worker=blocking`).
 - **Size**: the same composition with nothing removed. Unrelated scenes are never compared.
 
 ## Pass criteria
@@ -50,3 +50,9 @@ The browser workload is the interference study at 512 with 16 levels, the denses
 4. Every row of the size table has 0 crossings, keeps every path, and has a sampled distance within its declared bound.
 
 A missed target is reported as missed, with the next bounded improvement.
+
+## Amendment after the first run
+
+The first full run, kept in `results/bench-2026-11-06T07-27-37-828Z`, showed a main thread draft of 142 ms against a pipeline of about 15 ms. That gap came from the baseline and not from the work. It yielded through `setTimeout` after each step, and browsers clamp chained timers to 4 ms, which stacked up across levels. Comparing the worker with it would have overstated the worker's value.
+
+So I changed the baseline after seeing a result, and I am stating that here. The main thread path now yields in the same time slices and by the same method as the worker. I added a blocking form as the other extreme. The criteria, workloads and metrics did not change. The first run's worker numbers stand, and its main thread numbers must not be quoted.

@@ -36,8 +36,6 @@ export function NumberField(props: NumberProps) {
   useEffect(() => {
     setText(show(value));
     setInvalid(false);
-    // `show` only depends on digits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, digits]);
 
   const accept = (raw: string) => {

@@ -7,17 +7,17 @@
  */
 
 import type { Scene } from '../core/scene';
-import type { GeometryClient, ClientEvents } from './geometry-client';
+import type { ClientEvents, Engine, GeometryClient } from './geometry-client';
 import type { EditorStore } from './store';
 
-/** Grid for a draft preview. Set from the baseline profile in docs/REPORT.md. */
+/** Grid for a draft preview. A 256 grid takes about 5 ms and this about half that. */
 export const DRAFT_RESOLUTION = 192;
 export const REFINE_DELAY_MS = 90;
 const AUTOSAVE_DELAY_MS = 400;
 
 export interface SessionOptions {
-  useWorker: boolean;
-  createClient(events: ClientEvents, options: { useWorker: boolean }): GeometryClient;
+  engine: Engine;
+  createClient(events: ClientEvents, options: { engine: Engine }): GeometryClient;
   persist(scene: Scene): boolean;
 }
 
@@ -66,7 +66,7 @@ export function startSession(store: EditorStore, options: SessionOptions): Sessi
         store.notify({ kind: 'error', title: 'These lines could not be computed.', details: [message] });
       },
     },
-    { useWorker: options.useWorker },
+    { engine: options.engine },
   );
 
   let refineTimer: ReturnType<typeof setTimeout> | undefined;

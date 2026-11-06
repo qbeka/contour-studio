@@ -1,13 +1,16 @@
 /**
  * Sends jobs to the worker and hands back results.
  *
- * If a worker cannot start, the same pipeline runs on the main thread, one step
- * per macrotask. That path is also the baseline in the benchmark (?worker=off).
+ * If a worker cannot start, the same pipeline runs on the main thread, giving the
+ * queue a turn in the same time slices as the worker. That path is the benchmark
+ * baseline (?worker=off). `blocking` runs a job to the end with no turns at all
+ * (?worker=blocking). It exists only as the other extreme for the benchmark.
  */
 
 import { geometrySteps, type Geometry } from '../core/pipeline';
 import { JobSlots, type Job, type JobRequest } from './jobs';
 import { buildReport, type ExportReport } from './report';
+import { sliceTimer, yieldToQueue } from './yield';
 import type { WorkerRequest, WorkerResponse } from './geometry.worker';
 
 export interface ClientEvents {
@@ -16,19 +19,23 @@ export interface ClientEvents {
   onFailure(message: string): void;
 }
 
+export type Engine = 'worker' | 'sliced' | 'blocking';
+
 export class GeometryClient {
   private slots = new JobSlots();
   private worker: Worker | null = null;
   private cancelledInline = new Set<number>();
+  private blocking = false;
   mode: 'worker' | 'main-thread';
   /** Jobs that really stopped early, as opposed to finishing before a cancel. */
   cancelledJobs = 0;
 
   constructor(
     private events: ClientEvents,
-    options: { useWorker: boolean },
+    options: { engine: Engine },
   ) {
-    if (options.useWorker) {
+    this.blocking = options.engine === 'blocking';
+    if (options.engine === 'worker') {
       try {
         this.worker = new Worker(new URL('./geometry.worker.ts', import.meta.url), {
           type: 'module',
@@ -105,26 +112,19 @@ export class GeometryClient {
   }
 
   private async runInline(job: Job): Promise<void> {
+    const slice = sliceTimer();
+    const pause = async () => {
+      await yieldToQueue();
+      return this.cancelledInline.delete(job.id);
+    };
     try {
       const steps = geometrySteps(job.scene, { quality: job.quality, resolution: job.resolution });
       for (;;) {
         const step = steps.next();
-        if (this.cancelledInline.delete(job.id)) {
-          this.cancelledJobs++;
-          this.next(job.id);
-          return;
-        }
         if (step.done) {
           const geometry = step.value;
-          this.events.onGeometry({
-            revision: job.revision,
-            geometry: { ...geometry, source: job.quality === 'final' ? geometry.source : [] },
-          });
+          this.events.onGeometry({ revision: job.revision, geometry });
           if (job.quality === 'final') {
-            const pause = async () => {
-              await new Promise((resolve) => setTimeout(resolve));
-              return this.cancelledInline.delete(job.id);
-            };
             const report = (await pause()) ? null : await buildReport(geometry, job.scene, pause);
             if (report) this.events.onReport({ revision: job.revision, report });
             else this.cancelledJobs++;
@@ -132,7 +132,13 @@ export class GeometryClient {
           this.next(job.id);
           return;
         }
-        await new Promise((resolve) => setTimeout(resolve));
+        if (this.blocking) continue;
+        await slice();
+        if (this.cancelledInline.delete(job.id)) {
+          this.cancelledJobs++;
+          this.next(job.id);
+          return;
+        }
       }
     } catch (error) {
       this.events.onFailure(error instanceof Error ? error.message : 'Geometry failed.');

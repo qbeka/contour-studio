@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { computeGeometry } from '../core/pipeline';
 import { toSvg } from '../core/svg';
 import { App } from './App';
-import { GeometryClient } from './geometry-client';
+import { GeometryClient, type Engine } from './geometry-client';
 import { autosave, readAutosave } from './files';
 import { drawLog } from './render';
 import { startSession } from './session';
@@ -11,6 +11,7 @@ import { EditorStore, firstScene } from './store';
 import './styles.css';
 
 const params = new URLSearchParams(location.search);
+const engines: Record<string, Engine> = { off: 'sliced', blocking: 'blocking' };
 const saved = readAutosave();
 const store = new EditorStore(saved.status === 'ok' ? saved.scene : firstScene());
 if (saved.status === 'corrupt') {
@@ -21,7 +22,7 @@ if (saved.status === 'corrupt') {
 }
 
 const session = startSession(store, {
-  useWorker: params.get('worker') !== 'off',
+  engine: engines[params.get('worker') ?? ''] ?? 'worker',
   createClient: (events, options) => new GeometryClient(events, options),
   persist: autosave,
 });

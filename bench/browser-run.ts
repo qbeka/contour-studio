@@ -24,7 +24,8 @@ const page = await context.newPage();
 const client = await context.newCDPSession(page);
 // tsx wraps named functions with this helper, and evaluated code needs it as well.
 await page.addInitScript('window.__name = (f) => f');
-await page.goto(`${url}/?hook=1${mode === 'main' ? '&worker=off' : ''}`);
+const engines: Record<string, string> = { main: '&worker=off', blocking: '&worker=blocking' };
+await page.goto(`${url}/?hook=1${engines[mode] ?? ''}`);
 await page.waitForSelector('.status-state[data-state=final]', { timeout: 30_000 });
 
 const scene = withLevels(PRESETS[2].scene, 16);

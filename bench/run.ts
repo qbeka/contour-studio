@@ -129,8 +129,10 @@ async function browserRuns() {
     : [
         { mode: 'worker', throttle: 1 },
         { mode: 'main', throttle: 1 },
+        { mode: 'blocking', throttle: 1 },
         { mode: 'worker', throttle: 4 },
         { mode: 'main', throttle: 4 },
+        { mode: 'blocking', throttle: 4 },
       ];
   const runs = smoke ? 1 : BROWSER_RUNS;
   const summary = [];
