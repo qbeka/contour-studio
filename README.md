@@ -4,7 +4,7 @@
 
 ![Contour with the interference study open and one source selected](docs/media/cover.png)
 
-**[Try the replay](https://www.qendrimbeka.com/projects/contour/index.html)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/index.html) | [Walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
+**[Try it](https://www.qendrimbeka.com/projects/contour/index.html)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/index.html) | [Walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
 Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines follow. When you stop, the canvas shows the same numbers the file will contain, and the Export panel tells you the file size and how far simplifying moved the lines.
 
