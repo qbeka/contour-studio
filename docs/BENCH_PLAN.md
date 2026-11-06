@@ -66,7 +66,7 @@ With a fair baseline, the worker lost on draft latency, 8 ms against 2 ms. Two t
 
 Pass criteria did not change.
 
-## Amendment after an independent review
+## Amendment after review
 
 A reviewer working from a clean clone showed that the third run, kept at tag `v0.1.0`, measured less than it claimed. Its worker comparison must not be quoted.
 

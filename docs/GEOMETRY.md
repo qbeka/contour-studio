@@ -176,7 +176,7 @@ At sample points on an extracted path, the first-order distance to the true isol
 
 ## Topology rules
 
-The output must be topologically the same as the extracted lines, which have no crossings. Let `q` be a path's rounding bound. A first version of these rules left rounding out. An independent review found rounded paths that crossed through a shared vertex or swapped sides, so rule 1 is now stated with `q`.
+The output must be topologically the same as the extracted lines, which have no crossings. Let `q` be a path's rounding bound. A first version of these rules left rounding out. A later review found rounded paths that crossed through a shared vertex or swapped sides, so rule 1 is now stated with `q`.
 
 1. **Separation.** Two different output paths stay more than `2(q_a + q_b)` apart. A path never touches itself, apart from neighbouring segments sharing a point. A contact includes a crossing through a vertex, a touch and a collinear overlap.
 2. **No lost loops.** A closed path keeps at least 3 vertices and the sign of its area.

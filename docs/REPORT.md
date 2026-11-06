@@ -134,7 +134,7 @@ What the worker prevents is a frozen page. The largest frame gap, from mouse dow
 
 So the worker is justified. It trades a few milliseconds of latency for a page that stays responsive after a heavy edit.
 
-Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but an independent review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs are kept at tag `v0.1.0`.
+Getting here took four runs, and only this one should be quoted. The first showed the worker 18 times faster, because of a flawed baseline. The second and third fixed that, but a later review showed that the window closed before the main thread's report ran, the drag slowed itself down, and the CPU throttle missed the worker. [BENCH_PLAN.md](BENCH_PLAN.md) records each change, and the earlier runs are kept at tag `v0.1.0`.
 <!-- /results -->
 
 ## Size and error
@@ -195,7 +195,7 @@ Touch was driven through Chrome's touch emulation on a phone-sized viewport. I h
 
 Real failures, kept here because they changed the design.
 
-- **Topology claim.** My first proof left out rounding. An independent review found rounded paths crossing through a vertex and swapping sides, with the crossing check reporting 0. That is fixed with a separation rule.
+- **Topology claim.** My first proof left out rounding. A later review found rounded paths crossing through a vertex and swapping sides, with the crossing check reporting 0. That is fixed with a separation rule.
 - **The superseded job test.** It passed for a long time with no job ever being cancelled. Counting real cancellations exposed a bug in which the export report blocked every draft.
 - **The worker comparison.** It took four runs. See the performance section.
 - **Data loss.** A ridge at the source limit, or a peak placed far out at low zoom, made a scene the app could not read back. On reload, autosave then replaced it with a starter. Scenes now stay inside the format, an unreadable save is kept aside, and autosave refuses to store a scene that fails validation.
