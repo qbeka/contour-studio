@@ -12,7 +12,9 @@ const run = (...args: string[]) => execFileSync('pnpm', ['exec', ...args], { std
 
 run('vite', 'build', '--config', 'vite.replay.config.ts');
 run('vite', 'build', '--outDir', 'dist-site/app', '--emptyOutDir');
-rmSync('dist-site/fonts/LICENSE-GEIST.txt', { force: true });
-cpSync('public/fonts/LICENSE-GEIST.txt', 'dist-site/app/fonts/LICENSE-GEIST.txt');
+// The page only uses the serif. The studio keeps its own full set under app/.
+for (const font of ['Geist-Medium', 'Geist-Regular', 'GeistMono-Regular']) {
+  rmSync(`dist-site/fonts/${font}.woff2`);
+}
 cpSync('docs/media/walkthrough.mp4', 'dist-site/walkthrough.mp4');
 cpSync('docs/media/cover.png', 'dist-site/cover.png');
