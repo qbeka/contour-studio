@@ -125,6 +125,10 @@ function useShortcuts(store: EditorStore, save: () => void) {
         case 'N':
           store.set({ showNodes: !state.showNodes });
           break;
+        case 'g':
+        case 'G':
+          store.set({ showHandles: !state.showHandles });
+          break;
         case '1':
           store.fit(scene.clip);
           break;
@@ -206,6 +210,9 @@ function StatusLine({ store, session }: { store: EditorStore; session: Session }
       </span>
       <button type="button" className="status-toggle" aria-pressed={state.snap} onClick={() => store.set({ snap: !state.snap })}>
         Snap
+      </button>
+      <button type="button" className="status-toggle" aria-pressed={state.showHandles} onClick={() => store.set({ showHandles: !state.showHandles })}>
+        Handles
       </button>
       <button type="button" className="status-toggle" aria-pressed={state.showNodes} onClick={() => store.set({ showNodes: !state.showNodes })}>
         Nodes

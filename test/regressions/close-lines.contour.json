@@ -1,0 +1,55 @@
+{
+  "format": "contour-scene",
+  "version": 1,
+  "name": "Lines closer than the tolerance",
+  "seed": 1,
+  "domain": {
+    "width": 1200,
+    "height": 800
+  },
+  "clip": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800
+  },
+  "sources": [
+    {
+      "id": "slope",
+      "name": "Long slope",
+      "kind": "peak",
+      "enabled": true,
+      "x": 600,
+      "y": 1500,
+      "radius": 1500,
+      "height": 1
+    }
+  ],
+  "noise": {
+    "amplitude": 0,
+    "scale": 240,
+    "octaves": 2
+  },
+  "levels": {
+    "base": 0.3,
+    "spacing": 0.001,
+    "count": 2
+  },
+  "style": {
+    "stroke": "#1d3a2a",
+    "strokeWidth": 1,
+    "fade": 0,
+    "background": null,
+    "indexEvery": 0,
+    "indexWidth": 1.6
+  },
+  "export": {
+    "resolution": 1024,
+    "tolerance": 8,
+    "decimals": 2,
+    "bounds": "frame",
+    "margin": 40,
+    "outputWidth": 0,
+    "strokeScaling": "scale"
+  }
+}

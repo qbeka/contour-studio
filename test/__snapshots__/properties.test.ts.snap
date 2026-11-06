@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`random scenes > coordinates of a known scene stay byte stable 1`] = `"1d0679107fb3d1e4"`;

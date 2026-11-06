@@ -96,8 +96,12 @@ export function outputRect(scene: Scene): { rect: Rect; limited: boolean } {
   return { rect: { x, y, width: right - x, height: bottom - y }, limited };
 }
 
-/** Attempts per path: the requested settings, two tighter, then full detail. */
-const LAST_ATTEMPT = 3;
+/**
+ * Attempts per path: the requested settings, three tighter, then full detail.
+ * Steps are a factor of 4 because a conflict usually means two lines closer than
+ * the tolerance, and halving would mostly waste passes on the way to their gap.
+ */
+const LAST_ATTEMPT = 4;
 const RETAINED_DECIMALS = 6;
 
 function attemptSettings(
@@ -107,7 +111,7 @@ function attemptSettings(
 ): { tolerance: number; decimals: number } {
   if (attempt >= LAST_ATTEMPT) return { tolerance: 0, decimals: RETAINED_DECIMALS };
   return {
-    tolerance: tolerance / 2 ** attempt,
+    tolerance: tolerance / 4 ** attempt,
     decimals: Math.min(RETAINED_DECIMALS, decimals + attempt),
   };
 }

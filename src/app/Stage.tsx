@@ -85,11 +85,12 @@ function useCanvasDraw(
         ctx.setLineDash([]);
         ctx.globalAlpha = 1;
       }
-      for (const source of scene.sources) {
-        if (source.kind !== 'ridge') continue;
-        ctx.strokeStyle = source.id === selected?.id ? FOREST : LINE;
-        ctx.lineWidth = source.id === selected?.id ? 1.25 : 1;
-        tracePolyline(ctx, flattenRidge(source.points), scale, x, y);
+      // Only the selected ridge shows its spine, so that the sheet otherwise holds
+      // exactly what will be exported.
+      if (selected?.kind === 'ridge') {
+        ctx.strokeStyle = FOREST;
+        ctx.lineWidth = 1.25;
+        tracePolyline(ctx, flattenRidge(selected.points), scale, x, y);
         ctx.stroke();
       }
       if (state.draftRidge.length > 0) {
@@ -306,6 +307,7 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
       ref={stage}
       className="stage"
       data-tool={tool}
+      data-handles={state.showHandles ? 'on' : 'off'}
       onPointerDown={onStagePointerDown}
       onPointerMove={onStagePointerMove}
       onPointerUp={onStagePointerUp}

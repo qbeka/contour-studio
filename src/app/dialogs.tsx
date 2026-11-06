@@ -112,6 +112,7 @@ const SHORTCUTS: [string, string][] = [
   ['+ and -', 'Zoom in or out'],
   ['S', 'Snap to a 10 unit grid. Hold Alt to ignore it'],
   ['N', 'Show the exported nodes'],
+  ['G', 'Hide the handles to see only the artwork'],
   ['Cmd or Ctrl + S', 'Save the scene file'],
   ['?', 'This list'],
 ];

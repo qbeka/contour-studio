@@ -190,7 +190,7 @@ Suppose no original vertex lies in a swept region, and a straight original edge 
 
 ### Fallback
 
-A path that breaks a rule retries with tighter settings. Each step halves the tolerance and adds one decimal. After two steps it is retained unsimplified at 6 decimals. Each path carries its final tolerance and decimals, so the declared bound stays true per path. The export reports how many paths fell back.
+A path that breaks a rule retries with tighter settings. Each step divides the tolerance by 4 and adds one decimal. After three steps it is retained unsimplified at 6 decimals. Each path carries its final tolerance and decimals, so the declared bound stays true per path. The export reports how many paths fell back.
 
 ## SVG output
 

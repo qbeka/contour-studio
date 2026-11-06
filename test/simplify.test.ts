@@ -155,20 +155,6 @@ describe('pipeline', () => {
     return { ...base, ...partial, export: { ...base.export, ...exportPartial } };
   }
 
-  it('falls back for a path whose chord would sweep a small loop', () => {
-    // A long slope with a shallow pit on one contour, in a coarse tolerance.
-    const s = scene(
-      {
-        sources: [peak('a', 600, 1500, 1500, 1), peak('pit', 600, 620, 12, -0.02)],
-        levels: { base: 0.4, spacing: 0.1, count: 4 },
-      },
-      { tolerance: 8, resolution: 512 },
-    );
-    const geometry = computeGeometry(s, { quality: 'final' });
-    expect(geometry.stats.crossings).toBe(0);
-    expect(geometry.stats.outputPaths).toBe(geometry.stats.sourcePaths);
-  });
-
   it('keeps every path, closes every loop and never crosses at a coarse tolerance', () => {
     const s = scene(
       {

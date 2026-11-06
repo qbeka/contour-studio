@@ -51,6 +51,7 @@ export interface EditorState {
   panel: Panel;
   snap: boolean;
   showNodes: boolean;
+  showHandles: boolean;
   /** Geometry on screen, with what it was computed from. */
   geometry: Geometry | null;
   shown: Shown | null;
@@ -86,6 +87,7 @@ export class EditorStore {
       panel: 'lines',
       snap: false,
       showNodes: false,
+      showHandles: true,
       geometry: null,
       shown: null,
       report: null,
