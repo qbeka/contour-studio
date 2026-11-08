@@ -4,7 +4,7 @@
 
 ![Contour with the interference study open and one source selected](docs/media/cover.png)
 
-**[Try it](https://www.qendrimbeka.com/projects/contour/index.html)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/index.html) | [Walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
+**[Try it](https://www.qendrimbeka.com/projects/contour/)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/) | [Walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
 Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines follow. When you stop, the canvas shows the same numbers the file will contain, and the Export panel tells you the file size and how far simplifying moved the lines.
 
@@ -12,7 +12,7 @@ It runs in your browser, with no account, server or API key.
 
 ## Run it
 
-The [studio](https://www.qendrimbeka.com/projects/contour/app/index.html) runs in the browser with nothing to install. To run it yourself, you need Node 22.16 or later and pnpm 12.
+The [studio](https://www.qendrimbeka.com/projects/contour/app/) runs in the browser with nothing to install. To run it yourself, you need Node 22.16 or later and pnpm 12.
 
 ```bash
 git clone https://github.com/qbeka/contour-studio.git
