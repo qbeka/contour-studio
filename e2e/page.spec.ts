@@ -329,6 +329,8 @@ test('automated accessibility scan of the page finds nothing serious', async ({ 
     },
     async () => {
       await page.locator('#export').click();
+      // The list fades in, and a scan taken mid-fade reads the text as low contrast.
+      await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
     },
     async () => {
       await page.getByRole('button', { name: 'Night ink' }).click();
