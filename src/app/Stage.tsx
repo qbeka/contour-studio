@@ -23,7 +23,7 @@ import type { EditorState, EditorStore } from './store';
 
 const INK = '#111511';
 const FOREST = '#1d3a2a';
-const PAPER = '#fffdfa';
+const PAPER = '#ffffff';
 const LINE = 'rgba(17, 21, 17, 0.16)';
 
 function useCanvasDraw(
@@ -381,7 +381,7 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
               Place a peak
             </button>
             <button type="button" className="pill" onClick={() => store.set({ dialog: 'starters' })}>
-              Open a starter
+              Open a plate
             </button>
           </div>
         </div>
