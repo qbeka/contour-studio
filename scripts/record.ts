@@ -1,7 +1,10 @@
 /**
- * Records the two demo videos from the running app. Needs `pnpm dev` and ffmpeg.
+ * Records the two demo videos from the built site. Needs ffmpeg, and `dist-site`
+ * served as for scripts/capture.ts:
  *
- *   pnpm exec tsx scripts/record.ts
+ *   CONTOUR_URL=http://localhost:5183/ pnpm exec tsx scripts/record.ts
+ *
+ * The signature clip is the project page. The walkthrough is the studio.
  *
  * Headless video has no pointer, so a small marker follows the mouse. Captions in
  * the walkthrough are drawn by this script. Neither is part of the app.
@@ -13,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium, type Page } from '@playwright/test';
 
-const URL = process.env.CONTOUR_URL ?? 'http://localhost:5173/?hook=1';
+const BASE = process.env.CONTOUR_URL ?? 'http://localhost:5183/';
 const SIZE = { width: 1280, height: 800 };
 
 const overlay = `
@@ -30,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 `;
 
-async function start(): Promise<{ page: Page; finish(name: string, skip: number): Promise<void> }> {
+async function start(path: string, ready: string): Promise<{ page: Page; finish(name: string, skip: number): Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), 'contour-video-'));
   const browser = await chromium.launch();
   const context = await browser.newContext({
@@ -40,8 +43,8 @@ async function start(): Promise<{ page: Page; finish(name: string, skip: number)
   });
   await context.addInitScript(overlay);
   const page = await context.newPage();
-  await page.goto(URL);
-  await page.waitForSelector('.status-state[data-state=final]');
+  await page.goto(`${BASE}${path}`);
+  await page.waitForSelector(ready);
   return {
     page,
     async finish(name, skip) {
@@ -93,34 +96,63 @@ async function orbit(page: Page, centre: { x: number; y: number }, ms: number, r
   }
 }
 
+const PAGE_READY = '#legend-live[data-state=final]';
+
+async function markCentre(page: Page, selector: string) {
+  const box = await page.locator(selector).first().boundingBox();
+  if (!box) throw new Error(`No ${selector}.`);
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** The project page: drag, throw, settle, then a few plates and inks. */
 async function signature(): Promise<void> {
-  const { page, finish } = await start();
-  await page.waitForTimeout(1200);
-  const summit = await modelPoint(page, 262, 262);
-  await page.mouse.move(summit.x - 200, summit.y + 160);
-  await glide(page, { x: summit.x - 200, y: summit.y + 160 }, summit, 700);
+  const { page, finish } = await start('?hook=1', PAGE_READY);
+  await page.waitForTimeout(1400);
+  const summit = await markCentre(page, '.mark[data-primary]');
+  const away = { x: summit.x + 260, y: summit.y + 200 };
+  await page.mouse.move(away.x, away.y);
+  await glide(page, away, summit, 700);
   await page.mouse.down();
-  await orbit(page, summit, 6500, 120, 70);
-  const valley = await modelPoint(page, 700, 400);
-  await glide(page, summit, valley, 1600);
-  await glide(page, valley, await modelPoint(page, 520, 300), 1300);
+  await orbit(page, summit, 5200, 150, 60);
+  await glide(page, summit, { x: summit.x + 330, y: summit.y + 40 }, 1300);
+  await page.waitForTimeout(260);
   await page.mouse.up();
-  await page.waitForSelector('.status-state[data-state=final]');
-  await page.waitForTimeout(900);
-  await page.getByRole('button', { name: 'Export', exact: true }).first().click();
-  await page.waitForTimeout(1200);
-  await page.getByRole('button', { name: 'Nodes' }).click();
-  await page.getByRole('button', { name: 'Handles' }).click();
-  await page.waitForTimeout(1200);
-  await page.getByRole('button', { name: 'Light', exact: true }).click();
-  await page.waitForTimeout(1600);
-  await page.getByRole('button', { name: 'Balanced', exact: true }).click();
-  await page.waitForTimeout(1600);
+  await page.waitForSelector(PAGE_READY);
+  await page.waitForTimeout(1500);
+  // A throw: the mark keeps going after the pointer lets go.
+  const held = await markCentre(page, '.mark[data-primary]');
+  await page.mouse.move(held.x, held.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 9; i++) {
+    await page.mouse.move(held.x - i * 20, held.y + i * 5);
+    await page.waitForTimeout(9);
+  }
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+  await page.waitForSelector(PAGE_READY);
+  await page.waitForTimeout(1500);
+  for (const name of ['Caldera', 'Archipelago', 'Terraces']) {
+    const tile = await markCentre(page, `.plate:has-text("${name}")`);
+    await glide(page, await page.evaluate(() => ({ x: 640, y: 420 })), tile, 450);
+    await page.mouse.click(tile.x, tile.y);
+    await page.waitForSelector(PAGE_READY);
+    await page.waitForTimeout(1500);
+  }
+  for (const index of [2, 3, 0]) {
+    const well = await markCentre(page, `.well:nth-child(${index + 1})`);
+    await page.mouse.move(well.x, well.y, { steps: 12 });
+    await page.mouse.click(well.x, well.y);
+    await page.waitForTimeout(1100);
+  }
+  const button = await markCentre(page, '#export');
+  await page.mouse.move(button.x, button.y, { steps: 14 });
+  await page.mouse.click(button.x, button.y);
+  await page.waitForTimeout(2200);
   await finish('signature', 0.8);
 }
 
 async function walkthrough(): Promise<void> {
-  const { page, finish } = await start();
+  const { page, finish } = await start('app/?hook=1', '.status-state[data-state=final]');
   await caption(page, 'Contour opens on a real scene. Every line here comes from a few editable sources.');
   await page.waitForTimeout(4500);
 
@@ -181,13 +213,23 @@ async function walkthrough(): Promise<void> {
   await page.getByRole('spinbutton', { name: 'Texture', exact: true }).fill('0.03');
   await page.waitForTimeout(2600);
 
+  await caption(page, 'Ink, paper and tint are print choices. They never move a line.');
+  await page.getByRole('button', { name: 'Indigo', exact: true }).click();
+  await page.waitForTimeout(1200);
+  await page.getByLabel('Tint', { exact: true }).fill('0.55');
+  await page.waitForTimeout(1400);
+  await page.getByLabel('Heavier line every', { exact: true }).fill('4');
+  await page.waitForTimeout(1000);
+  await page.getByLabel('Taper', { exact: true }).fill('0.4');
+  await page.waitForTimeout(2400);
+
   await caption(page, 'Undo steps back one whole gesture. Redo returns it.');
   await page.keyboard.press('ControlOrMeta+z');
   await page.waitForTimeout(1500);
   await page.keyboard.press('ControlOrMeta+Shift+z');
   await page.waitForTimeout(1800);
 
-  await caption(page, 'Export shows the cost and the error for this composition, not a generic claim.');
+  await caption(page, 'Export shows the cost and the error for this composition, and what the tint adds.');
   await page.getByRole('button', { name: 'Export', exact: true }).first().click();
   await page.waitForTimeout(4200);
 
