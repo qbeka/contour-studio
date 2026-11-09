@@ -1,7 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 import type { Scene } from '../src/core/scene';
 
-export const HOOK_URL = '/?hook=1';
+/** The studio, as hosted under the project page. */
+export const HOOK_URL = '/app/?hook=1';
+/** The project page. */
+export const PAGE_URL = '/?hook=1';
 
 /** The state the test hook exposes, with just the parts tests read. */
 export interface Hook {
