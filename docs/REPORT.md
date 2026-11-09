@@ -191,6 +191,51 @@ I inspected real renders in three passes. Screenshots are in `docs/media`.
 
 Touch was driven through Chrome's touch emulation on a phone-sized viewport. I have not tested on a physical phone.
 
+## Print styling, added after the measured run
+
+Plates, inks, tapered weights, tint, the seeded generator and the ready sizes came after the benchmark run above. None of them is in the frozen plan. No table above was rerun, because nothing they describe changed, and the first three rows here are the evidence for that.
+
+| Check | Result | Where |
+|---|---|---|
+| Starter artwork rebuilt with the new code | The same bytes: 17,366, 28,227 and 63,857 for the three SVGs | `scripts/build-artwork.ts`, then `git diff artwork` |
+| The measured scene, quiet-ridge at 0.15 | Still 12,104 to 1,771 nodes and 5,506 gzipped bytes as plain lines | The pipeline and writer run on `PRESETS[0]` |
+| Print styling moves no line | Identical vertices with and without a plate's styling | `test/plates.test.ts` |
+| Tint regions against the sampled field | No grid corner on the wrong side and no region left out, on the three starters and 200 random scenes | `test/tint.test.ts` |
+| Generator | The same scene for the same seed, and a valid scene with at least 8 drawn levels for seeds 0 to 119 | `test/plates.test.ts` |
+| A link restores the drawing | Plate or seed, ink and edits, on three plates | `test/link.test.ts`, `e2e/page.spec.ts` |
+| Unit, property and regression tests | 219 passed | `pnpm test` |
+| Browser tests | 72 passed against the built site, with four workflows in three engines | `pnpm test:e2e` |
+| Accessibility scan of the project page | No serious or critical finding in 4 states | `e2e/page.spec.ts` |
+
+Tint is built from line direction alone. Extraction puts the higher ground on the left of every path, and clipping and simplifying keep that order, so a path that leaves the frame is closed along the frame's edge until the next path comes in. The field is never sampled for it, which is why the test above can use the field as an independent check.
+
+**What tint costs in the file.** Each pass repeats its level's lines as one filled path, so the bytes before compression about double. Each plate as authored, at its own frame and tolerance:
+
+| Plate | Tolerance | Nodes | Lines only | Gzip | With tint | Gzip |
+|---|---|---|---|---|---|---|
+| I, Quiet ridge | 0.12 | 1,980 | 17.2 KB | 5.9 KB | 33.4 KB | 6.5 KB |
+| II, Tall basin | 0.15 | 2,926 | 30.1 KB | 10.9 KB | 60.2 KB | 11.6 KB |
+| III, Interference | 0.1 | 6,914 | 68.9 KB | 23.7 KB | No tint | No tint |
+| IV, Caldera | 0.12 | 4,404 | 35.8 KB | 11.6 KB | 70.5 KB | 22.3 KB |
+| V, Archipelago | 0.12 | 6,159 | 48.2 KB | 14.3 KB | 94.9 KB | 27.4 KB |
+| VI, Terraces | 0.12 | 3,730 | 30.9 KB | 10.0 KB | 60.6 KB | 10.8 KB |
+
+Gzip hides most of the repeat where lines run from edge to edge, and little of it where they are closed loops, as on the caldera and the islands. The Export panel and the page's export list both state the tint's share for the drawing on screen. Plate I differs from the measured quiet-ridge scene by one moved source and a finer tolerance, so its numbers are its own.
+
+**The page under a slowed main thread.** Scripted input in headless Chromium at 1440 by 900 and 2x, with the main thread throttled 4 times. The throttle does not reach the workers. Each cell is the range over three runs of the script, on the same loaded laptop, and none of it is part of the plan.
+
+| Action | GPU raster | Software raster |
+|---|---|---|
+| 3 s drag on plates I, III, V and VI | No task over 50 ms in any run. Largest frame gap 16 to 54 ms. 311 to 359 pointer moves handled | Plates I, III and V: no task over 50 ms, largest gap 33 to 51 ms, 70 to 109 moves. Plate VI, the heaviest tint: tasks of 50 to 58 ms in two runs of three |
+| 8 s of idle drift | No task over 50 ms. Largest gap 9 to 37 ms | No task over 50 ms. Largest gap 26 to 54 ms |
+| Six plate changes and five inks | No task over 50 ms. Largest gap 25 to 32 ms | Tasks of 51 to 70 ms in two runs of three |
+| SVG, desktop wallpaper and poster | One task of 51 to 54 ms. Largest gap 58 to 241 ms, while a large canvas is drawn and read back | Tasks of 70 to 90 ms |
+| Load | One task of 50 to 74 ms | None to two tasks, of 50 to 102 ms |
+
+A browser with a working GPU rasterises the canvas off the main thread, which is the first column. The second is headless Chromium's default, and what a machine without one would see. So dragging, drifting and changing plates stay under 50 ms a task with a GPU, and exporting and loading do not quite. The load task is the first layout of the page, which the drawing needs in order to frame itself. I did not measure a frame rate.
+
+Not rerun for this work: the benchmark, the mutation run, the renderer comparison and the consumer build. The mutation run does not cover `tint.ts`, `plates.ts` or the page. The cross-engine byte comparison still covers one workflow with plain lines. A tinted file prints its pass opacity from a power function, and I have not compared those bytes across engines.
+
 ## What failed
 
 Real failures, kept here because they changed the design.
@@ -217,6 +262,8 @@ Real failures, kept here because they changed the design.
 - **Fixed stroke.** It depends on `vector-effect`, which resvg ignores.
 - **Touch and screen readers.** Touch was emulated. No real phone or screen reader was used.
 - **Undo.** History lives in memory and does not survive a reload. The scene does.
+- **Tint.** A region is skipped if its paths do not pair up along the frame, so a wrong fill is never drawn. That did not happen in any tested scene, and nothing proves it cannot. Tint roughly doubles a file before compression.
+- **Ready sizes.** The wallpapers and the poster are PNG only, and their title block is drawn with the page's fonts. Exporting one blocks the page for a moment on a slow machine.
 
 ## Reproduce
 
