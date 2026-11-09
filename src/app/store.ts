@@ -7,7 +7,7 @@
  */
 
 import type { Geometry } from '../core/pipeline';
-import { PRESETS } from '../core/presets';
+import { PLATES } from '../core/plates';
 import type { Rect, Scene } from '../core/scene';
 import { record, redo, undo, type History } from './history';
 import type { ExportReport } from './report';
@@ -274,6 +274,7 @@ function repairSelection(selection: Selection | null, scene: Scene): Selection |
   return valid ? selection : { sourceId: selection.sourceId, handle: null };
 }
 
+/** The studio opens on the first plate, printed the way the project page shows it. */
 export function firstScene(): Scene {
-  return PRESETS[0].scene;
+  return PLATES[0].scene;
 }

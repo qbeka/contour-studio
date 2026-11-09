@@ -1,8 +1,8 @@
-/** Native dialogs: starters and keyboard shortcuts. */
+/** Native dialogs: the plates to start from, and keyboard shortcuts. */
 
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { computeGeometry } from '../core/pipeline';
-import { PRESETS, type Preset } from '../core/presets';
+import { PLATES, type Plate } from '../core/plates';
 import { emptyScene } from '../core/scene';
 import { toSvg } from '../core/svg';
 import type { EditorState, EditorStore } from './store';
@@ -42,38 +42,42 @@ function Modal({
   );
 }
 
-function thumbnail(preset: Preset): string {
+function thumbnail(plate: Plate): string {
+  const { style } = plate.scene;
   const scene = {
-    ...preset.scene,
-    style: { ...preset.scene.style, strokeWidth: preset.scene.style.strokeWidth * 1.4 },
-    export: { ...preset.scene.export, tolerance: 0.5, decimals: 1 },
+    ...plate.scene,
+    style: { ...style, strokeWidth: style.strokeWidth * 2, indexWidth: style.indexWidth * 2 },
+    export: { ...plate.scene.export, tolerance: 0.5, decimals: 1 },
   };
-  const svg = toSvg(computeGeometry(scene, { quality: 'final', resolution: 128 }), scene);
+  const svg = toSvg(computeGeometry(scene, { quality: 'final', resolution: 112 }), scene);
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 function Starters({ store }: { store: EditorStore }) {
   const items = useMemo(
-    () => PRESETS.map((preset) => ({ preset, image: thumbnail(preset) })),
+    () => PLATES.map((plate) => ({ plate, image: thumbnail(plate) })),
     [],
   );
   const close = () => store.set({ dialog: null });
   return (
     <Modal title="Start from" onClose={close}>
       <ul className="starter-list">
-        {items.map(({ preset, image }) => (
-          <li key={preset.id}>
+        {items.map(({ plate, image }) => (
+          <li key={plate.id}>
             <button
               type="button"
               className="starter"
               onClick={() => {
-                store.replaceScene(preset.scene);
+                store.replaceScene(plate.scene);
                 close();
               }}
             >
               <img src={image} alt="" />
-              <span className="starter-title">{preset.title}</span>
-              <span className="starter-summary">{preset.summary}</span>
+              <span className="starter-title">
+                <span className="starter-numeral">{plate.numeral}</span>
+                {plate.name}
+              </span>
+              <span className="starter-summary">{plate.summary}</span>
             </button>
           </li>
         ))}
@@ -87,8 +91,10 @@ function Starters({ store }: { store: EditorStore }) {
             }}
           >
             <span className="starter-blank" aria-hidden="true" />
-            <span className="starter-title">Empty sheet</span>
-            <span className="starter-summary">No sources. Undo brings your last scene back.</span>
+            <span>
+              <span className="starter-title">Empty sheet</span>
+              <span className="starter-summary">No sources. Undo brings your last scene back.</span>
+            </span>
           </button>
         </li>
       </ul>
