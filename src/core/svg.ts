@@ -8,6 +8,7 @@
 
 import type { Geometry, OutputPath } from './pipeline';
 import type { Rect, Scene } from './scene';
+import { levelRegions, tintLoops, tintPass } from './tint';
 
 /** An absolute command every so often limits drift in 32-bit renderers. */
 const ABSOLUTE_EVERY = 64;
@@ -78,11 +79,31 @@ export interface LevelStyle {
 
 /** How one level is drawn. The canvas and the file both read this. */
 export function levelStyle(scene: Scene, index: number): LevelStyle {
-  const { fade, strokeWidth, indexEvery, indexWidth } = scene.style;
+  const { fade, strokeWidth, indexEvery, indexWidth, taper } = scene.style;
   const count = scene.levels.count;
   const position = count > 1 ? index / (count - 1) : 1;
   const heavy = indexEvery > 0 && (index + 1) % indexEvery === 0;
-  return { opacity: 1 - fade * (1 - position), width: heavy ? indexWidth : strokeWidth };
+  const weight = heavy ? indexWidth : strokeWidth;
+  return {
+    opacity: 1 - fade * (1 - position),
+    // Left exactly as it was when there is no taper, so older files print the same.
+    width: taper > 0 ? weight * (1 - taper * (1 - position)) : weight,
+  };
+}
+
+/** The tint passes as path data, lowest first. Empty when the scene has no tint. */
+export function tintPaths(geometry: Geometry, scene: Scene): string[] {
+  const { tint } = scene.style;
+  if (tint === 0) return [];
+  const out: string[] = [];
+  for (const region of levelRegions(geometry)) {
+    if (!region) continue;
+    const loops = tintLoops(region, geometry.rect, tint < 0);
+    if (loops.length === 0) continue;
+    const { decimals } = region;
+    out.push(loops.map((points) => pathData({ points, closed: true, decimals, bound: 0 })).join(''));
+  }
+  return out;
 }
 
 interface Element {
@@ -132,6 +153,19 @@ function buildTree(geometry: Geometry, scene: Scene): Element {
         ['fill', style.background],
         ['stroke', 'none'],
       ],
+    });
+  }
+  const tints = tintPaths(geometry, scene);
+  if (tints.length > 0) {
+    children.push({
+      tag: 'g',
+      attrs: [
+        ['fill', style.tintColor],
+        ['fill-opacity', formatNumber(tintPass(style.tint, geometry.levels.length), 4)],
+        ['fill-rule', 'evenodd'],
+        ['stroke', 'none'],
+      ],
+      children: tints.map((d) => ({ tag: 'path', attrs: [['d', d]] })),
     });
   }
   const fixed = scene.export.strokeScaling === 'fixed';
@@ -186,6 +220,8 @@ const JSX_NAMES: Record<string, string> = {
   'stroke-linecap': 'strokeLinecap',
   'stroke-linejoin': 'strokeLinejoin',
   'stroke-opacity': 'strokeOpacity',
+  'fill-opacity': 'fillOpacity',
+  'fill-rule': 'fillRule',
   'vector-effect': 'vectorEffect',
 };
 
