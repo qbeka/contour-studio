@@ -71,7 +71,9 @@ function plateOf(scene: Scene): Plate {
   return PLATES.find((p) => p.scene.name === scene.name) ?? made.get(madeKey(scene)) ?? PLATES[0];
 }
 
-const stageShape = () => Math.max(1, print.clientWidth) / Math.max(1, print.clientHeight);
+/** The size of the print area, read once and then kept by the resize observer. */
+const area = { width: print.clientWidth, height: print.clientHeight };
+const stageShape = () => Math.max(1, area.width) / Math.max(1, area.height);
 const framed = (scene: Scene, plate = plateOf(scene)): Scene => ({ ...scene, clip: frameFor(plate, scene, stageShape()) });
 
 const store = new EditorStore(framed(opened.scene, opened.plate));
@@ -97,8 +99,7 @@ interface View {
 
 /** Fits a frame in the print area. A shape within a rounding step fills it edge to edge. */
 function viewFor(rect: Rect): View {
-  const width = print.clientWidth;
-  const height = print.clientHeight;
+  const { width, height } = area;
   const fits = Math.min(width / rect.width, height / rect.height);
   const fills = Math.max(width / rect.width, height / rect.height);
   const scale = fills / fits < 1.01 ? fills : fits;
@@ -116,9 +117,9 @@ function markLimits() {
   const pad = 14;
   return {
     left: Math.max(0, view.x + clip.x * view.scale) + pad,
-    right: Math.min(print.clientWidth, view.x + (clip.x + clip.width) * view.scale) - pad,
+    right: Math.min(area.width, view.x + (clip.x + clip.width) * view.scale) - pad,
     top: Math.max(0, view.y + clip.y * view.scale) + pad,
-    bottom: Math.min(print.clientHeight, view.y + (clip.y + clip.height) * view.scale) - pad,
+    bottom: Math.min(area.height, view.y + (clip.y + clip.height) * view.scale) - pad,
   };
 }
 
@@ -147,8 +148,8 @@ function requestPaint(): void {
 function sizeCanvas(): number {
   // Beyond 2x the lines look the same and the canvas costs four times as much.
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const width = Math.round(print.clientWidth * dpr);
-  const height = Math.round(print.clientHeight * dpr);
+  const width = Math.round(area.width * dpr);
+  const height = Math.round(area.height * dpr);
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
@@ -319,8 +320,8 @@ function startWave(origin: { x: number; y: number }, geometry: Geometry): void {
     nodes[to * 3 + 2] = found[from * 3 + 2];
   });
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  waveCanvas.width = Math.round(print.clientWidth * dpr);
-  waveCanvas.height = Math.round(print.clientHeight * dpr);
+  waveCanvas.width = Math.round(area.width * dpr);
+  waveCanvas.height = Math.round(area.height * dpr);
   const ctx = waveCanvas.getContext('2d') as CanvasRenderingContext2D;
   const ink = store.scene.style.stroke;
   const started = performance.now();
@@ -328,7 +329,7 @@ function startWave(origin: { x: number; y: number }, geometry: Geometry): void {
   const step = (now: number) => {
     const front = (now - started) * WAVE_SPEED;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, print.clientWidth, print.clientHeight);
+    ctx.clearRect(0, 0, area.width, area.height);
     while (first < nodes.length && nodes[first] < front - WAVE_BAND) first += 3;
     ctx.fillStyle = ink;
     for (let k = first; k < nodes.length && nodes[k] <= front; k += 3) {
@@ -341,7 +342,7 @@ function startWave(origin: { x: number; y: number }, geometry: Geometry): void {
     }
     ctx.globalAlpha = 1;
     waveFrame = first < nodes.length && front < WAVE_REACH + WAVE_BAND ? requestAnimationFrame(step) : 0;
-    if (!waveFrame) ctx.clearRect(0, 0, print.clientWidth, print.clientHeight);
+    if (!waveFrame) ctx.clearRect(0, 0, area.width, area.height);
   };
   waveFrame = requestAnimationFrame(step);
 }
@@ -383,7 +384,7 @@ function placeMark(mark: Mark, px: number, py: number): void {
   mark.y = py;
   mark.el.style.transform = `translate3d(${px}px, ${py}px, 0)`;
   mark.el.toggleAttribute('data-hint-below', py < 52);
-  const edge = px < HINT_REACH ? 'start' : px > print.clientWidth - HINT_REACH ? 'end' : 'middle';
+  const edge = px < HINT_REACH ? 'start' : px > area.width - HINT_REACH ? 'end' : 'middle';
   if (mark.el.dataset.hintEdge !== edge) mark.el.dataset.hintEdge = edge;
 }
 
@@ -794,8 +795,8 @@ function openPanel(panel: Panel): void {
   inspector.hidden = false;
   mark.el.setAttribute('aria-expanded', 'true');
   // The panel opens on the side away from the mark, so it never covers it.
-  inspector.dataset.side = mark.x > print.clientWidth / 2 ? 'left' : 'right';
-  inspector.dataset.edge = mark.y < print.clientHeight / 2 ? 'bottom' : 'top';
+  inspector.dataset.side = mark.x > area.width / 2 ? 'left' : 'right';
+  inspector.dataset.edge = mark.y < area.height / 2 ? 'bottom' : 'top';
   syncFields();
 }
 
@@ -1044,6 +1045,8 @@ function currentFile(): { svg: string; tintBytes: number } {
 }
 
 const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+/** 12,104 from 12104. Spelled out because the first call into Intl costs a few ms. */
+const grouped = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ',');
 
 function syncLive(): void {
   const state = store.previewState;
@@ -1055,7 +1058,7 @@ function syncLive(): void {
     return;
   }
   const { geometry } = store.getState();
-  const nodes = (geometry as Geometry).stats.outputVertices.toLocaleString('en-US');
+  const nodes = grouped((geometry as Geometry).stats.outputVertices);
   legendCount.textContent = `${nodes} nodes`;
   // Writing the file takes a few ms, so it waits until nothing else is going on.
   fileTimer = window.setTimeout(() => {
@@ -1350,7 +1353,11 @@ copyButton.addEventListener('click', async () => {
 
 /* Stage size */
 
-new ResizeObserver(() => {
+new ResizeObserver(([entry]) => {
+  const { width, height } = entry.contentRect;
+  if (width === area.width && height === area.height) return;
+  area.width = width;
+  area.height = height;
   reframeHistory();
   if (!drag) syncMarks();
   syncSheet();
@@ -1380,8 +1387,12 @@ new IntersectionObserver((entries, observer) => {
   observer.disconnect();
 }, { rootMargin: '400px' }).observe(film);
 
-onStore();
-if (latestMade) showMade(latestMade);
+// The worker already has the first scene. The controls are filled in a task of
+// their own, so that neither holds up the other.
+window.setTimeout(() => {
+  onStore();
+  if (latestMade) showMade(latestMade);
+}, 0);
 // The thumbnails wait for the first print, so the drawing is never behind them.
 const firstPrint = store.subscribe(() => {
   if (!store.getState().geometry) return;
