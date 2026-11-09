@@ -89,6 +89,14 @@ export interface Scene {
     /** Every Nth line is heavier. 0 turns this off. */
     indexEvery: number;
     indexWidth: number;
+    /** 0 draws every line at its weight. 1 thins the lowest line to nothing. */
+    taper: number;
+    /**
+     * One flat pass of tint for each level, laid over the ground above its line.
+     * Below 0 the passes go over the ground under each line instead. 0 is off.
+     */
+    tint: number;
+    tintColor: string;
   };
   export: {
     /** Grid cells along the long side of the domain. */
@@ -122,6 +130,9 @@ export function emptyScene(): Scene {
       background: null,
       indexEvery: 0,
       indexWidth: 1.6,
+      taper: 0,
+      tint: 0,
+      tintColor: '#1d3a2a',
     },
     export: {
       resolution: 512,
@@ -336,6 +347,13 @@ export function validateScene(value: unknown): ParseResult {
         styleRaw.background === null ? null : r.color(styleRaw.background, 'style.background'),
       indexEvery: r.integer(styleRaw.indexEvery, 'style.indexEvery', { min: 0, max: 32 }),
       indexWidth: r.number(styleRaw.indexWidth, 'style.indexWidth', LIMITS.strokeWidth),
+      // Added after the first release. A file written before them reads as plain lines.
+      taper:
+        styleRaw.taper === undefined ? 0 : r.number(styleRaw.taper, 'style.taper', { min: 0, max: 1 }),
+      tint:
+        styleRaw.tint === undefined ? 0 : r.number(styleRaw.tint, 'style.tint', { min: -1, max: 1 }),
+      tintColor:
+        styleRaw.tintColor === undefined ? '#1d3a2a' : r.color(styleRaw.tintColor, 'style.tintColor'),
     },
     export: {
       resolution: r.integer(exportRaw.resolution, 'export.resolution', LIMITS.resolution),
