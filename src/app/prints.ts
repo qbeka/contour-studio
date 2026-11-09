@@ -5,11 +5,11 @@
  * The layout is plain arithmetic and is tested on its own. Drawing needs a canvas.
  */
 
-import { drawArtwork } from '../src/app/render';
-import type { Geometry } from '../src/core/pipeline';
-import { frameFor, type Plate } from '../src/core/plates';
-import type { Scene } from '../src/core/scene';
-import { tintPass } from '../src/core/tint';
+import type { Geometry } from '../core/pipeline';
+import { frameFor, type Plate } from '../core/plates';
+import type { Scene } from '../core/scene';
+import { tintPass } from '../core/tint';
+import { drawArtwork } from './render';
 
 export interface PrintSize {
   id: 'desktop' | 'phone' | 'poster';
@@ -74,10 +74,18 @@ export function layoutPrint(size: PrintSize, titleBlock: boolean): PrintLayout {
 }
 
 /** The scene a print is computed from: the same field, framed to the print's shape. */
-export function printScene(plate: Plate, scene: Scene, size: PrintSize, layout: PrintLayout): Scene {
+export function printScene(
+  plate: Plate,
+  scene: Scene,
+  size: PrintSize,
+  layout: PrintLayout,
+  /** The page draws weights in screen px. The studio's are drawing units, which scale as they are. */
+  weights: 'px' | 'scene' = 'px',
+): Scene {
   const clip = frameFor(plate, scene, layout.art.width / layout.art.height, true);
   const perUnit = layout.art.width / clip.width;
-  const units = (px: number) => Math.round(((px * size.weight) / perUnit) * 1000) / 1000;
+  const inPx = weights === 'px' || scene.export.strokeScaling === 'fixed';
+  const units = (value: number) => (inPx ? Math.round(((value * size.weight) / perUnit) * 1000) / 1000 : value);
   return {
     ...scene,
     clip,
@@ -98,11 +106,34 @@ export interface BlockText {
   lines: string;
 }
 
+/**
+ * Stands in for a plate when the scene is one the user built. Its frame of any
+ * shape stays centred on the frame they set.
+ */
+export function plateFor(scene: Scene): Plate {
+  const { clip } = scene;
+  return {
+    id: 'scene',
+    numeral: '',
+    name: scene.name || 'Untitled',
+    summary: '',
+    scene,
+    primary: '',
+    focus: { x: clip.x + clip.width / 2, y: clip.y + clip.height / 2 },
+    aspect: [0.2, 5],
+  };
+}
+
 export function blockText(plate: Plate, scene: Scene): BlockText {
   const spacing = scene.levels.spacing.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
   return {
     name: plate.name,
-    mark: plate.seed === undefined ? `Plate ${plate.numeral}` : `No. ${String(plate.seed).padStart(6, '0')}`,
+    mark:
+      plate.seed !== undefined
+        ? `No. ${String(plate.seed).padStart(6, '0')}`
+        : plate.numeral
+          ? `Plate ${plate.numeral}`
+          : `Seed ${scene.seed}`,
     lines: `${scene.levels.count} lines at ${spacing}`,
   };
 }

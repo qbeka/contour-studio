@@ -1,13 +1,13 @@
 /**
- * Geometry for things that are not the drawing being edited: the idle drift, the
- * plate thumbnails and the fixed size prints. It has its own worker, so none of
+ * Geometry for things that are not the drawing being edited: the page's idle drift
+ * and plate thumbnails, and fixed size prints. It has its own worker, so none of
  * it can delay or overwrite a result the editor is waiting for.
  */
 
-import { GeometryClient, type Engine } from '../src/app/geometry-client';
-import type { Quality } from '../src/app/jobs';
-import type { Geometry } from '../src/core/pipeline';
-import type { Scene } from '../src/core/scene';
+import type { Geometry } from '../core/pipeline';
+import type { Scene } from '../core/scene';
+import { GeometryClient, type Engine } from './geometry-client';
+import type { Quality } from './jobs';
 
 interface Waiting {
   resolve(geometry: Geometry): void;

@@ -15,8 +15,8 @@ import type { Rect, Scene, Source } from '../src/core/scene';
 import { toSvg } from '../src/core/svg';
 import { ExportHold, type HoldState } from './export-hold';
 import { isOriginal, readLink, writeLink } from './link';
-import { PRINT_SIZES, blockText, drawPrint, keySteps, layoutPrint, printScene, type PrintSize } from './prints';
-import { SideJobs } from './side-jobs';
+import { PRINT_SIZES, blockText, drawPrint, keySteps, layoutPrint, printScene, type PrintSize } from '../src/app/prints';
+import { SideJobs } from '../src/app/side-jobs';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -1403,5 +1403,5 @@ const firstPrint = store.subscribe(() => {
 // Read by the page's browser checks. It gives access to state only, and only when
 // the URL asks for it.
 if (params.has('hook')) {
-  (window as unknown as { __contour: unknown }).__contour = { store, session, hold, drawLog, drift, side, plateOf };
+  (window as unknown as { __contour: unknown }).__contour = { store, session, hold, drawLog, drift, side, plateOf, currentFile };
 }
