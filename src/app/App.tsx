@@ -308,7 +308,7 @@ export function App({ store, session }: { store: EditorStore; session: Session }
         </label>
         <span className="bar-saved hide-narrow" aria-live="polite">
           {state.saveState === 'saved' && 'Saved in this browser'}
-          {state.saveState === 'failed' && 'Not saved in this browser. Use Save to keep your work'}
+          {state.saveState === 'failed' && 'Not saved in this browser, so use Save to keep your work'}
         </span>
         <div className="bar-actions">
           <button type="button" className="pill" onClick={() => store.set({ dialog: 'starters' })}>

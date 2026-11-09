@@ -29,7 +29,7 @@ export function SourceList({ store, state }: PanelProps) {
         <span className="count">{scene.sources.length}</span>
       </div>
       {scene.sources.length === 0 ? (
-        <p className="panel-empty">No sources yet. Choose Peak or Ridge in the tool rail, then click the sheet.</p>
+        <p className="panel-empty">No sources yet, so choose Peak or Ridge in the tool rail and click the sheet</p>
       ) : (
         <ul className="source-list">
           {scene.sources.map((source) => {
@@ -233,7 +233,7 @@ export function LinesPanel({ store }: PanelProps) {
         digits={3}
         slider
         logarithmic
-        hint="Height between neighbouring lines. A smaller gap packs them closer."
+        hint="Height between neighbouring lines, where a smaller gap packs them closer"
         onChange={(spacing) => patch('levels', { spacing }, 'spacing')}
       />
       <NumberField
@@ -303,7 +303,7 @@ export function LinesPanel({ store }: PanelProps) {
         min={0}
         max={32}
         step={1}
-        hint="An index line, as on a survey map. 0 turns this off."
+        hint="An index line, as on a survey map, which 0 turns off"
         onChange={(indexEvery) => patch('style', { indexEvery: Math.round(indexEvery) }, 'indexEvery')}
       />
       {style.indexEvery > 0 && (
@@ -326,7 +326,7 @@ export function LinesPanel({ store }: PanelProps) {
         step={0.01}
         digits={2}
         slider
-        hint="Thins the lowest lines. 0 draws every line at its weight."
+        hint="Thins the lowest lines, and 0 draws every line at its weight"
         onChange={(taper) => patch('style', { taper }, 'taper')}
       />
       <NumberField
@@ -337,7 +337,7 @@ export function LinesPanel({ store }: PanelProps) {
         step={0.01}
         digits={2}
         slider
-        hint="Fades the lowest lines. 0 draws all lines at full strength."
+        hint="Fades the lowest lines, and 0 draws all lines at full strength"
         onChange={(fade) => patch('style', { fade }, 'fade')}
       />
 
@@ -352,10 +352,10 @@ export function LinesPanel({ store }: PanelProps) {
         slider
         hint={
           style.tint === 0
-            ? 'One flat pass of colour for each line. Above 0 it deepens with height, below 0 with depth.'
+            ? 'One flat pass of colour for each line, deepening with height above 0 and with depth below 0'
             : style.tint > 0
-              ? 'Deepens with height. The file grows, because each pass repeats its line as a shape.'
-              : 'Deepens with depth. The file grows, because each pass repeats its line as a shape.'
+              ? 'Deepens with height, and the file grows because each pass repeats its line as a shape'
+              : 'Deepens with depth, and the file grows because each pass repeats its line as a shape'
         }
         onChange={(tint) => patch('style', { tint }, 'tint')}
       />
@@ -376,7 +376,7 @@ export function LinesPanel({ store }: PanelProps) {
         step={0.001}
         digits={3}
         slider
-        hint="How far the lines can wander. It can never move the field by more than this."
+        hint="How far the lines can wander, which never moves the field by more than this"
         onChange={(amplitude) => patch('noise', { amplitude }, 'amplitude')}
       />
       <NumberField
@@ -525,7 +525,7 @@ function ExportReportTable({ state }: { state: EditorState }) {
         </div>
         {fresh && fresh.tint.bytes > 0 && (
           <div>
-            <dt title="Each tint pass repeats its line as a filled shape. The sizes above are for the lines alone">Tint adds to the file</dt>
+            <dt title="Each tint pass repeats its line as a filled shape, and the sizes above are for the lines alone">Tint adds to the file</dt>
             <dd>{formatBytes(fresh.tint.bytes)}, {formatBytes(fresh.tint.gzipBytes)} gzipped</dd>
           </div>
         )}
@@ -627,7 +627,7 @@ export function ExportPanel({ store, state }: PanelProps) {
         step={0.01}
         digits={3}
         unit="units"
-        hint="How far simplifying may move a line, before rounding. 0 keeps every node."
+        hint="How far simplifying may move a line before rounding, where 0 keeps every node"
         onChange={(tolerance) => set({ tolerance }, 'tolerance')}
       />
       <div className="presets" role="group" aria-label="Line detail presets">

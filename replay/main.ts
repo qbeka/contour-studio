@@ -1306,7 +1306,7 @@ async function savePrint(row: Row, size: PrintSize): Promise<void> {
     say(`Saved ${name}, ${(blob.size / 1048576).toFixed(1)} MB.`);
     showRow(row, 'saved');
   } catch {
-    say('That print could not be drawn. Press Try again.');
+    say('That print could not be drawn, so press Try again');
     showRow(row, 'failed');
   }
 }
@@ -1327,7 +1327,7 @@ const hold = new ExportHold(store, deliver, (state: HoldState) => {
     say('Finishing the lines.');
   } else if (state === 'failed') {
     showRow(row, 'failed');
-    say('The lines could not be finished. Press Try again.');
+    say('The lines could not be finished, so press Try again');
   }
 });
 

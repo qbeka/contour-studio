@@ -93,7 +93,7 @@ function Starters({ store }: { store: EditorStore }) {
             <span className="starter-blank" aria-hidden="true" />
             <span>
               <span className="starter-title">Empty sheet</span>
-              <span className="starter-summary">No sources. Undo brings your last scene back.</span>
+              <span className="starter-summary">No sources, and Undo brings your last scene back</span>
             </span>
           </button>
         </li>
@@ -105,7 +105,7 @@ function Starters({ store }: { store: EditorStore }) {
 const SHORTCUTS: [string, string][] = [
   ['V', 'Select and move'],
   ['P', 'Place a peak'],
-  ['R', 'Draw a ridge. Enter finishes, Esc cancels'],
+  ['R', 'Draw a ridge, where Enter finishes and Esc cancels'],
   ['H', 'Pan. Or hold Space and drag'],
   ['Arrows', 'Move the selection 1 unit'],
   ['Shift + Arrows', 'Move the selection 10 units'],
@@ -116,7 +116,7 @@ const SHORTCUTS: [string, string][] = [
   ['Shift + Cmd or Ctrl + Z', 'Redo'],
   ['1', 'Zoom to the frame'],
   ['+ and -', 'Zoom in or out'],
-  ['S', 'Snap to a 10 unit grid. Hold Alt to ignore it'],
+  ['S', 'Snap to a 10 unit grid, or hold Alt to ignore it'],
   ['N', 'Show the exported nodes'],
   ['G', 'Hide the handles to see only the artwork'],
   ['Cmd or Ctrl + S', 'Save the scene file'],
