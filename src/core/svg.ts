@@ -91,6 +91,14 @@ export function levelStyle(scene: Scene, index: number): LevelStyle {
   };
 }
 
+/**
+ * The same scene with its tint off. A tint pass is a filled shape that runs along
+ * the frame, so anything that measures the lines in a file has to read this one.
+ */
+export function linesOnly(scene: Scene): Scene {
+  return scene.style.tint === 0 ? scene : { ...scene, style: { ...scene.style, tint: 0 } };
+}
+
 /** The tint passes as path data, lowest first. Empty when the scene has no tint. */
 export function tintPaths(geometry: Geometry, scene: Scene): string[] {
   const { tint } = scene.style;

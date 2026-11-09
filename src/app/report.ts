@@ -3,7 +3,7 @@
 import type { Geometry, OutputLevel } from '../core/pipeline';
 import type { Scene } from '../core/scene';
 import { roundingBound, snapPath } from '../core/simplify';
-import { toSvg } from '../core/svg';
+import { linesOnly, toSvg } from '../core/svg';
 import {
   estimateGridError,
   parseSvgPaths,
@@ -71,9 +71,9 @@ export async function buildReport(
   // Tint passes repeat the lines as filled shapes. Sizes are compared and distance
   // is measured on the lines alone, and the cost of the tint is reported beside them.
   const tinted = scene.style.tint !== 0;
-  const linesOnly: Scene = tinted ? { ...scene, style: { ...scene.style, tint: 0 } } : scene;
-  const lines = tinted ? toSvg(geometry, linesOnly) : svg;
-  const full = toSvg(unsimplified(geometry, scene), linesOnly);
+  const plain = linesOnly(scene);
+  const lines = tinted ? toSvg(geometry, plain) : svg;
+  const full = toSvg(unsimplified(geometry, scene), plain);
   if (await pause()) return null;
   const simplifiedCost = await fileCost(lines);
   if (await pause()) return null;
