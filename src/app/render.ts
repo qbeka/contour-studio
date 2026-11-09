@@ -9,6 +9,7 @@
 import type { Geometry } from '../core/pipeline';
 import type { Scene } from '../core/scene';
 import { levelStyle } from '../core/svg';
+import { levelRegions, tintLoops, tintPass } from '../core/tint';
 
 /** Recent draw times in ms, for the browser benchmark. Bounded on purpose. */
 export const drawLog: number[] = [];
@@ -30,6 +31,29 @@ function levelPaths(geometry: Geometry): Path2D[] {
   });
   cache.set(geometry, built);
   return built;
+}
+
+/** One Path2D per tint pass, lowest first, kept with the direction it was built for. */
+const tintCache = new WeakMap<Geometry, { low: boolean; passes: Path2D[] }>();
+
+function tintPasses(geometry: Geometry, low: boolean): Path2D[] {
+  const hit = tintCache.get(geometry);
+  if (hit && hit.low === low) return hit.passes;
+  const passes: Path2D[] = [];
+  for (const region of levelRegions(geometry)) {
+    if (!region) continue;
+    const loops = tintLoops(region, geometry.rect, low);
+    if (loops.length === 0) continue;
+    const path = new Path2D();
+    for (const points of loops) {
+      path.moveTo(points[0], points[1]);
+      for (let k = 2; k < points.length; k += 2) path.lineTo(points[k], points[k + 1]);
+      path.closePath();
+    }
+    passes.push(path);
+  }
+  tintCache.set(geometry, { low, passes });
+  return passes;
 }
 
 export interface DrawTransform {
@@ -56,6 +80,13 @@ export function drawArtwork(
   if (scene.style.background) {
     ctx.fillStyle = scene.style.background;
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+  }
+  const { tint } = scene.style;
+  if (tint !== 0) {
+    ctx.fillStyle = scene.style.tintColor;
+    ctx.globalAlpha = tintPass(tint, geometry.levels.length);
+    for (const pass of tintPasses(geometry, tint < 0)) ctx.fill(pass, 'evenodd');
+    ctx.globalAlpha = 1;
   }
   ctx.strokeStyle = scene.style.stroke;
   ctx.lineCap = 'round';
