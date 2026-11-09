@@ -151,7 +151,10 @@
     "fade": 0,
     "background": null,
     "indexEvery": 0,
-    "indexWidth": 1.6
+    "indexWidth": 1.6,
+    "taper": 0,
+    "tint": 0,
+    "tintColor": "#1d3a2a"
   },
   "export": {
     "resolution": 512,
