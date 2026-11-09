@@ -25,53 +25,81 @@
   <main>
     <header class="title">
       <h1>Contour</h1>
-      <a class="control outline" href="app/index.html">Open studio</a>
+      <a class="control outline" href="app/">Open studio</a>
       <p>Move a point and the lines follow</p>
     </header>
 
     <section class="stage" id="stage" aria-label="Drawing" data-invite>
-      <canvas id="art" role="img" aria-label="Contour lines"></canvas>
-      <canvas id="fade" aria-hidden="true"></canvas>
-      <noscript><p class="prose">The drawing needs JavaScript. The details below still work.</p></noscript>
-      <div class="sheet" id="sheet" hidden></div>
+      <div class="print" id="print">
+        <canvas id="art" role="img" aria-label="Contour lines"></canvas>
+        <canvas id="fade" aria-hidden="true"></canvas>
+        <canvas id="wave" aria-hidden="true"></canvas>
+        <noscript><p class="prose">The drawing needs JavaScript. The details below still work.</p></noscript>
+        <div class="sheet" id="sheet" hidden></div>
 
-      <button class="handle" id="handle" type="button" aria-expanded="false" aria-controls="inspector">
-        <i></i>
-        <span class="hint" aria-hidden="true"><span class="mouse">Drag it, or click for settings</span><span class="keys">Arrow keys move it and Enter opens settings</span></span>
-      </button>
-
-      <aside class="inspector float" id="inspector" aria-label="Point and line settings" hidden>
-        <header>
-          <h2 id="point-name"></h2>
-          <button class="control close" id="close" type="button" aria-label="Close settings">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-          </button>
-        </header>
-        <div class="wrap">
-          <fieldset class="fields">
-            <legend>Point</legend>
-            <label class="field"><span>Height <output id="height-out"></output></span><input id="height" type="range" min="-1.5" max="1.5" step="0.01"></label>
-            <label class="field"><span>Reach <output id="radius-out"></output></span><input id="radius" type="range" min="40" max="640" step="1"></label>
-          </fieldset>
-          <fieldset class="fields">
-            <legend>Lines</legend>
-            <label class="field"><span>Line gap <output id="gap-out"></output></span><input id="gap" type="range" min="0.04" max="0.2" step="0.005"></label>
-            <label class="field"><span>Texture <output id="texture-out"></output></span><input id="texture" type="range" min="0" max="0.12" step="0.002"></label>
-          </fieldset>
+        <div class="legend" id="legend">
+          <p class="legend-name" id="legend-name"></p>
+          <p class="legend-meta"><span id="legend-mark"></span><span id="legend-lines"></span></p>
+          <div class="legend-key" id="legend-key" aria-hidden="true"></div>
+          <p class="legend-live" id="legend-live" data-state="refining"><i aria-hidden="true"></i><span id="legend-count"></span></p>
         </div>
-      </aside>
 
-      <div class="toolbar float" id="toolbar" role="group" aria-label="Drawing tools">
-        <div class="presets" id="presets" role="group" aria-label="Composition"></div>
-        <span class="divider"></span>
-        <div class="actions">
+        <p class="invite" id="invite" aria-hidden="true"><span class="fine">Drag any point, or double click the paper to add one</span><span class="coarse">Drag any point, or double tap the paper to add one</span></p>
+
+        <div class="marks" id="marks" role="group" aria-label="Points on the drawing"></div>
+
+        <div class="wells float" id="wells" role="group" aria-label="Ink and paper"></div>
+
+        <aside class="inspector float" id="inspector" aria-label="Point and line settings" hidden>
+          <header>
+            <h2 id="point-name"></h2>
+            <button class="control icon" id="remove" type="button" aria-label="Remove this source">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="control icon" id="close" type="button" aria-label="Close settings">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            </button>
+          </header>
+          <div class="wrap">
+            <fieldset class="fields">
+              <legend>Point</legend>
+              <label class="field"><span>Height <output id="height-out"></output></span><input id="height" type="range" min="-1.5" max="1.5" step="0.01"></label>
+              <label class="field"><span>Reach <output id="radius-out"></output></span><input id="radius" type="range" min="40" max="640" step="1"></label>
+            </fieldset>
+            <fieldset class="fields">
+              <legend>Lines</legend>
+              <label class="field"><span>Line gap <output id="gap-out"></output></span><input id="gap" type="range" min="0.04" max="0.2" step="0.005"></label>
+              <label class="field"><span>Texture <output id="texture-out"></output></span><input id="texture" type="range" min="0" max="0.12" step="0.002"></label>
+              <label class="field"><span>Tint <output id="tint-out"></output></span><input id="tint" type="range" min="-0.9" max="0.9" step="0.02"></label>
+            </fieldset>
+          </div>
+        </aside>
+
+        <div class="exports float" id="exports" role="group" aria-label="Export" hidden>
+          <div class="rows" id="export-rows"></div>
+          <div class="export-foot">
+            <label class="check"><input id="title-block" type="checkbox" checked><span>Title block on wallpapers and the poster</span></label>
+            <button class="control outline" id="copy-link" type="button">
+              <span class="on" data-label="idle">Copy link to this drawing</span>
+              <span data-label="done">Link copied</span>
+              <span data-label="failed">Copy it from the address bar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="desk" id="desk">
+        <div class="plates" id="plates" role="group" aria-label="Plates"></div>
+        <div class="actions" role="group" aria-label="Drawing tools">
+          <button class="control" id="add" type="button" aria-label="Add a peak">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Peak
+          </button>
           <button class="control" id="undo" type="button" aria-disabled="true">Undo</button>
           <button class="control" id="reset" type="button" aria-disabled="true">Reset</button>
-          <button class="control primary" id="export" type="button">
-            <span class="on" data-label="idle">Export SVG</span>
-            <span data-label="holding">Finishing</span>
-            <span data-label="saved">Saved</span>
-            <span data-label="failed">Try again</span>
+          <button class="control primary" id="export" type="button" aria-expanded="false" aria-controls="exports">
+            Export
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 6.2L5 3.4l3 2.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </div>
@@ -79,8 +107,9 @@
 
     <section class="reading" id="details" aria-labelledby="details-title">
       <h2 id="details-title">Details</h2>
-      <p class="prose">Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the lines follow. Export SVG gives you the drawing you see above, and every line stays its own path.</p>
-      <p class="prose">The <a href="app/index.html">studio</a> is the same drawing engine with the rest of the tools: more sources, ridges, line styling, and React and PNG export.</p>
+      <p class="prose">Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the lines follow. Every plate above is a live drawing, and the tint under the lines is built from the same paths, so it moves with them.</p>
+      <p class="prose">Export gives you the drawing as an SVG where every line stays its own path, or as a wallpaper or poster drawn from the same field at a new shape. The address of this page always holds the drawing you see, so a link brings it back.</p>
+      <p class="prose">The <a href="app/">studio</a> is the same drawing engine with the rest of the tools: ridges you draw yourself, exact numbers, scene files, and React export.</p>
       <video class="film" id="film" controls preload="none" width="1280" height="800" data-poster="cover.png">
         <source src="walkthrough.mp4" type="video/mp4">
       </video>
@@ -88,18 +117,19 @@
       <h3>Results</h3>
       <dl class="results">
         <div><dt>Nodes in the file</dt><dd><b>12,104 to 1,771</b>Quiet ridge scene in the repo at tolerance 0.15, 85 percent fewer than the same scene with nothing removed</dd></div>
-        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>The same scene and tolerance, 71 percent smaller than with nothing removed</dd></div>
+        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>The same scene and tolerance with lines only, 71 percent smaller than with nothing removed</dd></div>
         <div><dt>How far lines moved</dt><dd><b>0.19 units sampled, 0.221 proved</b>The same file against the extracted lines, where the bound is proved and the sample is an estimate</dd></div>
         <div><dt>Repeatable files</dt><dd><b>Identical bytes</b>Chromium, Firefox, WebKit and Node, for the one workflow tested</dd></div>
         <div><dt>Largest frame gap</dt><dd><b>25 ms against 204 ms</b>Worker against blocking on the stress scene, so the page stops freezing even though drafts get slower</dd></div>
-        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>Plus 70 seeded bugs, with 69 caught by a named test and 1 by a timeout</dd></div>
+        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>At the measured release, plus 70 seeded bugs with 69 caught by a named test and 1 by a timeout</dd></div>
       </dl>
 
       <h3>Limits</h3>
       <ul class="limits">
         <li>All timings come from one fast laptop.</li>
+        <li>The numbers above were measured on plain lines, and the plates here are drawn at this stage's frame with tint, so the export panel reports each file's own size.</li>
         <li>Grid error is not part of the proved bound and reaches about 0.79 units on the quiet ridge.</li>
-        <li>Exports are polylines, so smooth lines need many nodes.</li>
+        <li>Exports are polylines, so smooth lines need many nodes, and tint repeats each line as a filled shape.</li>
         <li>I checked path editing in paper.js but have not tested Figma, Illustrator or Inkscape.</li>
         <li>Nobody outside this project has used it yet.</li>
       </ul>
