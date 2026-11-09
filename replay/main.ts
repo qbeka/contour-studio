@@ -947,24 +947,29 @@ function makeTile(plate: Plate | null): Tile {
   return tile;
 }
 
-const tiles = PLATES.map((plate) => makeTile(plate));
-const newTile = makeTile(null);
-newTile.button.insertAdjacentHTML(
-  'afterbegin',
-  '<i class="blank"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></i>',
-);
-newTile.label.textContent = 'New';
-newTile.button.setAttribute('aria-label', 'New composition');
-newTile.button.addEventListener('click', () => {
-  // Never the same seed twice in a row.
-  let seed = Math.floor(Math.random() * SEED_LIMIT);
-  if (seed === latestMade?.seed) seed = (seed + 1) % SEED_LIMIT;
-  const plate = generatePlate(seed);
-  made.set(madeKey(plate.scene), plate);
-  showMade(plate);
-  choose(plate);
-  say(`New composition, ${plate.name}, number ${seed}.`);
-});
+let tiles: Tile[] = [];
+let newTile: Tile;
+
+function buildDrawer(): void {
+  tiles = PLATES.map((plate) => makeTile(plate));
+  newTile = makeTile(null);
+  newTile.button.insertAdjacentHTML(
+    'afterbegin',
+    '<i class="blank"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></i>',
+  );
+  newTile.label.textContent = 'New';
+  newTile.button.setAttribute('aria-label', 'New composition');
+  newTile.button.addEventListener('click', () => {
+    // Never the same seed twice in a row.
+    let seed = Math.floor(Math.random() * SEED_LIMIT);
+    if (seed === latestMade?.seed) seed = (seed + 1) % SEED_LIMIT;
+    const plate = generatePlate(seed);
+    made.set(madeKey(plate.scene), plate);
+    showMade(plate);
+    choose(plate);
+    say(`New composition, ${plate.name}, number ${seed}.`);
+  });
+}
 
 /** The New tile shows the last composition it made, and makes another when pressed. */
 function showMade(plate: Plate): void {
@@ -991,7 +996,9 @@ function choose(plate: Plate): void {
 
 /* Ink wells */
 
-const wellButtons = PALETTES.map((palette: Palette) => {
+let wellButtons: HTMLButtonElement[] = [];
+
+const buildWells = () => PALETTES.map((palette: Palette) => {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'well';
@@ -1149,7 +1156,6 @@ function onStore(): void {
   stage.dataset.revision = String(store.getState().revision);
 }
 
-store.subscribe(onStore);
 
 /* Actions */
 
@@ -1230,7 +1236,9 @@ interface Row {
 
 let svgNote: HTMLElement;
 
-const rows: Row[] = (['svg', ...PRINT_SIZES] as Wanted[]).map((wanted) => {
+let rows: Row[] = [];
+
+const buildRows = (): Row[] => (['svg', ...PRINT_SIZES] as Wanted[]).map((wanted) => {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'row';
@@ -1358,6 +1366,7 @@ new ResizeObserver(([entry]) => {
   if (width === area.width && height === area.height) return;
   area.width = width;
   area.height = height;
+  if (!built) return;
   reframeHistory();
   if (!drag) syncMarks();
   syncSheet();
@@ -1387,18 +1396,29 @@ new IntersectionObserver((entries, observer) => {
   observer.disconnect();
 }, { rootMargin: '400px' }).observe(film);
 
-// The worker already has the first scene. The controls are filled in a task of
-// their own, so that neither holds up the other.
+// The worker already has the first scene. The controls are built and filled in a
+// task of their own, so that neither holds up the other.
+let built = false;
 window.setTimeout(() => {
+  buildDrawer();
+  wellButtons = buildWells();
+  rows = buildRows();
+  built = true;
+  // Anything that landed before this point is picked up here.
+  reframeHistory();
+  store.subscribe(onStore);
   onStore();
+  drawThumbs();
   if (latestMade) showMade(latestMade);
 }, 0);
 // The thumbnails wait for the first print, so the drawing is never behind them.
-const firstPrint = store.subscribe(() => {
-  if (!store.getState().geometry) return;
-  firstPrint();
+let thumbsDrawn = false;
+function drawThumbs(): void {
+  if (thumbsDrawn || tiles.length === 0 || !store.getState().geometry) return;
+  thumbsDrawn = true;
   tiles.forEach(drawThumb);
-});
+}
+store.subscribe(drawThumbs);
 
 // Read by the page's browser checks. It gives access to state only, and only when
 // the URL asks for it.

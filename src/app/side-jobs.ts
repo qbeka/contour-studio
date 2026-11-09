@@ -15,19 +15,23 @@ interface Waiting {
 }
 
 export class SideJobs {
-  private client: GeometryClient;
+  /** Made on first use, so that starting the page starts one worker and not two. */
+  private client: GeometryClient | null = null;
   private waiting = new Map<number, Waiting>();
   private next = 1;
 
-  constructor(engine: Engine) {
-    this.client = new GeometryClient(
+  constructor(private engine: Engine) {}
+
+  private get worker(): GeometryClient {
+    this.client ??= new GeometryClient(
       {
         onGeometry: ({ revision, geometry }) => this.settle(revision)?.resolve(geometry),
         onReport: () => {},
         onFailure: ({ revision, message }) => this.settle(revision)?.reject(new Error(message)),
       },
-      { engine },
+      { engine: this.engine },
     );
+    return this.client;
   }
 
   /** True while a job is out. The drift only asks when this is false. */
@@ -49,7 +53,7 @@ export class SideJobs {
       new Promise<Geometry>((resolve, reject) => {
         const revision = this.next++;
         this.waiting.set(revision, { resolve, reject });
-        this.client.submit({ revision, quality, resolution, scene, report: false });
+        this.worker.submit({ revision, quality, resolution, scene, report: false });
       });
     const result = this.tail.then(run, run);
     this.tail = result.catch(() => {});
