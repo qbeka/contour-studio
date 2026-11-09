@@ -22,7 +22,7 @@ export interface Palette {
 export const PALETTES: readonly Palette[] = [
   { id: 'forest', name: 'Forest', paper: '#f7f4ec', ink: '#1d3a2a', tint: '#5f8a66' },
   { id: 'ink', name: 'Ink', paper: '#f8f6f1', ink: '#16181a', tint: '#8b8d8c' },
-  { id: 'indigo', name: 'Indigo', paper: '#f4f2ec', ink: '#1f2a52', tint: '#6478ad' },
+  { id: 'indigo', name: 'Indigo', paper: '#f4f2ec', ink: '#1f2a52', tint: '#5f7fb8' },
   { id: 'terracotta', name: 'Terracotta', paper: '#f8f1e7', ink: '#58291a', tint: '#c9743c' },
   { id: 'night', name: 'Night', paper: '#111c17', ink: '#dfe7dc', tint: '#3d6a55' },
 ];
@@ -171,15 +171,15 @@ export const PLATES: readonly Plate[] = [
     { palette: 'forest', strokeWidth: 0.85, fade: 0.5, taper: 0.3, indexEvery: 5, indexWidth: 1.5, tint: 0.5 }),
   plate('II', 'asymmetric-basin', 'Tall basin', tune(PRESETS[1].scene, 'island', { radius: 96, height: 0.78 }), 'island',
     { x: 500, y: 500 }, [0.5, 0.8],
-    { palette: 'indigo', strokeWidth: 0.8, fade: 0.3, taper: 0, indexEvery: 5, indexWidth: 1.5, tint: -0.62 }),
+    { palette: 'indigo', strokeWidth: 0.8, fade: 0.3, taper: 0, indexEvery: 5, indexWidth: 1.5, tint: -0.5 }),
   plate('III', 'interference-study', 'Interference', tune(PRESETS[2].scene, 's6', { name: 'Centre peak', radius: 130, height: 1.32 }), 's6',
     { x: 600, y: 400 }, [0.5, 3],
     { palette: 'ink', strokeWidth: 0.7, fade: 0.35, taper: 0.4, indexEvery: 4, indexWidth: 1.3, tint: 0 }),
-  plate('IV', 'caldera', 'Caldera', caldera(), 'cone', { x: 690, y: 500 }, [0.6, 1.4],
+  plate('IV', 'caldera', 'Caldera', caldera(), 'cone', { x: 690, y: 500 }, [0.5, 3],
     { palette: 'terracotta', strokeWidth: 0.8, fade: 0.4, taper: 0.25, indexEvery: 5, indexWidth: 1.5, tint: 0.58 }),
-  plate('V', 'archipelago', 'Archipelago', archipelago(), 'isle5', { x: 800, y: 500 }, [0.5, 1.6],
+  plate('V', 'archipelago', 'Archipelago', archipelago(), 'isle5', { x: 800, y: 500 }, [0.5, 3],
     { palette: 'night', strokeWidth: 0.8, fade: 0.45, taper: 0.2, indexEvery: 4, indexWidth: 1.4, tint: 0.7 }),
-  plate('VI', 'terraces', 'Terraces', terraces(), 'knoll', { x: 800, y: 500 }, [0.5, 1.6],
+  plate('VI', 'terraces', 'Terraces', terraces(), 'knoll', { x: 800, y: 500 }, [0.5, 3],
     { palette: 'forest', strokeWidth: 0.75, fade: 0.55, taper: 0.35, indexEvery: 5, indexWidth: 1.45, tint: 0.42 }),
 ];
 
@@ -335,7 +335,7 @@ export function generatePlate(seedInput: number): Plate {
     },
     { palette: palette.id, strokeWidth: 0.8, fade: cents(0.3, 0.55), taper: cents(0.15, 0.4), indexEvery: pick([4, 5]), indexWidth: 1.45, tint },
   );
-  return { id: `seed-${seed}`, numeral: '', name, scene, primary, focus: { x: W / 2, y: H / 2 }, aspect: [0.5, 1.6], seed };
+  return { id: `seed-${seed}`, numeral: '', name, scene, primary, focus: { x: W / 2, y: H / 2 }, aspect: [0.5, 3], seed };
 }
 
 /**
@@ -364,9 +364,11 @@ const HANDLE_MARGIN = 48;
  * focus. The field never changes with it: a wider frame shows more of the same
  * drawing, and a narrow one crops in.
  */
-export function frameFor(plate: Plate, scene: Scene, shape: number): Rect {
+export function frameFor(plate: Plate, scene: Scene, shape: number, anyShape = false): Rect {
   const { width: sheetW, height: sheetH } = scene.domain;
-  const aspect = clamp(shape, plate.aspect[0], plate.aspect[1]);
+  // A print of a fixed size takes the shape it is given. The stage keeps to the
+  // shapes the plate was composed for.
+  const aspect = anyShape ? clamp(shape, 0.2, 5) : clamp(shape, plate.aspect[0], plate.aspect[1]);
   const width = Math.min(sheetW, Math.round(sheetH * aspect));
   const height = Math.min(sheetH, Math.round(width / aspect));
   const anchor = scene.sources.find((s) => s.id === plate.primary);
