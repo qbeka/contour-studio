@@ -20,6 +20,8 @@ export interface FileCost {
 export interface ExportReport {
   simplified: FileCost;
   unsimplified: FileCost;
+  /** What the tint passes add to the exported file. Zero when the scene has no tint. */
+  tint: FileCost;
   distance: SampledDistance;
   grid: GridErrorEstimate;
 }
@@ -66,20 +68,31 @@ export async function buildReport(
 ): Promise<ExportReport | null> {
   const svg = toSvg(geometry, scene);
   if (await pause()) return null;
-  const full = toSvg(unsimplified(geometry, scene), scene);
+  // Tint passes repeat the lines as filled shapes. Sizes are compared and distance
+  // is measured on the lines alone, and the cost of the tint is reported beside them.
+  const tinted = scene.style.tint !== 0;
+  const linesOnly: Scene = tinted ? { ...scene, style: { ...scene.style, tint: 0 } } : scene;
+  const lines = tinted ? toSvg(geometry, linesOnly) : svg;
+  const full = toSvg(unsimplified(geometry, scene), linesOnly);
   if (await pause()) return null;
-  const simplifiedCost = await fileCost(svg);
+  const simplifiedCost = await fileCost(lines);
   if (await pause()) return null;
   const unsimplifiedCost = await fileCost(full);
   if (await pause()) return null;
+  let tint: FileCost = { bytes: 0, gzipBytes: 0 };
+  if (tinted) {
+    const whole = await fileCost(svg);
+    tint = { bytes: whole.bytes - simplifiedCost.bytes, gzipBytes: whole.gzipBytes - simplifiedCost.gzipBytes };
+    if (await pause()) return null;
+  }
   // The parsed file is what the user receives, so that is what gets measured.
   const distance = sampledHausdorff(
     geometry.source.flat(),
-    parseSvgPaths(svg),
+    parseSvgPaths(lines),
     SAMPLE_SPACING,
     REPORT_SAMPLES,
   );
   if (await pause()) return null;
   const grid = estimateGridError(scene, geometry, GRID_SAMPLE_SPACING, REPORT_GRID_SAMPLES);
-  return { simplified: simplifiedCost, unsimplified: unsimplifiedCost, distance, grid };
+  return { simplified: simplifiedCost, unsimplified: unsimplifiedCost, tint, distance, grid };
 }
