@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { LIMITS, type Scene, type Source } from '../core/scene';
 import { outputRect } from '../core/pipeline';
+import { PALETTES, applyPalette, paletteOf } from '../core/plates';
 import { componentName, toReact, toSvg } from '../core/svg';
 import { addHandle, duplicateSource, removeHandle, removeSource, setHandle, updateSource } from './edits';
 import { Advanced, CheckField, Choice, ColorField, Icon, NumberField, TextField } from './controls';
 import { fileStem, saveBlob, saveDownload } from './files';
 import { previewState } from './jobs';
+import { PRINT_SIZES, blockText, drawPrint, layoutPrint, plateFor, printScene, type PrintSize } from './prints';
 import { drawArtwork } from './render';
+import { SideJobs } from './side-jobs';
 import { SAMPLE_SPACING, GRID_SAMPLE_SPACING } from './report';
 import type { EditorState, EditorStore } from './store';
 
@@ -244,7 +247,45 @@ export function LinesPanel({ store }: PanelProps) {
         onChange={(base) => patch('levels', { base }, 'base')}
       />
 
-      <h3>Weight and colour</h3>
+      <h3>Ink and paper</h3>
+      <div className="inks" role="group" aria-label="Palette">
+        {PALETTES.map((palette) => (
+          <button
+            key={palette.id}
+            type="button"
+            className="ink"
+            aria-pressed={paletteOf(scene) === palette}
+            title={palette.name}
+            onClick={() => store.edit(applyPalette(scene, palette), 'style.palette')}
+          >
+            <span
+              className="ink-chip"
+              aria-hidden="true"
+              style={{ background: palette.paper, color: palette.ink, borderColor: palette.tint }}
+            />
+            {palette.name}
+          </button>
+        ))}
+      </div>
+      <ColorField
+        label="Line colour"
+        value={style.stroke}
+        onChange={(stroke) => patch('style', { stroke }, 'stroke')}
+      />
+      <CheckField
+        label="Print the paper"
+        checked={style.background !== null}
+        onChange={(on) => patch('style', { background: on ? '#f7f4ec' : null }, 'background')}
+      />
+      {style.background !== null && (
+        <ColorField
+          label="Paper"
+          value={style.background}
+          onChange={(background) => patch('style', { background }, 'backgroundColor')}
+        />
+      )}
+
+      <h3>Weight</h3>
       <NumberField
         label="Line weight"
         value={style.strokeWidth}
@@ -257,6 +298,38 @@ export function LinesPanel({ store }: PanelProps) {
         onChange={(strokeWidth) => patch('style', { strokeWidth }, 'strokeWidth')}
       />
       <NumberField
+        label="Heavier line every"
+        value={style.indexEvery}
+        min={0}
+        max={32}
+        step={1}
+        hint="An index line, as on a survey map. 0 turns this off."
+        onChange={(indexEvery) => patch('style', { indexEvery: Math.round(indexEvery) }, 'indexEvery')}
+      />
+      {style.indexEvery > 0 && (
+        <NumberField
+          label="Heavier weight"
+          value={style.indexWidth}
+          min={LIMITS.strokeWidth.min}
+          max={8}
+          step={0.05}
+          digits={2}
+          unit="units"
+          onChange={(indexWidth) => patch('style', { indexWidth }, 'indexWidth')}
+        />
+      )}
+      <NumberField
+        label="Taper"
+        value={style.taper}
+        min={0}
+        max={1}
+        step={0.01}
+        digits={2}
+        slider
+        hint="Thins the lowest lines. 0 draws every line at its weight."
+        onChange={(taper) => patch('style', { taper }, 'taper')}
+      />
+      <NumberField
         label="Fade"
         value={style.fade}
         min={0}
@@ -267,21 +340,30 @@ export function LinesPanel({ store }: PanelProps) {
         hint="Fades the lowest lines. 0 draws all lines at full strength."
         onChange={(fade) => patch('style', { fade }, 'fade')}
       />
-      <ColorField
-        label="Line colour"
-        value={style.stroke}
-        onChange={(stroke) => patch('style', { stroke }, 'stroke')}
+
+      <h3>Tint</h3>
+      <NumberField
+        label="Tint"
+        value={style.tint}
+        min={-1}
+        max={1}
+        step={0.01}
+        digits={2}
+        slider
+        hint={
+          style.tint === 0
+            ? 'One flat pass of colour for each line. Above 0 it deepens with height, below 0 with depth.'
+            : style.tint > 0
+              ? 'Deepens with height. The file grows, because each pass repeats its line as a shape.'
+              : 'Deepens with depth. The file grows, because each pass repeats its line as a shape.'
+        }
+        onChange={(tint) => patch('style', { tint }, 'tint')}
       />
-      <CheckField
-        label="Fill the background"
-        checked={style.background !== null}
-        onChange={(on) => patch('style', { background: on ? '#fbf8f4' : null }, 'background')}
-      />
-      {style.background !== null && (
+      {style.tint !== 0 && (
         <ColorField
-          label="Background"
-          value={style.background}
-          onChange={(background) => patch('style', { background }, 'backgroundColor')}
+          label="Tint colour"
+          value={style.tintColor}
+          onChange={(tintColor) => patch('style', { tintColor }, 'tintColor')}
         />
       )}
 
@@ -329,26 +411,7 @@ export function LinesPanel({ store }: PanelProps) {
         </button>
       </div>
 
-      <Advanced title="Index lines, frame and fine detail">
-        <NumberField
-          label="Heavier line every"
-          value={style.indexEvery}
-          min={0}
-          max={32}
-          step={1}
-          hint="0 turns this off."
-          onChange={(indexEvery) => patch('style', { indexEvery: Math.round(indexEvery) }, 'indexEvery')}
-        />
-        <NumberField
-          label="Heavier weight"
-          value={style.indexWidth}
-          min={LIMITS.strokeWidth.min}
-          max={8}
-          step={0.05}
-          digits={2}
-          unit="units"
-          onChange={(indexWidth) => patch('style', { indexWidth }, 'indexWidth')}
-        />
+      <Advanced title="Frame and fine detail">
         <NumberField
           label="Texture layers"
           value={noise.octaves}
@@ -460,6 +523,12 @@ function ExportReportTable({ state }: { state: EditorState }) {
           <dt title={`Sampled estimate against the full lines, every ${(fresh?.distance.spacing ?? SAMPLE_SPACING).toFixed(2)} units`}>Measured in the file</dt>
           <dd>{fresh ? `${fresh.distance.sampled.toFixed(3)} units` : '...'}</dd>
         </div>
+        {fresh && fresh.tint.bytes > 0 && (
+          <div>
+            <dt title="Each tint pass repeats its line as a filled shape. The sizes above are for the lines alone">Tint adds to the file</dt>
+            <dd>{formatBytes(fresh.tint.bytes)}, {formatBytes(fresh.tint.gzipBytes)} gzipped</dd>
+          </div>
+        )}
         <div>
           <dt title={`How far the full lines may sit from the true field. A finer grid reduces this. First-order estimate, every ${(fresh?.grid.spacing ?? GRID_SAMPLE_SPACING).toFixed(1)} units`}>Grid error, worst estimate</dt>
           <dd>{fresh ? `${fresh.grid.max.toFixed(3)} units` : '...'}</dd>
@@ -502,6 +571,34 @@ async function renderPng(store: EditorStore): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
+/** Prints are computed apart from the editor, on a worker made the first time one is asked for. */
+let printJobs: SideJobs | null = null;
+
+/** Grid cells on the long side of a print. Finer than the default, for the larger sheet. */
+const PRINT_GRID = 1024;
+
+async function renderPrint(store: EditorStore, size: PrintSize, titleBlock: boolean): Promise<Blob | null> {
+  const scene = store.scene;
+  const plate = plateFor(scene);
+  const layout = layoutPrint(size, titleBlock);
+  const sized = printScene(plate, scene, size, layout, 'scene');
+  printJobs ??= new SideJobs('worker');
+  const [geometry] = await Promise.all([
+    printJobs.compute(sized, 'final', Math.max(PRINT_GRID, scene.export.resolution)),
+    document.fonts.load("400 48px 'Geist Serif'"),
+    document.fonts.load("400 24px 'Geist'"),
+  ]);
+  const canvas = document.createElement('canvas');
+  canvas.width = layout.width;
+  canvas.height = layout.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  // A print is a sheet, so it always has paper, even when the SVG is transparent.
+  const onPaper = sized.style.background ? sized : { ...sized, style: { ...sized.style, background: '#f7f4ec' } };
+  drawPrint(ctx, geometry, onPaper, layout, blockText(plate, scene));
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
 export function ExportPanel({ store, state }: PanelProps) {
   const scene = store.scene;
   const ex = scene.export;
@@ -509,6 +606,8 @@ export function ExportPanel({ store, state }: PanelProps) {
     store.edit({ ...scene, export: { ...ex, ...change } }, `export.${key}`);
   const ready = store.exportReady;
   const [feedback, setFeedback] = useState('');
+  const [titleBlock, setTitleBlock] = useState(true);
+  const [drawing, setDrawing] = useState<string | null>(null);
   const { rect } = outputRect(scene);
   const stem = fileStem(scene);
 
@@ -608,6 +707,38 @@ export function ExportPanel({ store, state }: PanelProps) {
           onChange={(decimals) => set({ decimals: Math.round(decimals) }, 'decimals')}
         />
       </Advanced>
+
+      <div className="sizes" role="group" aria-label="Ready sizes">
+        <p className="sizes-title">Ready sizes, from the same field</p>
+        {PRINT_SIZES.map((size) => (
+          <button
+            key={size.id}
+            type="button"
+            className="size"
+            disabled={!ready || drawing !== null}
+            aria-busy={drawing === size.id || undefined}
+            onClick={async () => {
+              setDrawing(size.id);
+              try {
+                const blob = await renderPrint(store, size, titleBlock);
+                if (blob) {
+                  saveBlob(`${stem}-${size.id}.png`, blob);
+                  say(`Saved ${stem}-${size.id}.png`);
+                } else {
+                  say('That size could not be drawn.');
+                }
+              } catch {
+                say('That size could not be drawn.');
+              }
+              setDrawing(null);
+            }}
+          >
+            <span>{size.label}</span>
+            <span className="size-px">{drawing === size.id ? 'Drawing' : `${size.width} by ${size.height} PNG`}</span>
+          </button>
+        ))}
+        <CheckField label="Title block" checked={titleBlock} onChange={setTitleBlock} />
+      </div>
 
       <div className="export-actions">
         <button
