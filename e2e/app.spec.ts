@@ -3,7 +3,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { computeGeometry } from '../src/core/pipeline';
 import { emptyScene, parseScene, type Scene } from '../src/core/scene';
-import { toSvg } from '../src/core/svg';
+import { linesOnly, toSvg } from '../src/core/svg';
+import { PLATES } from '../src/core/plates';
 import { PRESETS } from '../src/core/presets';
 import { parseSvgPaths, sampledHausdorff } from '../src/core/verify';
 import { HOOK_URL, loadScene, open, readHook, stagePoint, waitForFinal } from './support';
@@ -330,7 +331,7 @@ for (const deviceScaleFactor of [1, 2, 3]) {
     const { text } = await downloadText(page, () =>
       page.getByRole('button', { name: 'Download SVG' }).click(),
     );
-    expect(text).toBe(canonicalSvg(JSON.stringify(PRESETS[0].scene)));
+    expect(text).toBe(canonicalSvg(JSON.stringify(PLATES[0].scene)));
     await context.close();
   });
 }
@@ -549,7 +550,8 @@ test('export numbers follow the composition and hold their bound', async ({ page
   const hook = await readHook(page);
   const scene = JSON.parse(hook.sceneJson) as Scene;
   const geometry = computeGeometry(scene, { quality: 'final' });
-  const distance = sampledHausdorff(geometry.source.flat(), parseSvgPaths(toSvg(geometry, scene)), 0.25);
+  // The bound is about the lines. Tint passes are shapes laid under them.
+  const distance = sampledHausdorff(geometry.source.flat(), parseSvgPaths(toSvg(geometry, linesOnly(scene))), 0.25);
   expect(distance.sampled).toBeLessThanOrEqual(geometry.stats.maxBound);
 });
 
@@ -653,4 +655,53 @@ test('touch can drag a source and pan the sheet', async ({ browser }) => {
   const after = JSON.parse((await readHook(page)).sceneJson).sources[1];
   expect(after.x).toBeGreaterThan(source.x);
   await context.close();
+});
+
+test('a palette, a tint and a taper change the print and never the lines', async ({ page }) => {
+  await open(page);
+  const lines = async () => {
+    const scene = JSON.parse((await readHook(page)).sceneJson) as Scene;
+    return toSvg(computeGeometry(scene, { quality: 'final' }), linesOnly({ ...scene, style: PLATES[0].scene.style }));
+  };
+  const before = await lines();
+  await page.getByRole('button', { name: 'Terracotta', exact: true }).click();
+  await page.getByLabel('Tint', { exact: true }).fill('-0.4');
+  await page.getByLabel('Taper', { exact: true }).fill('0.6');
+  await waitForFinal(page);
+  const scene = JSON.parse((await readHook(page)).sceneJson) as Scene;
+  expect(scene.style.stroke).toBe('#58291a');
+  expect(scene.style.tint).toBe(-0.4);
+  expect(scene.style.taper).toBe(0.6);
+  expect(await lines()).toBe(before);
+});
+
+test('the export panel says what tint adds, and a ready size downloads', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).first().click();
+  await expect(page.locator('.report')).toContainText('Tint adds to the file');
+  const pending = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Phone wallpaper/ }).click();
+  const file = await pending;
+  expect(file.suggestedFilename()).toBe('quiet-ridge-phone.png');
+  const bytes = readFileSync(await file.path());
+  expect(bytes.readUInt32BE(16)).toBe(1290);
+  expect(bytes.readUInt32BE(20)).toBe(2796);
+  // Lines alone: the row goes away with the tint.
+  await page.getByRole('tab', { name: 'Lines' }).click();
+  await page.getByLabel('Tint', { exact: true }).fill('0');
+  await page.getByRole('tab', { name: 'Export' }).click();
+  await waitForFinal(page);
+  await expect(page.locator('.report table')).not.toContainText('...');
+  await expect(page.locator('.report')).not.toContainText('Tint adds to the file');
+});
+
+test('the six plates are offered as starters', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await expect(page.locator('.starter')).toHaveCount(7);
+  await page.locator('.starter', { hasText: 'Archipelago' }).click();
+  await waitForFinal(page);
+  const scene = JSON.parse((await readHook(page)).sceneJson) as Scene;
+  expect(scene.name).toBe('Archipelago');
+  expect(scene.style.background).toBe('#111c17');
 });
