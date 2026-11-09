@@ -15,5 +15,7 @@ run('vite', 'build', '--outDir', 'dist-site/app', '--emptyOutDir');
 // The page uses the serif and the sans. The studio keeps its own full set under app/.
 rmSync('dist-site/fonts/GeistMono-Regular.woff2');
 cpSync('docs/media/walkthrough.mp4', 'dist-site/walkthrough.mp4');
-// The film is of the studio, so the studio is its poster.
+// The film is of the studio, so the studio is its poster. The cover is the page
+// itself, kept at the address a link card may already use.
 cpSync('docs/media/studio.png', 'dist-site/studio.png');
+cpSync('docs/media/cover.png', 'dist-site/cover.png');
