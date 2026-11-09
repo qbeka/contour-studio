@@ -49,6 +49,8 @@ export interface Plate {
   /** I to VI for the set. Empty for a generated plate. */
   numeral: string;
   name: string;
+  /** One line for a list of plates. */
+  summary: string;
   scene: Scene;
   /** The source a first visitor is pointed at. */
   primary: string;
@@ -154,32 +156,33 @@ function plate(
   numeral: string,
   id: string,
   name: string,
+  summary: string,
   scene: Scene,
   primary: string,
   focus: Plate['focus'],
   aspect: Plate['aspect'],
   print: Print,
 ): Plate {
-  return { id, numeral, name, scene: printed(scene, print), primary, focus, aspect };
+  return { id, numeral, name, summary, scene: printed(scene, print), primary, focus, aspect };
 }
 
 // Each starter's field is left alone apart from one source, which is placed so
 // that its rings close around the handle. The page has always shown them this way.
 export const PLATES: readonly Plate[] = [
-  plate('I', 'quiet-ridge', 'Quiet ridge', tune(PRESETS[0].scene, 'summit', { x: 260, y: 312 }), 'summit',
+  plate('I', 'quiet-ridge', 'Quiet ridge', 'A low range with a tint that deepens toward the crest.', tune(PRESETS[0].scene, 'summit', { x: 260, y: 312 }), 'summit',
     { x: 340, y: 320 }, [0.5, 3],
     { palette: 'forest', strokeWidth: 0.85, fade: 0.5, taper: 0.3, indexEvery: 5, indexWidth: 1.5, tint: 0.5 }),
-  plate('II', 'asymmetric-basin', 'Tall basin', tune(PRESETS[1].scene, 'island', { radius: 96, height: 0.78 }), 'island',
+  plate('II', 'asymmetric-basin', 'Tall basin', 'A deep bowl with one steep wall, tinted like water.', tune(PRESETS[1].scene, 'island', { radius: 96, height: 0.78 }), 'island',
     { x: 500, y: 500 }, [0.5, 0.8],
     { palette: 'indigo', strokeWidth: 0.8, fade: 0.3, taper: 0, indexEvery: 5, indexWidth: 1.5, tint: -0.5 }),
-  plate('III', 'interference-study', 'Interference', tune(PRESETS[2].scene, 's6', { name: 'Centre peak', radius: 130, height: 1.32 }), 's6',
+  plate('III', 'interference-study', 'Interference', 'Twelve opposing sources in plain ink, the densest plate.', tune(PRESETS[2].scene, 's6', { name: 'Centre peak', radius: 130, height: 1.32 }), 's6',
     { x: 600, y: 400 }, [0.5, 3],
     { palette: 'ink', strokeWidth: 0.7, fade: 0.35, taper: 0.4, indexEvery: 4, indexWidth: 1.3, tint: 0 }),
-  plate('IV', 'caldera', 'Caldera', caldera(), 'cone', { x: 690, y: 500 }, [0.5, 3],
+  plate('IV', 'caldera', 'Caldera', 'A broken crater rim around a small cone.', caldera(), 'cone', { x: 690, y: 500 }, [0.5, 3],
     { palette: 'terracotta', strokeWidth: 0.8, fade: 0.4, taper: 0.25, indexEvery: 5, indexWidth: 1.5, tint: 0.58 }),
-  plate('V', 'archipelago', 'Archipelago', archipelago(), 'isle5', { x: 800, y: 500 }, [0.5, 3],
+  plate('V', 'archipelago', 'Archipelago', 'Eleven islands and a trench on dark paper.', archipelago(), 'isle5', { x: 800, y: 500 }, [0.5, 3],
     { palette: 'night', strokeWidth: 0.8, fade: 0.45, taper: 0.2, indexEvery: 4, indexWidth: 1.4, tint: 0.7 }),
-  plate('VI', 'terraces', 'Terraces', terraces(), 'knoll', { x: 800, y: 500 }, [0.5, 3],
+  plate('VI', 'terraces', 'Terraces', 'A hillside cut by two banks and a river.', terraces(), 'knoll', { x: 800, y: 500 }, [0.5, 3],
     { palette: 'forest', strokeWidth: 0.75, fade: 0.55, taper: 0.35, indexEvery: 5, indexWidth: 1.45, tint: 0.42 }),
 ];
 
@@ -335,7 +338,7 @@ export function generatePlate(seedInput: number): Plate {
     },
     { palette: palette.id, strokeWidth: 0.8, fade: cents(0.3, 0.55), taper: cents(0.15, 0.4), indexEvery: pick([4, 5]), indexWidth: 1.45, tint },
   );
-  return { id: `seed-${seed}`, numeral: '', name, scene, primary, focus: { x: W / 2, y: H / 2 }, aspect: [0.5, 3], seed };
+  return { id: `seed-${seed}`, numeral: '', name, summary: `Composition number ${seed}.`, scene, primary, focus: { x: W / 2, y: H / 2 }, aspect: [0.5, 3], seed };
 }
 
 /**
