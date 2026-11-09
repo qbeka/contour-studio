@@ -2,13 +2,28 @@
 
 *Shape a field, tune its lines, and export a small SVG with a measured error.*
 
-![Contour with the interference study open and one source selected](docs/media/cover.png)
+![The Contour page with the Quiet ridge plate, its title block, five inks and six plates](docs/media/cover.png)
 
-**[Try it](https://www.qendrimbeka.com/projects/contour/)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/) | [Walkthrough, 68 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
+**[Try it](https://www.qendrimbeka.com/projects/contour/)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/) | [Walkthrough, 73 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
 Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines follow. When you stop, the canvas shows the same numbers the file will contain, and the Export panel tells you the file size and how far simplifying moved the lines.
 
 It runs in your browser, with no account, server or API key.
+
+![Six plates: Quiet ridge, Tall basin, Interference, Caldera, Archipelago and Terraces](docs/media/plates.png)
+
+Each plate is a field with its own print: heavier index lines, weights that taper with height, and a flat tint laid under the lines. The tint is built from the lines themselves, so its edges always sit on them. Five inks change the print and never the geometry.
+
+## On the page
+
+The [page](https://www.qendrimbeka.com/projects/contour/) is the quickest way in.
+
+1. Drag any point, or throw it and let it glide. Double click the paper to add a peak.
+2. Pick a plate or an ink, or press New for a composition made from a seed.
+3. Copy the address. It holds the plate or seed, the ink and your edits, so the link opens the same drawing.
+4. Export the SVG as drawn, or a desktop wallpaper, a phone wallpaper or a poster drawn from the same field at that shape.
+
+![A poster, a phone wallpaper and a desktop wallpaper exported from the Caldera plate](docs/media/prints.png)
 
 ## Run it
 
@@ -28,13 +43,16 @@ pnpm dev
 
 Open http://localhost:5173. It starts on a finished scene, so you can drag straight away.
 
-## Use it
+## In the studio
+
+![The studio with the Caldera plate open and its inner cone selected](docs/media/studio.png)
 
 1. Drag a handle on the sheet to move a source. Every line responds.
 2. Press `P` and click to add a peak. Press `R` and click to draw a ridge, then press `Enter` to finish it.
 3. Adjust Height, Reach, Line gap and Texture in the right column. Numbers can be typed.
-4. Open **Export**, choose a line detail, and read the file size and error for your composition.
-5. Download an SVG, a React component or a PNG. Save the scene file to keep editing it later.
+4. Choose an ink, and set index lines, taper and tint under **Lines**.
+5. Open **Export**, choose a line detail, and read the file size and error for your composition. If the scene has a tint, the panel says what it adds to the file.
+6. Download an SVG, a React component, a PNG or one of the ready sizes. Save the scene file to keep editing it later.
 
 Your work saves itself in the browser. Press `?` at any time for every shortcut. `Cmd+Z` undoes.
 
@@ -48,7 +66,7 @@ Your work saves itself in the browser. Press `?` at any time for every shortcut.
 <path d="M1410.7 80l-16.7 4.3-25.7 6.2-14 3.2-16.8 3-22.1 3.2 ..."/>
 ```
 
-There are no scripts, styles, external references or hidden data. Every contour is its own `<path>`, so it stays editable. The same export is available as a static React component:
+There are no scripts, styles, external references or hidden data. Every contour is its own `<path>`, so it stays editable. A tint adds one group of filled paths under the lines, one for each level, and nothing else. The same export is available as a static React component:
 
 ```tsx
 import { QuietRidgeArtwork } from './QuietRidgeArtwork';
@@ -56,7 +74,7 @@ import { QuietRidgeArtwork } from './QuietRidgeArtwork';
 <QuietRidgeArtwork className="hero-lines" aria-hidden="true" />;
 ```
 
-Finished examples are in [artwork/](artwork), each with the SVG, its editable scene, a React component and a PNG. The quiet ridge SVG is 17 KB, or 6 KB gzipped.
+Finished examples are in [artwork/](artwork), each with the SVG, its editable scene, a React component and a PNG. They are plain lines. The quiet ridge SVG is 17 KB, or 6 KB gzipped.
 
 ## Results
 
@@ -75,6 +93,8 @@ Measured on an Apple M5 Pro laptop on AC power, with other work running on it. T
 | Output repeatability | Identical bytes | Chromium, Firefox, WebKit, Node | One workflow's scene |
 | Renderers | Within 1 px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads 4 px or more |
 <!-- /results -->
+
+Every row was measured on plain lines, before tint existed. Tint changes no line, and it roughly doubles the bytes of a file before compression, because each pass repeats its line as a shape. The report has the numbers for each plate.
 
 These timings come from one fast machine, and nobody outside this project has used the tool yet. Path editing was checked in paper.js, not in a desktop vector editor. The worker does not make drafts faster. It keeps the page from freezing on heavy scenes.
 
@@ -95,6 +115,7 @@ output geometry  ->  canvas preview and SVG print the same numbers
 - **Crossings are identified by grid edge**, never by position. Neighbouring cells share an integer, so cracks cannot occur and no joining tolerance exists.
 - **Ambiguous cells** use the asymptotic decider. Ties have one written rule.
 - **Simplification** has a proved bound. Paths that would break a topology rule are retried at finer settings, per path, and the export reports it.
+- **Tint** never samples the field. Every path runs with the higher ground on its left, so a path that leaves the frame is closed along the frame's edge until the next one comes in.
 - **Drafts and finals** run in a worker, with a main thread fallback. A newer edit cancels a running final, and results commit in scene order, so an old render cannot overwrite a newer drag.
 
 The full model and proofs are in [docs/GEOMETRY.md](docs/GEOMETRY.md).
@@ -107,7 +128,8 @@ The full model and proofs are in [docs/GEOMETRY.md](docs/GEOMETRY.md).
 | `pnpm build` | Type checks and builds the static app into `dist` |
 | `pnpm check` | Type checks |
 | `pnpm test` | Unit, property and regression tests, with seeded negative controls |
-| `pnpm test:e2e` | Browser tests. The core workflow runs in Chromium, Firefox and WebKit |
+| `pnpm build:site` | Builds the project page and the studio into `dist-site` |
+| `pnpm test:e2e` | Browser tests of the built site. The core workflows run in Chromium, Firefox and WebKit |
 | `pnpm bench:smoke` | One short pass, to check the harness |
 | `pnpm bench` | The frozen plan in [docs/BENCH_PLAN.md](docs/BENCH_PLAN.md). Takes a few minutes |
 
