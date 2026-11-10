@@ -6,16 +6,17 @@
 import { GeometryClient, type Engine } from '../src/app/geometry-client';
 import { addPeak, hasRoom, removeSource, setHandle, updateSource } from '../src/app/edits';
 import { saveBlob } from '../src/app/files';
-import { drawArtwork, drawLog } from '../src/app/render';
+import { drawArtwork, drawLog, drawRelief } from '../src/app/render';
 import { startSession } from '../src/app/session';
 import { EditorStore, type EditorState } from '../src/app/store';
 import type { Geometry } from '../src/core/pipeline';
 import { PALETTES, PLATES, SEED_LIMIT, applyPalette, frameFor, generatePlate, paletteOf, type Palette, type Plate } from '../src/core/plates';
+import { clampLamp, reliefFile } from '../src/core/relief';
 import type { Rect, Scene, Source } from '../src/core/scene';
-import { toSvg } from '../src/core/svg';
+import { linesOnly, toSvg } from '../src/core/svg';
 import { ExportHold, type HoldState } from './export-hold';
-import { isOriginal, readLink, writeLink } from './link';
-import { PRINT_SIZES, blockText, drawPrint, keySteps, layoutPrint, printScene, type PrintSize } from '../src/app/prints';
+import { isOriginal, readLink, writeLink, type Look } from './link';
+import { PRINT_SIZES, blockText, drawPrint, keySteps, layoutPrint, printScene, reliefText, type PrintSize } from '../src/app/prints';
 import { SideJobs } from '../src/app/side-jobs';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -32,6 +33,8 @@ const exportsPanel = $('exports');
 const exportRows = $('export-rows');
 const plateStrip = $('plates');
 const wells = $('wells');
+const lampHandle = $<HTMLButtonElement>('lamp');
+const viewButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-view]')];
 const addButton = $<HTMLButtonElement>('add');
 const undoButton = $<HTMLButtonElement>('undo');
 const resetButton = $<HTMLButtonElement>('reset');
@@ -48,6 +51,8 @@ const NUDGE_LARGE = 50;
 const DRAG_SLOP_PX = 3;
 const SAVED_MS = 1800;
 const CROSSFADE_MS = 240;
+/** How long the card takes to rise off the board when the relief is chosen. */
+const LIFT_MS = 620;
 const DOUBLE_MS = 340;
 const DOUBLE_PX = 24;
 
@@ -66,6 +71,13 @@ if (opened.plate.seed !== undefined) {
   made.set(madeKey(opened.plate.scene), opened.plate);
   latestMade = opened.plate;
 }
+
+/* The look: a line print, or the same drawing as cut card under a lamp */
+
+const look: Look = { view: opened.look.view, lamp: { ...opened.look.lamp } };
+/** How far the card stands off the board, from 0 to 1. */
+let lift = look.view === 'relief' ? 1 : 0;
+stage.dataset.view = look.view;
 
 function plateOf(scene: Scene): Plate {
   return PLATES.find((p) => p.scene.name === scene.name) ?? made.get(madeKey(scene)) ?? PLATES[0];
@@ -145,9 +157,36 @@ function requestPaint(): void {
   if (!frame) frame = requestAnimationFrame(paint);
 }
 
+/**
+ * Thrift. A machine that draws the canvas on the main thread can take longer than
+ * a frame to fill a large print. When two frames in a row run long while something
+ * is moving, the canvas drops to fewer pixels and stays there for the visit.
+ */
+const SLOW_FRAME_MS = 42;
+const THRIFT_RATIOS = [1, 0.75, 0.5];
+let thrift = 0;
+let slowFrames = 0;
+
+const inMotion = () => Boolean(drag || lampDrag || liftFrame || drift.frame);
+
+function watchFrame(paintedAt: number): void {
+  if (thrift >= THRIFT_RATIOS.length || !inMotion()) return;
+  requestAnimationFrame((now) => {
+    if (now - paintedAt <= SLOW_FRAME_MS) {
+      slowFrames = 0;
+      return;
+    }
+    if (++slowFrames < 2) return;
+    slowFrames = 0;
+    thrift++;
+    stage.dataset.thrift = String(thrift);
+  });
+}
+
 function sizeCanvas(): number {
   // Beyond 2x the lines look the same and the canvas costs four times as much.
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const full = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = thrift === 0 ? full : Math.min(full, THRIFT_RATIOS[thrift - 1]);
   const width = Math.round(area.width * dpr);
   const height = Math.round(area.height * dpr);
   if (canvas.width !== width || canvas.height !== height) {
@@ -170,19 +209,158 @@ function crossfade(): void {
 /** Line weights stay in screen px here, so a phone gets the same weight as a desktop. */
 const onScreen = (scene: Scene): Scene => ({ ...scene, export: { ...scene.export, strokeScaling: 'fixed' } });
 
-function paint(): void {
+function paint(at = performance.now()): void {
   frame = 0;
   const geometry = drift.geometry ?? store.getState().geometry;
   if (!geometry) return;
+  watchFrame(at);
   const scene = store.scene;
-  const look = `${plateOf(scene).id}|${scene.style.stroke}|${scene.style.background}`;
-  if (paintedLook && paintedLook !== look) crossfade();
-  paintedLook = look;
+  const shown = `${plateOf(scene).id}|${scene.style.stroke}|${scene.style.background}|${look.view}`;
+  if (paintedLook && paintedLook !== shown) crossfade();
+  paintedLook = shown;
   const dpr = sizeCanvas();
   context.setTransform(1, 0, 0, 1, 0, 0);
   context.clearRect(0, 0, canvas.width, canvas.height);
-  drawArtwork(context, geometry, onScreen(scene), { ...viewFor(geometry.rect), dpr });
+  const transform = { ...viewFor(geometry.rect), dpr };
+  if (look.view === 'relief') drawRelief(context, geometry, scene, transform, look.lamp, lift);
+  else drawArtwork(context, geometry, onScreen(scene), transform);
   stage.classList.add('drawn');
+}
+
+/* The relief: the card rises off the board, and a lamp over the sheet can be moved */
+
+let liftFrame = 0;
+
+function raise(): void {
+  cancelAnimationFrame(liftFrame);
+  liftFrame = 0;
+  if (stillPage.matches) {
+    lift = 1;
+    return;
+  }
+  const started = performance.now();
+  lift = 0;
+  const step = (now: number) => {
+    const t = Math.min(1, (now - started) / LIFT_MS);
+    // Quick off the board, then slow to its height.
+    lift = 1 - (1 - t) ** 3;
+    cancelAnimationFrame(frame);
+    paint(now);
+    liftFrame = t < 1 ? requestAnimationFrame(step) : 0;
+  };
+  liftFrame = requestAnimationFrame(step);
+}
+
+function setView(view: Look['view']): void {
+  if (view === look.view) return;
+  endDrag();
+  look.view = view;
+  stage.dataset.view = view;
+  file = null;
+  if (view === 'relief') raise();
+  else {
+    cancelAnimationFrame(liftFrame);
+    liftFrame = 0;
+    lift = 0;
+  }
+  syncLook();
+  syncLegend();
+  syncLive();
+  cancelAnimationFrame(frame);
+  paint();
+  repaintThumbs();
+  scheduleLink();
+  say(view === 'relief' ? 'Paper relief, cut along the same lines.' : 'Line print.');
+}
+
+/** The lamp's place on the stage, in px. */
+function lampOnStage(): { x: number; y: number } {
+  const { clip } = store.scene;
+  const view = viewFor(clip);
+  return {
+    x: (clip.x + clip.width * look.lamp.u) * view.scale + view.x,
+    y: (clip.y + clip.height * look.lamp.v) * view.scale + view.y,
+  };
+}
+
+function syncLook(): void {
+  for (const button of viewButtons) button.setAttribute('aria-pressed', String(button.dataset.view === look.view));
+  lampHandle.hidden = look.view !== 'relief';
+  if (lampHandle.hidden) return;
+  const at = lampOnStage();
+  lampHandle.style.transform = `translate3d(${at.x}px, ${at.y}px, 0)`;
+  lampHandle.toggleAttribute('data-hint-below', at.y < 52);
+  lampHandle.dataset.hintEdge = at.x < HINT_REACH ? 'start' : at.x > area.width - HINT_REACH ? 'end' : 'middle';
+}
+
+/** Moves the lamp to a place on the stage, kept on the sheet. */
+function moveLamp(px: number, py: number): void {
+  const { clip } = store.scene;
+  const view = viewFor(clip);
+  look.lamp = clampLamp({
+    u: ((px - view.x) / view.scale - clip.x) / clip.width,
+    v: ((py - view.y) / view.scale - clip.y) / clip.height,
+  });
+  file = null;
+  syncLook();
+  requestPaint();
+}
+
+let lampDrag: { pointer: number; grabX: number; grabY: number } | null = null;
+
+function endLampDrag(): void {
+  if (!lampDrag) return;
+  if (lampHandle.hasPointerCapture(lampDrag.pointer)) lampHandle.releasePointerCapture(lampDrag.pointer);
+  lampDrag = null;
+  stage.removeAttribute('data-lighting');
+  repaintThumbs();
+  syncLive();
+  scheduleLink();
+  touched();
+}
+
+lampHandle.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  endDrag();
+  closePanel();
+  lampHandle.removeAttribute('data-fresh');
+  lampHandle.focus({ preventScroll: true });
+  lampHandle.setPointerCapture(event.pointerId);
+  const at = stagePoint(event);
+  const lamp = lampOnStage();
+  lampDrag = { pointer: event.pointerId, grabX: lamp.x - at.x, grabY: lamp.y - at.y };
+  stage.setAttribute('data-lighting', '');
+});
+lampHandle.addEventListener('pointermove', (event) => {
+  if (!lampDrag || event.pointerId !== lampDrag.pointer) return;
+  const at = stagePoint(event);
+  moveLamp(at.x + lampDrag.grabX, at.y + lampDrag.grabY);
+});
+lampHandle.addEventListener('pointerup', endLampDrag);
+lampHandle.addEventListener('pointercancel', endLampDrag);
+lampHandle.addEventListener('lostpointercapture', endLampDrag);
+lampHandle.addEventListener('keydown', (event) => {
+  const step = event.shiftKey ? 0.1 : 0.02;
+  const moves: Record<string, [number, number]> = {
+    ArrowLeft: [-step, 0],
+    ArrowRight: [step, 0],
+    ArrowUp: [0, -step],
+    ArrowDown: [0, step],
+  };
+  const move = moves[event.key];
+  if (!move) return;
+  event.preventDefault();
+  lampHandle.removeAttribute('data-fresh');
+  look.lamp = clampLamp({ u: look.lamp.u + move[0], v: look.lamp.v + move[1] });
+  file = null;
+  syncLook();
+  requestPaint();
+  syncLive();
+  scheduleLink();
+});
+
+for (const button of viewButtons) {
+  button.addEventListener('click', () => setView(button.dataset.view === 'relief' ? 'relief' : 'lines'));
 }
 
 /* The idle drift: the levels rise and fall a little, and every line breathes with them. */
@@ -213,6 +391,8 @@ function driftWanted(): boolean {
     drift.onScreen &&
     !document.hidden &&
     !drag &&
+    !lampDrag &&
+    !liftFrame &&
     !stage.dataset.panel &&
     hold.state === 'idle' &&
     store.exportReady &&
@@ -572,15 +752,53 @@ function flushDrag(): void {
   store.gesture(setHandle(store.scene, drag.mark.id, drag.mark.index, x, y));
 }
 
-function beginDrag(mark: Mark, event: PointerEvent): void {
+/** How far from its centre a mark can be pressed, in px. */
+const MARK_REACH = 22;
+
+/**
+ * The mark whose centre is nearest a place on the stage. Two marks can sit closer
+ * than their press areas are wide, and then the one on top would take every press.
+ */
+function nearestMark(at: { x: number; y: number }): Mark | null {
+  let best: Mark | null = null;
+  let least = MARK_REACH + 1;
+  for (const mark of marks) {
+    if (mark.el.hidden) continue;
+    const d = Math.hypot(mark.x - at.x, mark.y - at.y);
+    if (d < least) {
+      least = d;
+      best = mark;
+    }
+  }
+  return best;
+}
+
+let nearMark: Mark | null = null;
+
+function setNear(mark: Mark | null): void {
+  if (mark === nearMark) return;
+  nearMark?.el.removeAttribute('data-near');
+  nearMark = mark;
+  mark?.el.setAttribute('data-near', '');
+}
+
+// Hover follows the nearest mark as well, so what lights up is what a press will take.
+marksLayer.addEventListener('pointermove', (event) => {
+  if (drag || event.pointerType === 'touch') return;
+  setNear(nearestMark(stagePoint(event)));
+});
+marksLayer.addEventListener('pointerleave', () => setNear(null));
+
+function beginDrag(pressed: Mark, event: PointerEvent): void {
   if (event.button !== 0) return;
   // Catching a mark in flight carries straight on from where it is.
   if (drag) endDrag();
   endInvite();
+  const at = stagePoint(event);
+  const mark = nearestMark(at) ?? pressed;
   mark.el.focus({ preventScroll: true });
   select(mark);
   mark.el.setPointerCapture(event.pointerId);
-  const at = stagePoint(event);
   drag = {
     mark,
     pointer: event.pointerId,
@@ -899,6 +1117,8 @@ interface Tile {
   button: HTMLButtonElement;
   canvas: HTMLCanvasElement | null;
   label: HTMLSpanElement;
+  /** What the thumbnail was last drawn from, kept so a change of view only redraws. */
+  drawn: { plate: Plate; geometry: Geometry; scene: Scene; clip: Rect; width: number } | null;
 }
 
 const THUMB_GRID = 96;
@@ -921,12 +1141,29 @@ function drawThumb(tile: Tile): void {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       thumb.width = Math.round(width * dpr);
       thumb.height = Math.round(height * dpr);
-      const ctx = thumb.getContext('2d') as CanvasRenderingContext2D;
-      const scale = width / clip.width;
-      drawArtwork(ctx, geometry, scene, { scale, x: -clip.x * scale, y: -clip.y * scale, dpr });
+      tile.drawn = { plate, geometry, scene, clip, width };
+      paintThumb(tile);
     },
     () => {},
   );
+}
+
+function repaintThumbs(): void {
+  if (!built) return;
+  for (const tile of [...tiles, newTile]) paintThumb(tile);
+}
+
+/** A thumbnail shows its plate in the view the stage is in. */
+function paintThumb(tile: Tile): void {
+  const { drawn, canvas: thumb } = tile;
+  if (!drawn || !thumb || drawn.plate !== tile.plate) return;
+  const ctx = thumb.getContext('2d') as CanvasRenderingContext2D;
+  const scale = drawn.width / drawn.clip.width;
+  const transform = { scale, x: -drawn.clip.x * scale, y: -drawn.clip.y * scale, dpr: thumb.width / drawn.width };
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, thumb.width, thumb.height);
+  if (look.view === 'relief') drawRelief(ctx, drawn.geometry, drawn.scene, transform, look.lamp);
+  else drawArtwork(ctx, drawn.geometry, drawn.scene, transform);
 }
 
 function makeTile(plate: Plate | null): Tile {
@@ -934,7 +1171,7 @@ function makeTile(plate: Plate | null): Tile {
   button.type = 'button';
   button.className = 'plate';
   const label = document.createElement('span');
-  const tile: Tile = { plate, button, canvas: null, label };
+  const tile: Tile = { plate, button, canvas: null, label, drawn: null };
   if (plate) {
     tile.canvas = document.createElement('canvas');
     button.append(tile.canvas);
@@ -1025,7 +1262,16 @@ const legendCount = $('legend-count');
 const legendKey = $('legend-key');
 
 /** The file for the drawing as shown, kept until the drawing changes. */
-let file: { revision: number; scale: number; svg: string; tintBytes: number } | null = null;
+interface DrawnFile {
+  revision: number;
+  scale: number;
+  svg: string;
+  /** Bytes of the tint group in a line print. 0 when there is none. */
+  tintBytes: number;
+  /** Set for a relief: its sheets, its copies, and the size of the lines alone for comparison. */
+  relief: { sheets: number; copies: number; linesBytes: number } | null;
+}
+let file: DrawnFile | null = null;
 let fileTimer = 0;
 
 /** Line weights go into the file in drawing units, at the size they have on this stage. */
@@ -1039,15 +1285,21 @@ function fileScene(): Scene {
   };
 }
 
-function currentFile(): { svg: string; tintBytes: number } {
+function currentFile(): DrawnFile {
   const { revision, geometry } = store.getState();
   const { scale } = viewFor(store.scene.clip);
   if (file && file.revision === revision && file.scale === scale) return file;
+  if (look.view === 'relief') {
+    const made = reliefFile(geometry as Geometry, store.scene, look.lamp);
+    const linesBytes = toSvg(geometry as Geometry, linesOnly(fileScene())).length;
+    file = { revision, scale, svg: made.svg, tintBytes: 0, relief: { sheets: made.sheets, copies: made.copies, linesBytes } };
+    return file;
+  }
   const svg = toSvg(geometry as Geometry, fileScene());
   // The tint is one group in the file, so its cost is that group's length.
   const from = svg.indexOf('<g fill=');
   const tintBytes = from < 0 ? 0 : svg.indexOf('</g>', from) + 5 - from;
-  file = { revision, scale, svg, tintBytes };
+  file = { revision, scale, svg, tintBytes, relief: null };
   return file;
 }
 
@@ -1066,14 +1318,24 @@ function syncLive(): void {
   }
   const { geometry } = store.getState();
   const nodes = grouped((geometry as Geometry).stats.outputVertices);
-  legendCount.textContent = `${nodes} nodes`;
+  const inRelief = look.view === 'relief';
+  legendCount.textContent = inRelief ? 'Cut along the lines' : `${nodes} nodes`;
   // Writing the file takes a few ms, so it waits until nothing else is going on.
   fileTimer = window.setTimeout(() => {
-    if (!store.exportReady || store.inGesture) return;
-    const { svg, tintBytes } = currentFile();
-    legendCount.textContent = `${nodes} nodes, ${kb(svg.length)} as SVG`;
-    svgNote.textContent = tintBytes > 0 ? `${kb(svg.length)}, ${nodes} nodes, tint is ${kb(tintBytes)} of it` : `${kb(svg.length)}, ${nodes} nodes, lines only`;
-  }, 140);
+    if (!store.exportReady || store.inGesture || lampDrag) return;
+    const { svg, tintBytes, relief } = currentFile();
+    if (relief) {
+      const more = svg.length - relief.linesBytes;
+      legendCount.textContent = `${relief.sheets} sheets, ${kb(svg.length)} as SVG`;
+      svgNote.textContent = `${kb(svg.length)} for ${relief.sheets} outlines, each reused for its sheet, shadow and lit edge, which is ${kb(Math.abs(more))} ${more < 0 ? 'less' : 'more'} than the lines alone`;
+    } else {
+      legendCount.textContent = `${nodes} nodes, ${kb(svg.length)} as SVG`;
+      svgNote.textContent = tintBytes > 0 ? `${kb(svg.length)}, ${nodes} nodes, tint is ${kb(tintBytes)} of it` : `${kb(svg.length)}, ${nodes} nodes, lines only`;
+    }
+    for (const row of rows) {
+      if (row.wanted !== 'svg') row.note.textContent = `${row.wanted.width} by ${row.wanted.height} px, ${relief ? 'PNG of the relief' : 'PNG'}`;
+    }
+  }, inRelief ? 60 : 140);
 }
 
 function syncLegend(): void {
@@ -1082,7 +1344,7 @@ function syncLegend(): void {
   const text = blockText(plate, scene);
   $('legend-name').textContent = text.name;
   $('legend-mark').textContent = text.mark;
-  $('legend-lines').textContent = text.lines;
+  $('legend-lines').textContent = look.view === 'relief' ? 'Paper relief' : text.lines;
   const steps = keySteps(scene);
   const ordered = scene.style.tint < 0 ? [...steps].reverse() : steps;
   legendKey.replaceChildren(
@@ -1116,9 +1378,16 @@ function syncControls(): void {
 
 let linkTimer = 0;
 
+function scheduleLink(): void {
+  window.clearTimeout(linkTimer);
+  linkTimer = window.setTimeout(() => {
+    if (!store.inGesture && !lampDrag) syncLink();
+  }, 260);
+}
+
 function syncLink(): void {
   const scene = store.scene;
-  const query = writeLink(plateOf(scene), scene, new URLSearchParams(location.search)).toString();
+  const query = writeLink(plateOf(scene), scene, new URLSearchParams(location.search), look).toString();
   const next = `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
   if (next !== `${location.pathname}${location.search}${location.hash}`) history.replaceState(history.state, '', next);
 }
@@ -1138,10 +1407,8 @@ function onStore(): void {
       syncControls();
     }
     syncSheet();
-    window.clearTimeout(linkTimer);
-    linkTimer = window.setTimeout(() => {
-      if (!store.inGesture) syncLink();
-    }, 260);
+    syncLook();
+    scheduleLink();
   }
   if (geometry !== lastGeometry) {
     lastGeometry = geometry;
@@ -1220,6 +1487,12 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     if (event.shiftKey) redo();
     else undo();
+    return;
+  }
+  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.key.toLowerCase() === 'l') {
+    setView(look.view === 'relief' ? 'lines' : 'relief');
+    if (look.view === 'relief' && stage.hasAttribute('data-keys')) lampHandle.focus({ preventScroll: true });
   }
 });
 
@@ -1231,6 +1504,7 @@ type RowState = 'idle' | 'holding' | 'drawing' | 'saved' | 'failed';
 interface Row {
   wanted: Wanted;
   button: HTMLButtonElement;
+  note: HTMLElement;
   timer: number;
 }
 
@@ -1245,8 +1519,8 @@ const buildRows = (): Row[] => (['svg', ...PRINT_SIZES] as Wanted[]).map((wanted
   const title = wanted === 'svg' ? 'SVG, as drawn' : wanted.label;
   const note = wanted === 'svg' ? '' : `${wanted.width} by ${wanted.height} px, PNG`;
   button.innerHTML = `<span><b>${title}</b><small>${note}</small></span><em><span class="on" data-label="idle">Save</span><span data-label="holding">Finishing</span><span data-label="drawing">Drawing</span><span data-label="saved">Saved</span><span data-label="failed">Try again</span></em>`;
-  if (wanted === 'svg') svgNote = button.querySelector('small') as HTMLElement;
-  const row: Row = { wanted, button, timer: 0 };
+  const row: Row = { wanted, button, note: button.querySelector('small') as HTMLElement, timer: 0 };
+  if (wanted === 'svg') svgNote = row.note;
   button.addEventListener('click', () => {
     if (button.getAttribute('aria-busy') === 'true') return;
     pending = row;
@@ -1270,10 +1544,14 @@ function showRow(row: Row, state: RowState): void {
 }
 
 function saveSvg(row: Row): void {
-  const { svg, tintBytes } = currentFile();
-  const name = `${plateOf(store.scene).id}.svg`;
+  const { svg, tintBytes, relief } = currentFile();
+  const name = `${plateOf(store.scene).id}${relief ? '-relief' : ''}.svg`;
   saveBlob(name, new Blob([svg], { type: 'image/svg+xml' }));
-  say(`Saved ${name}, ${kb(svg.length)}${tintBytes > 0 ? `, of which tint is ${kb(tintBytes)}` : ''}.`);
+  say(
+    relief
+      ? `Saved ${name}, ${kb(svg.length)}, with ${relief.sheets} sheets of card and no lines.`
+      : `Saved ${name}, ${kb(svg.length)}${tintBytes > 0 ? `, of which tint is ${kb(tintBytes)}` : ''}.`,
+  );
   showRow(row, 'saved');
 }
 
@@ -1285,6 +1563,8 @@ async function savePrint(row: Row, size: PrintSize): Promise<void> {
   const plate = plateOf(scene);
   const layout = layoutPrint(size, titleBlock.checked);
   const sized = printScene(plate, scene, size, layout);
+  // The look is read now, so a print is of what was on the stage when it was asked for.
+  const lamp = look.view === 'relief' ? { ...look.lamp } : undefined;
   showRow(row, 'drawing');
   say(`Drawing the ${size.label.toLowerCase()}.`);
   try {
@@ -1298,10 +1578,11 @@ async function savePrint(row: Row, size: PrintSize): Promise<void> {
     sheetCanvas.height = layout.height;
     const ctx = sheetCanvas.getContext('2d');
     if (!ctx) throw new Error('No canvas.');
-    drawPrint(ctx, geometry, sized, layout, blockText(plate, scene));
+    const text = blockText(plate, scene);
+    drawPrint(ctx, geometry, sized, layout, lamp ? reliefText(text, reliefFile(geometry, sized, lamp).sheets, scene) : text, lamp);
     const blob = await new Promise<Blob | null>((resolve) => sheetCanvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('No image.');
-    const name = `${plate.id}-${size.id}.png`;
+    const name = `${plate.id}${lamp ? '-relief' : ''}-${size.id}.png`;
     saveBlob(name, blob);
     say(`Saved ${name}, ${(blob.size / 1048576).toFixed(1)} MB.`);
     showRow(row, 'saved');
@@ -1370,6 +1651,7 @@ new ResizeObserver(([entry]) => {
   reframeHistory();
   if (!drag) syncMarks();
   syncSheet();
+  syncLook();
   if (stage.dataset.panel === 'inspector') openPanel('inspector');
   cancelAnimationFrame(frame);
   paint();
@@ -1408,6 +1690,8 @@ window.setTimeout(() => {
   reframeHistory();
   store.subscribe(onStore);
   onStore();
+  syncLook();
+  if (look.view === 'relief') lampHandle.removeAttribute('data-fresh');
   drawThumbs();
   if (latestMade) showMade(latestMade);
 }, 0);
@@ -1423,5 +1707,5 @@ store.subscribe(drawThumbs);
 // Read by the page's browser checks. It gives access to state only, and only when
 // the URL asks for it.
 if (params.has('hook')) {
-  (window as unknown as { __contour: unknown }).__contour = { store, session, hold, drawLog, drift, side, plateOf, currentFile };
+  (window as unknown as { __contour: unknown }).__contour = { store, session, hold, drawLog, drift, side, plateOf, currentFile, look };
 }

@@ -74,19 +74,21 @@ html { scroll-behavior: smooth; }
 .mark[data-kind='point'] i { width: 7px; height: 7px; border-radius: 1px; transform: rotate(45deg); }
 .mark[data-low] i { box-shadow: 0 0 0 1.5px var(--p-ink), inset 0 0 0 2px var(--p-paper), inset 0 0 0 5px var(--p-ink); }
 .mark:active { cursor: grabbing; }
-.mark:active i { transform: scale(.82); }
-.mark[data-kind='point']:active i { transform: rotate(45deg) scale(.82); }
 .mark[data-selected] i { background: var(--p-ink); box-shadow: 0 0 0 2px var(--p-paper), 0 0 0 3.5px var(--p-ink); }
 .stage[data-dragging] { cursor: grabbing; }
 .stage[data-dragging] .mark:not([data-held]) { pointer-events: none; }
+/* Hover is given to the mark nearest the pointer, which is also the one a press takes. */
 @media (hover: hover) {
-  .mark:hover i { transform: scale(1.35); }
-  .mark[data-kind='point']:hover i { transform: rotate(45deg) scale(1.35); }
-  .mark[data-selected]:hover i { transform: scale(1.2); }
-  .mark[data-kind='point'][data-selected]:hover i { transform: rotate(45deg) scale(1.2); }
-  .mark:active i { transform: scale(.82); }
-  .mark[data-kind='point']:active i { transform: rotate(45deg) scale(.82); }
+  .mark[data-near] i { transform: scale(1.35); }
+  .mark[data-kind='point'][data-near] i { transform: rotate(45deg) scale(1.35); }
+  .mark[data-selected][data-near] i { transform: scale(1.2); }
+  .mark[data-kind='point'][data-selected][data-near] i { transform: rotate(45deg) scale(1.2); }
+  .mark[data-held] i { transform: scale(.82); }
+  .mark[data-kind='point'][data-held] i { transform: rotate(45deg) scale(.82); }
 }
+.mark[data-held] i { transform: scale(.82); }
+.mark[data-kind='point'][data-held] i { transform: rotate(45deg) scale(.82); }
+.mark[data-near] { z-index: 1; }
 .mark::after {
   content: ''; position: absolute; inset: 14px; border-radius: 50%; border: 1px solid var(--p-ink);
   opacity: 0; pointer-events: none;
@@ -114,16 +116,53 @@ html { scroll-behavior: smooth; }
 .mark[data-hint-edge='end'] .hint { left: auto; right: 4px; transform: none; }
 .hint .keys { display: none; }
 @media (hover: hover) {
-  .mark:hover .hint { opacity: 1; transition-delay: .5s; }
+  .mark[data-near] .hint { opacity: 1; transition-delay: .5s; }
 }
 .stage[data-keys] .mark:focus-visible .hint { opacity: 1; transition-delay: 0s; }
 .stage[data-keys] .mark:focus-visible .hint .keys { display: inline; }
 .stage[data-keys] .mark:focus-visible .hint .mouse { display: none; }
 .stage[data-dragging] .hint,
+.stage[data-lighting] .hint,
 .stage[data-panel] .hint { display: none; }
 
-/* Ink wells */
-.wells { position: absolute; z-index: 4; top: 12px; right: 12px; display: flex; gap: 2px; padding: 3px; }
+/* The lamp over a relief. It is pressed and dragged like a mark. */
+.lamp {
+  position: absolute; z-index: 3; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0;
+  display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--p-ink);
+  cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.lamp svg { display: block; transition: transform .16s cubic-bezier(.2, 0, 0, 1); }
+.lamp:focus-visible { outline: none; }
+.stage[data-keys] .lamp:focus-visible { outline: 2px solid var(--p-ink); outline-offset: -5px; }
+.lamp:active { cursor: grabbing; }
+.lamp:active svg { transform: scale(.88); }
+@media (hover: hover) {
+  .lamp:hover svg { transform: scale(1.14) rotate(22.5deg); }
+  .lamp:active svg { transform: scale(.88) rotate(22.5deg); }
+  .lamp:hover .hint { opacity: 1; transition-delay: .5s; }
+}
+.stage[data-keys] .lamp:focus-visible .hint { opacity: 1; transition-delay: 0s; }
+.stage[data-keys] .lamp:focus-visible .hint .keys { display: inline; }
+.stage[data-keys] .lamp:focus-visible .hint .mouse { display: none; }
+.lamp[data-hint-below] .hint { bottom: auto; top: calc(100% - 4px); }
+.lamp[data-hint-edge='start'] .hint { left: 4px; transform: none; }
+.lamp[data-hint-edge='end'] .hint { left: auto; right: 4px; transform: none; }
+.lamp::after {
+  content: ''; position: absolute; inset: 12px; border-radius: 50%; border: 1px solid var(--p-ink);
+  opacity: 0; pointer-events: none;
+}
+.lamp[data-fresh]::after { animation: invite 2s cubic-bezier(.2, .6, .2, 1) .7s 3 both; }
+.stage[data-lighting] { cursor: grabbing; }
+.stage[data-lighting] .mark, .stage[data-dragging] .lamp { pointer-events: none; }
+
+/* The tray: the two views, then the ink wells */
+.tray { position: absolute; z-index: 4; top: 12px; right: 12px; display: flex; align-items: center; padding: 3px; }
+.tray :focus-visible { outline-offset: 1px; }
+.views { display: flex; gap: 2px; }
+.view { min-height: 30px; padding: 0 9px 0 7px; gap: 6px; border-radius: 7px; }
+.view svg { flex: none; }
+.tray .divider { margin: 5px 5px; }
+.wells { display: flex; gap: 2px; }
 .well {
   appearance: none; position: relative; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 7px;
   background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
@@ -149,6 +188,7 @@ html { scroll-behavior: smooth; }
 @media (pointer: coarse) {
   .well { width: 40px; height: 40px; }
   .well i { inset: 10px; }
+  .view { min-height: 40px; }
 }
 
 /* The desk: plates on the left, tools on the right */
@@ -305,7 +345,9 @@ html { scroll-behavior: smooth; }
   .legend-name { font-size: 17px; line-height: 21px; }
   .legend-key { margin: 6px 0 5px; }
   .invite { left: 10px; top: 58px; right: 10px; }
-  .wells { top: 8px; right: 8px; }
+  .tray { top: 8px; right: 8px; }
+  .view { padding: 0; width: 34px; }
+  .view span { display: none; }
   .exports { left: 8px; right: 8px; bottom: 8px; width: auto; }
   .inspector, .inspector[data-side='left'] { top: 8px; left: 8px; right: 8px; width: auto; padding: 2px 10px 6px; }
   .inspector[data-edge='bottom'] { top: auto; bottom: 8px; }
@@ -313,10 +355,13 @@ html { scroll-behavior: smooth; }
   .inspector .fields:last-child { display: grid; grid-template-columns: minmax(0, 1fr); }
   .fields + .fields { border-top: 0; margin-top: 0; padding-top: 0; }
   .field { padding: 3px 0 0; }
-  .stage[data-panel='inspector'] .wells { visibility: hidden; }
+  .stage[data-panel='inspector'] .tray { visibility: hidden; }
   .stage[data-panel] .legend { opacity: 0; }
 }
 @container (max-width: 359px) {
+  .tray .divider { margin: 5px 2px; }
+  .well { width: 34px; }
+  .well i { inset: 10px 7px; }
   .actions .control { padding: 0 7px; }
   .actions .control.primary { padding: 0 12px; }
   .legend-live, .legend-key { display: none; }

@@ -48,7 +48,25 @@
 
         <div class="marks" id="marks" role="group" aria-label="Points on the drawing"></div>
 
-        <div class="wells float" id="wells" role="group" aria-label="Ink and paper"></div>
+        <button class="lamp" id="lamp" type="button" hidden data-fresh aria-label="Lamp over the sheet. Drag it or use the arrow keys to move the light.">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true"><g stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M13 2.5v3M13 20.5v3M2.5 13h3M20.5 13h3M5.6 5.6l2.1 2.1M18.3 18.3l2.1 2.1M5.6 20.4l2.1-2.1M18.3 7.7l2.1-2.1"/></g><circle cx="13" cy="13" r="4.4" fill="var(--p-paper)" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="hint" aria-hidden="true"><span class="mouse">Drag the lamp to move the light</span><span class="keys">Arrows move the lamp</span></span>
+        </button>
+
+        <div class="tray float" id="tray">
+          <div class="views" role="group" aria-label="View">
+            <button class="control view" type="button" data-view="lines" aria-pressed="true" aria-label="Line print">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.5 4.5c2.6-2 4.4 1.6 7 0s3.6-1.4 6 0M1.5 8.5c2.6-2 4.4 1.6 7 0s3.6-1.4 6 0M1.5 12.5c2.6-2 4.4 1.6 7 0s3.6-1.4 6 0" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              <span>Lines</span>
+            </button>
+            <button class="control view" type="button" data-view="relief" aria-pressed="false" aria-label="Paper relief">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 10.2l6 3 6-3M2 7.6l6 3 6-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/><path d="M8 2.4l6 3-6 3-6-3 6-3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+              <span>Relief</span>
+            </button>
+          </div>
+          <i class="divider" aria-hidden="true"></i>
+          <div class="wells" id="wells" role="group" aria-label="Ink and paper"></div>
+        </div>
 
         <aside class="inspector float" id="inspector" aria-label="Point and line settings" hidden>
           <header>
