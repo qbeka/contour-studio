@@ -98,9 +98,12 @@ interface Made {
   /** Grid corners shown on the field sheet: one in `every` each way. */
   lattice: { xs: Float64Array; ys: Float64Array; sizes: Float32Array; every: number };
   lines: { extracted: Path2D; kept: Path2D };
-  /** The finished print, drawn flat and then laid on its sheet. */
-  print: HTMLCanvasElement | null;
-  printScale: number;
+  /**
+   * What is on each sheet, drawn flat once and then laid on the sheet at a slant.
+   * Moving the stack is then five images a frame, however many nodes a sheet holds.
+   */
+  flats: (HTMLCanvasElement | null)[];
+  flatScale: number;
 }
 
 function startMade(host: Host): void {
@@ -118,6 +121,8 @@ function startMade(host: Host): void {
   let frame = 0;
   let last = 0;
   let opened = false;
+  /** True while a sheet has yet to be flattened. */
+  let waiting = false;
 
   const layout = (width: number, height: number, clip: Rect) => {
     const pad = width < 520 ? 14 : 28;
@@ -148,16 +153,36 @@ function startMade(host: Host): void {
     const onSheet = (i: number) =>
       ctx.setTransform(dpr * s, 0, dpr * s * SKEW, dpr * s * SQUASH, dpr * (ox - s * clip.x - s * SKEW * clip.y), dpr * (top - i * gap - s * SQUASH * clip.y));
 
-    if (!made.print || made.printScale !== s * dpr) {
+    if (made.flatScale !== s * dpr) {
+      made.flats = made.flats.map(() => null);
+      made.flatScale = s * dpr;
+    }
+    /** Draws one sheet's contents flat, at the size it will have on the page. */
+    const flatten = (i: number): HTMLCanvasElement => {
       const flat = document.createElement('canvas');
       flat.width = Math.max(1, Math.round(clip.width * s * dpr));
       flat.height = Math.max(1, Math.round(clip.height * s * dpr));
+      const to = flat.getContext('2d') as CanvasRenderingContext2D;
       const scale = flat.width / clip.width;
-      drawArtwork(flat.getContext('2d') as CanvasRenderingContext2D, final, fixedWeights(scene), { scale, x: -clip.x * scale, y: -clip.y * scale, dpr: 1 });
-      made.print = flat;
-      made.printScale = s * dpr;
-    }
+      if (i === SHEETS - 1) {
+        drawArtwork(to, final, fixedWeights(scene), { scale, x: -clip.x * scale, y: -clip.y * scale, dpr: 1 });
+        return flat;
+      }
+      to.setTransform(scale, 0, 0, scale, -clip.x * scale, -clip.y * scale);
+      to.strokeStyle = ink;
+      to.fillStyle = ink;
+      to.lineJoin = 'round';
+      to.lineCap = 'round';
+      if (i === 0) drawSources(to, scene, px);
+      else if (i === 1) drawLattice(to, made as Made, px);
+      else if (i === 2) drawNodes(to, (made as Made).extracted, (made as Made).lines.extracted, px, 0.6, 1.2);
+      else drawNodes(to, final, (made as Made).lines.kept, px, 0.9, 1.5);
+      return flat;
+    };
 
+    // One sheet is flattened in a frame at most, so that no frame runs long.
+    let flattened = false;
+    waiting = false;
     for (let i = 0; i < SHEETS; i++) {
       const weight = shown.weight[i];
       // The sheet, with the shade it throws on the one below.
@@ -170,24 +195,15 @@ function startMade(host: Host): void {
       ctx.globalAlpha = 1;
       ctx.fillStyle = paper;
       ctx.fillRect(clip.x, clip.y, clip.width, clip.height);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(clip.x, clip.y, clip.width, clip.height);
-      ctx.clip();
-      ctx.globalAlpha = 0.46 + 0.54 * weight;
-      ctx.strokeStyle = ink;
-      ctx.fillStyle = ink;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      if (i === 0) drawSources(ctx, scene, px);
-      else if (i === 1) drawLattice(ctx, made, px);
-      else if (i === 2) drawNodes(ctx, made.extracted, made.lines.extracted, px, 0.6, 1.5);
-      else if (i === 3) drawNodes(ctx, final, made.lines.kept, px, 0.9, 1.9);
-      else {
-        ctx.globalAlpha = 0.45 + 0.55 * weight;
-        ctx.drawImage(made.print, clip.x, clip.y, clip.width, clip.height);
+      let flat = made.flats[i];
+      if (!flat && !flattened) {
+        flat = made.flats[i] = flatten(i);
+        flattened = true;
       }
-      ctx.restore();
+      if (flat) {
+        ctx.globalAlpha = 0.46 + 0.54 * weight;
+        ctx.drawImage(flat, clip.x, clip.y, clip.width, clip.height);
+      } else waiting = true;
       ctx.globalAlpha = 1;
       ctx.lineWidth = px(1);
       ctx.strokeStyle = `rgba(17, 21, 17, ${0.16 + 0.3 * weight})`;
@@ -197,13 +213,14 @@ function startMade(host: Host): void {
       const cornerX = ox + s * SKEW * clip.height;
       const cornerY = top - i * gap + sheetHeight;
       ctx.globalAlpha = Math.min(1, shown.spread * 2.2);
-      ctx.fillStyle = weight > 0.5 ? '#111511' : '#8d918e';
+      ctx.fillStyle = weight > 0.5 ? '#111511' : '#535753';
       ctx.font = `${weight > 0.5 ? 500 : 400} 12px Geist, system-ui, sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(String(i + 1), cornerX - 9, cornerY + 1);
       ctx.globalAlpha = 1;
     }
+    if (waiting && !frame) frame = requestAnimationFrame(tick);
   }
 
   function tick(now: number): void {
@@ -218,10 +235,15 @@ function startMade(host: Host): void {
       moving = true;
       return next;
     };
-    shown.spread = step(shown.spread, spread);
-    shown.weight = shown.weight.map((value, i) => step(value, i === active ? 1 : 0));
+    if (host.still.matches) {
+      shown.spread = spread;
+      shown.weight = shown.weight.map((_, i) => (i === active ? 1 : 0));
+    } else {
+      shown.spread = step(shown.spread, spread);
+      shown.weight = shown.weight.map((value, i) => step(value, i === active ? 1 : 0));
+    }
     draw();
-    if (moving) frame = requestAnimationFrame(tick);
+    if ((moving || waiting) && !frame) frame = requestAnimationFrame(tick);
   }
 
   function go(): void {
@@ -296,8 +318,8 @@ function startMade(host: Host): void {
         extracted: tracePaths(extracted.levels.flatMap((level) => level.paths)),
         kept: tracePaths(final.levels.flatMap((level) => level.paths)),
       },
-      print: null,
-      printScale: 0,
+      flats: Array.from({ length: SHEETS }, () => null),
+      flatScale: 0,
     };
     describe();
     figure.dataset.ready = '';
