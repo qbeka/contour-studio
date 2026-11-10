@@ -339,6 +339,8 @@ test('automated accessibility scan of the page finds nothing serious', async ({ 
   ];
   for (const enter of states) {
     await enter();
+    // The page arrives over its first half second, and a scan taken while it does reads faded text as faint.
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
     const { violations } = await new AxeBuilder({ page }).analyze();
     const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
