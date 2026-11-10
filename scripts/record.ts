@@ -104,7 +104,25 @@ async function markCentre(page: Page, selector: string) {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-/** The project page: drag, throw, settle, then a few plates and inks. */
+/** Drags the lamp over a relief along a slow arc through the given places. */
+async function sweepLamp(page: Page, stops: { x: number; y: number }[], ms: number): Promise<void> {
+  let from = await markCentre(page, '#lamp');
+  await page.mouse.move(from.x, from.y, { steps: 10 });
+  await page.mouse.down();
+  for (const to of stops) {
+    const steps = Math.round(ms / 16);
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const e = t * t * (3 - 2 * t);
+      await page.mouse.move(from.x + (to.x - from.x) * e, from.y + (to.y - from.y) * e - Math.sin(t * Math.PI) * 50);
+      await page.waitForTimeout(12);
+    }
+    from = to;
+  }
+  await page.mouse.up();
+}
+
+/** The project page: drag, throw, settle, the relief and its lamp, then a few plates and inks. */
 async function signature(): Promise<void> {
   const { page, finish } = await start('?hook=1', PAGE_READY);
   await page.waitForTimeout(1400);
@@ -131,6 +149,13 @@ async function signature(): Promise<void> {
   await page.waitForTimeout(600);
   await page.waitForSelector(PAGE_READY);
   await page.waitForTimeout(1500);
+  // The same lines as cut card, and the lamp moved across it.
+  const relief = await markCentre(page, '[data-view=relief]');
+  await page.mouse.move(relief.x, relief.y, { steps: 16 });
+  await page.mouse.click(relief.x, relief.y);
+  await page.waitForTimeout(1500);
+  await sweepLamp(page, [{ x: 760, y: 300 }, { x: 1080, y: 500 }, { x: 420, y: 260 }], 1300);
+  await page.waitForTimeout(900);
   for (const name of ['Caldera', 'Archipelago', 'Terraces']) {
     const tile = await markCentre(page, `.plate:has-text("${name}")`);
     await glide(page, await page.evaluate(() => ({ x: 640, y: 420 })), tile, 450);
@@ -149,6 +174,15 @@ async function signature(): Promise<void> {
   await page.mouse.click(button.x, button.y);
   await page.waitForTimeout(2200);
   await finish('signature', 0.8);
+}
+
+async function sweepStudioLamp(page: Page, from: { x: number; y: number }): Promise<void> {
+  await page.mouse.move(from.x, from.y, { steps: 10 });
+  await page.mouse.down();
+  await glide(page, from, { x: from.x + 420, y: from.y + 60 }, 1800);
+  await glide(page, { x: from.x + 420, y: from.y + 60 }, { x: from.x + 250, y: from.y + 330 }, 1700);
+  await glide(page, { x: from.x + 250, y: from.y + 330 }, { x: from.x + 40, y: from.y + 30 }, 1700);
+  await page.mouse.up();
 }
 
 async function walkthrough(): Promise<void> {
@@ -222,6 +256,15 @@ async function walkthrough(): Promise<void> {
   await page.waitForTimeout(1000);
   await page.getByLabel('Taper', { exact: true }).fill('0.4');
   await page.waitForTimeout(2400);
+
+  await caption(page, 'The same lines can be cut into card. Drag the lamp and every shadow follows it.');
+  await page.keyboard.press('l');
+  await page.waitForTimeout(1800);
+  const lamp = await markCentre(page, '.lamp-handle');
+  await sweepStudioLamp(page, lamp);
+  await page.waitForTimeout(1400);
+  await page.keyboard.press('l');
+  await page.waitForTimeout(900);
 
   await caption(page, 'Undo steps back one whole gesture. Redo returns it.');
   await page.keyboard.press('ControlOrMeta+z');

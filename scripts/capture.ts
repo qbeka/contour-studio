@@ -38,6 +38,16 @@ async function cover(): Promise<void> {
   await page.context().close();
 }
 
+/** The page with a plate shown as a paper relief, its lamp moved off the corner. */
+async function relief(): Promise<void> {
+  const page = await view(1280, 800);
+  await page.goto(`${BASE}?hook=1&plate=terraces&view=relief&lamp=24.30`);
+  await settled(page);
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${OUT}/relief.png` });
+  await page.context().close();
+}
+
 /** The studio on a plate, with a source selected. */
 async function studio(): Promise<void> {
   const page = await view(1280, 800);
@@ -119,6 +129,7 @@ async function prints(): Promise<void> {
 }
 
 await cover();
+await relief();
 await studio();
 await plates();
 await prints();
