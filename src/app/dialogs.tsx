@@ -119,6 +119,7 @@ const SHORTCUTS: [string, string][] = [
   ['S', 'Snap to a 10 unit grid, or hold Alt to ignore it'],
   ['N', 'Show the exported nodes'],
   ['G', 'Hide the handles to see only the artwork'],
+  ['L', 'Show the drawing as a paper relief, with a lamp you can drag'],
   ['Cmd or Ctrl + S', 'Save the scene file'],
   ['?', 'This list'],
 ];

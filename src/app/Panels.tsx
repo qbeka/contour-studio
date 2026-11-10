@@ -1,16 +1,17 @@
 /** The right column: sources, the selected source, and the Lines and Export tabs. */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LIMITS, type Scene, type Source } from '../core/scene';
 import { outputRect } from '../core/pipeline';
 import { PALETTES, applyPalette, paletteOf } from '../core/plates';
-import { componentName, toReact, toSvg } from '../core/svg';
+import { reliefFile } from '../core/relief';
+import { componentName, linesOnly, toReact, toSvg } from '../core/svg';
 import { addHandle, duplicateSource, removeHandle, removeSource, setHandle, updateSource } from './edits';
 import { Advanced, CheckField, Choice, ColorField, Icon, NumberField, TextField } from './controls';
 import { fileStem, saveBlob, saveDownload } from './files';
 import { previewState } from './jobs';
-import { PRINT_SIZES, blockText, drawPrint, layoutPrint, plateFor, printScene, type PrintSize } from './prints';
-import { drawArtwork } from './render';
+import { PRINT_SIZES, blockText, drawPrint, layoutPrint, plateFor, printScene, reliefText, type PrintSize } from './prints';
+import { drawArtwork, drawRelief } from './render';
 import { SideJobs } from './side-jobs';
 import { SAMPLE_SPACING, GRID_SAMPLE_SPACING } from './report';
 import type { EditorState, EditorStore } from './store';
@@ -205,7 +206,7 @@ export function SourceInspector({ store, state }: PanelProps) {
   );
 }
 
-export function LinesPanel({ store }: PanelProps) {
+export function LinesPanel({ store, state }: PanelProps) {
   const scene = store.scene;
   const patch = <K extends 'levels' | 'style' | 'noise'>(
     group: K,
@@ -215,6 +216,18 @@ export function LinesPanel({ store }: PanelProps) {
   const { levels, style, noise } = scene;
   return (
     <div className="tab-body">
+      <Choice
+        label="Show as"
+        value={state.relief ? 'relief' : 'lines'}
+        options={[
+          { value: 'lines', label: 'Line print' },
+          { value: 'relief', label: 'Paper relief' },
+        ]}
+        onChange={(view) => store.set({ relief: view === 'relief' })}
+      />
+      {state.relief && (
+        <p className="field-hint">One sheet of card for each line, cut along it, under a lamp you can drag on the sheet</p>
+      )}
       <NumberField
         label="Lines"
         value={levels.count}
@@ -562,12 +575,10 @@ async function renderPng(store: EditorStore): Promise<Blob | null> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   const scale = width / rect.width;
-  drawArtwork(ctx, geometry, scene, {
-    scale,
-    x: -rect.x * scale,
-    y: -rect.y * scale,
-    dpr: 1,
-  });
+  const transform = { scale, x: -rect.x * scale, y: -rect.y * scale, dpr: 1 };
+  const { relief, lamp } = store.getState();
+  if (relief) drawRelief(ctx, geometry, scene, transform, lamp);
+  else drawArtwork(ctx, geometry, scene, transform);
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
@@ -582,6 +593,7 @@ async function renderPrint(store: EditorStore, size: PrintSize, titleBlock: bool
   const plate = plateFor(scene);
   const layout = layoutPrint(size, titleBlock);
   const sized = printScene(plate, scene, size, layout, 'scene');
+  const { relief, lamp } = store.getState();
   printJobs ??= new SideJobs('worker');
   const [geometry] = await Promise.all([
     printJobs.compute(sized, 'final', Math.max(PRINT_GRID, scene.export.resolution)),
@@ -595,7 +607,9 @@ async function renderPrint(store: EditorStore, size: PrintSize, titleBlock: bool
   if (!ctx) return null;
   // A print is a sheet, so it always has paper, even when the SVG is transparent.
   const onPaper = sized.style.background ? sized : { ...sized, style: { ...sized.style, background: '#f7f4ec' } };
-  drawPrint(ctx, geometry, onPaper, layout, blockText(plate, scene));
+  const text = blockText(plate, scene);
+  if (relief) drawPrint(ctx, geometry, onPaper, layout, reliefText(text, reliefFile(geometry, onPaper, lamp).sheets, scene), lamp);
+  else drawPrint(ctx, geometry, onPaper, layout, text);
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
@@ -617,6 +631,12 @@ export function ExportPanel({ store, state }: PanelProps) {
   };
 
   const geometry = state.geometry;
+  // The relief as a file, and the lines alone to set its size against.
+  const relief = useMemo(() => {
+    if (!state.relief || !ready || !geometry) return null;
+    return { ...reliefFile(geometry, scene, state.lamp), linesBytes: toSvg(geometry, linesOnly(scene)).length };
+  }, [state.relief, state.lamp, ready, geometry, scene]);
+  const inRelief = state.relief ? '-relief' : '';
   return (
     <div className="tab-body">
       <NumberField
@@ -722,8 +742,8 @@ export function ExportPanel({ store, state }: PanelProps) {
               try {
                 const blob = await renderPrint(store, size, titleBlock);
                 if (blob) {
-                  saveBlob(`${stem}-${size.id}.png`, blob);
-                  say(`Saved ${stem}-${size.id}.png`);
+                  saveBlob(`${stem}${inRelief}-${size.id}.png`, blob);
+                  say(`Saved ${stem}${inRelief}-${size.id}.png`);
                 } else {
                   say('That size could not be drawn.');
                 }
@@ -741,17 +761,30 @@ export function ExportPanel({ store, state }: PanelProps) {
       </div>
 
       <div className="export-actions">
+        {relief && (
+          <p className="report-note relief-note">
+            The relief file holds {relief.sheets} outlines and no lines. Each outline is written once and reused for its sheet, its
+            shadow and its lit edge. It is {formatBytes(relief.svg.length)}, which is{' '}
+            {formatBytes(Math.abs(relief.svg.length - relief.linesBytes))} {relief.svg.length < relief.linesBytes ? 'less' : 'more'} than
+            the lines alone.
+          </p>
+        )}
         <button
           type="button"
           className="pill primary wide"
           disabled={!ready}
           onClick={() => {
             if (!geometry) return;
+            if (relief) {
+              saveDownload(`${stem}-relief.svg`, relief.svg, 'image/svg+xml');
+              say(`Saved ${stem}-relief.svg`);
+              return;
+            }
             saveDownload(`${stem}.svg`, toSvg(geometry, scene), 'image/svg+xml');
             say(`Saved ${stem}.svg`);
           }}
         >
-          {ready ? 'Download SVG' : state.failedRevision === state.revision ? 'Nothing to export' : 'Refining...'}
+          {ready ? (state.relief ? 'Download relief SVG' : 'Download SVG') : state.failedRevision === state.revision ? 'Nothing to export' : 'Refining...'}
         </button>
         <div className="row">
           <button
@@ -764,7 +797,7 @@ export function ExportPanel({ store, state }: PanelProps) {
               say(`Saved ${componentName(scene)}.tsx`);
             }}
           >
-            React component
+            {state.relief ? 'React component, lines' : 'React component'}
           </button>
           <button
             type="button"
@@ -773,8 +806,8 @@ export function ExportPanel({ store, state }: PanelProps) {
             onClick={async () => {
               const blob = await renderPng(store);
               if (blob) {
-                saveBlob(`${stem}.png`, blob);
-                say(`Saved ${stem}.png`);
+                saveBlob(`${stem}${inRelief}.png`, blob);
+                say(`Saved ${stem}${inRelief}.png`);
               }
             }}
           >

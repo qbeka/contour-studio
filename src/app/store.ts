@@ -8,6 +8,7 @@
 
 import type { Geometry } from '../core/pipeline';
 import { PLATES } from '../core/plates';
+import { DEFAULT_LAMP, type Lamp } from '../core/relief';
 import type { Rect, Scene } from '../core/scene';
 import { record, redo, undo, type History } from './history';
 import type { ExportReport } from './report';
@@ -52,6 +53,9 @@ export interface EditorState {
   snap: boolean;
   showNodes: boolean;
   showHandles: boolean;
+  /** Shows the drawing as cut card under a lamp. A way of looking, so it is not part of the scene. */
+  relief: boolean;
+  lamp: Lamp;
   /** Geometry on screen, with what it was computed from. */
   geometry: Geometry | null;
   shown: Shown | null;
@@ -93,6 +97,8 @@ export class EditorStore {
       snap: false,
       showNodes: false,
       showHandles: true,
+      relief: false,
+      lamp: DEFAULT_LAMP,
       geometry: null,
       shown: null,
       report: null,

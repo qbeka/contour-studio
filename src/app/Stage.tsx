@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { flattenRidge } from '../core/field';
+import { clampLamp, lampPoint } from '../core/relief';
 import { LIMITS, type Source } from '../core/scene';
 import {
   addPeak,
@@ -18,7 +19,7 @@ import {
   snapPoint,
   updateSource,
 } from './edits';
-import { drawArtwork, drawNodes } from './render';
+import { drawArtwork, drawNodes, drawRelief } from './render';
 import type { EditorState, EditorStore } from './store';
 
 const INK = '#111511';
@@ -66,7 +67,8 @@ function useCanvasDraw(
       ctx.fillRect(x, y, scene.domain.width * scale, scene.domain.height * scale);
 
       if (state.geometry) {
-        drawArtwork(ctx, state.geometry, scene, transform);
+        if (state.relief) drawRelief(ctx, state.geometry, scene, transform, state.lamp);
+        else drawArtwork(ctx, state.geometry, scene, transform);
         if (state.showNodes) drawNodes(ctx, state.geometry, transform, FOREST);
       }
 
@@ -128,7 +130,7 @@ function useCanvasDraw(
       }
     });
     return () => cancelAnimationFrame(frame.current);
-  }, [canvas, store, state.geometry, state.view, state.stage, state.showNodes, state.selection, state.draftRidge, state.history, state.pointer, dprTick]);
+  }, [canvas, store, state.geometry, state.view, state.stage, state.showNodes, state.relief, state.lamp, state.selection, state.draftRidge, state.history, state.pointer, dprTick]);
 }
 
 function tracePolyline(
@@ -372,6 +374,7 @@ export function Stage({ store, state }: { store: EditorStore; state: EditorState
         ),
       )}
       {selection && <ReachHandle store={store} sourceId={selection.sourceId} view={view} stage={stage} toModel={toModel} />}
+      {state.relief && state.geometry && <LampHandle store={store} state={state} stage={stage} toModel={toModel} />}
       {scene.sources.length === 0 && state.draftRidge.length === 0 && (
         <div className="stage-empty">
           <h2>An empty sheet</h2>
@@ -493,6 +496,71 @@ function SourceHandle(props: HandleProps) {
         if (!dragging) store.select({ sourceId: source.id, handle: index });
       }}
     />
+  );
+}
+
+/** The lamp over a relief. It moves the light and never the scene. */
+function LampHandle({
+  store,
+  state,
+  stage,
+  toModel,
+}: {
+  store: EditorStore;
+  state: EditorState;
+  stage: React.RefObject<HTMLDivElement | null>;
+  toModel(px: number, py: number): { x: number; y: number };
+}) {
+  const [dragging, setDragging] = useState(false);
+  const rect = (state.geometry as NonNullable<EditorState['geometry']>).rect;
+  const at = lampPoint(rect, state.lamp);
+  const { view, lamp } = state;
+  const { style } = store.scene;
+  const move = (u: number, v: number) => store.set({ lamp: clampLamp({ u, v }) });
+  return (
+    <button
+      type="button"
+      className="lamp-handle"
+      aria-label="Lamp over the sheet. Drag it or use the arrow keys to move the light."
+      title="Lamp"
+      style={{ transform: `translate(${view.x + at.x * view.scale}px, ${view.y + at.y * view.scale}px)`, color: style.stroke }}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setDragging(true);
+      }}
+      onPointerMove={(event) => {
+        if (!dragging) return;
+        const { px, py } = eventPoint(stage.current as HTMLDivElement, event);
+        const model = toModel(px, py);
+        move((model.x - rect.x) / rect.width, (model.y - rect.y) / rect.height);
+      }}
+      onPointerUp={() => setDragging(false)}
+      onPointerCancel={() => setDragging(false)}
+      onKeyDown={(event) => {
+        const step = event.shiftKey ? 0.1 : 0.02;
+        const moves: Record<string, [number, number]> = {
+          ArrowLeft: [-step, 0],
+          ArrowRight: [step, 0],
+          ArrowUp: [0, -step],
+          ArrowDown: [0, step],
+        };
+        const by = moves[event.key];
+        if (!by) return;
+        // The arrows belong to the lamp while it has focus, not to the selected source.
+        event.preventDefault();
+        event.stopPropagation();
+        move(lamp.u + by[0], lamp.v + by[1]);
+      }}
+    >
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <g stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+          <path d="M13 2.5v3M13 20.5v3M2.5 13h3M20.5 13h3M5.6 5.6l2.1 2.1M18.3 18.3l2.1 2.1M5.6 20.4l2.1-2.1M18.3 7.7l2.1-2.1" />
+        </g>
+        <circle cx="13" cy="13" r="4.4" fill={style.background ?? '#ffffff'} stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    </button>
   );
 }
 

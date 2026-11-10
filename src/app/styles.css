@@ -269,6 +269,30 @@ button:disabled { cursor: default; }
 .handle:focus-visible { outline-offset: -4px; }
 .stage[data-handles='off'] .handle, .stage[data-handles='off'] .reach-handle { display: none; }
 
+.lamp-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+}
+.lamp-handle svg { display: block; transition: transform 140ms var(--ease); }
+.lamp-handle:hover svg { transform: scale(1.14) rotate(22.5deg); }
+.lamp-handle:active { cursor: grabbing; }
+.lamp-handle:active svg { transform: scale(0.9) rotate(22.5deg); }
+.lamp-handle:focus-visible { outline-offset: -3px; }
+.stage:not([data-tool='select']) .lamp-handle { pointer-events: none; }
+
 .reach-handle { cursor: ew-resize; }
 .reach-handle::after {
   content: '';
@@ -717,3 +741,4 @@ kbd { font: 400 11px var(--mono); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+.relief-note { margin: 0 0 10px; }

@@ -136,6 +136,10 @@ function useShortcuts(store: EditorStore, save: () => void) {
         case 'G':
           store.set({ showHandles: !state.showHandles });
           break;
+        case 'l':
+        case 'L':
+          store.set({ relief: !state.relief });
+          break;
         case '1':
           store.fit(scene.clip);
           break;
@@ -226,6 +230,9 @@ function StatusLine({ store, session }: { store: EditorStore; session: Session }
       </button>
       <button type="button" className="status-toggle" aria-pressed={state.showNodes} onClick={() => store.set({ showNodes: !state.showNodes })}>
         Nodes
+      </button>
+      <button type="button" className="status-toggle" aria-pressed={state.relief} title="Show the drawing as cut card under a lamp (L)" onClick={() => store.set({ relief: !state.relief })}>
+        Relief
       </button>
       <span className="status-item">{Math.round(state.view.scale * 100)}%</span>
     </div>
