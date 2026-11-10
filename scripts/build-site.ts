@@ -19,3 +19,5 @@ cpSync('docs/media/walkthrough.mp4', 'dist-site/walkthrough.mp4');
 // itself, kept at the address a link card may already use.
 cpSync('docs/media/studio.png', 'dist-site/studio.png');
 cpSync('docs/media/cover.png', 'dist-site/cover.png');
+// The link card, at the address the page's meta tags give for it.
+cpSync('docs/media/og.png', 'dist-site/og.png');
