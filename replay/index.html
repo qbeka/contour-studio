@@ -109,6 +109,7 @@
       <div class="desk" id="desk">
         <div class="plates" id="plates" role="group" aria-label="Plates"></div>
         <div class="actions" role="group" aria-label="Drawing tools">
+          <button class="control icon keys-hint" id="keys-open" type="button" aria-label="Keyboard shortcuts" aria-haspopup="dialog">?</button>
           <button class="control" id="add" type="button" aria-label="Add a peak">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
             Peak
@@ -125,35 +126,179 @@
 
     <section class="reading" id="details" aria-labelledby="details-title">
       <h2 id="details-title">Details</h2>
-      <p class="prose">Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the lines follow. Every plate above is a live drawing, and the tint under the lines is built from the same paths, so it moves with them.</p>
-      <p class="prose">Export gives you the drawing as an SVG where every line stays its own path, or as a wallpaper or poster drawn from the same field at a new shape. The address of this page always holds the drawing you see, so a link brings it back.</p>
-      <p class="prose">The <a href="app/">studio</a> is the same drawing engine with the rest of the tools: ridges you draw yourself, exact numbers, scene files, and React export.</p>
-      <video class="film" id="film" controls preload="none" width="1280" height="800" data-poster="studio.png">
-        <source src="walkthrough.mp4" type="video/mp4">
-      </video>
+      <p class="lede">Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the lines follow.</p>
+      <div class="columns">
+        <p class="prose">Every plate above is a live drawing. The tint under the lines is built from the same paths, so it moves with them. The paper relief is cut from those tint shapes, so each sheet of card ends exactly on a line, and each shadow is its own sheet made a little larger about the point under the lamp.</p>
+        <p class="prose">Export gives you what is on the stage: an SVG where every line stays its own path, a relief where each outline is written once and reused, or a wallpaper or poster drawn from the same field at a new shape. The address of this page always holds the drawing you see, so a link brings it back.</p>
+      </div>
+    </section>
 
-      <h3>Results</h3>
-      <dl class="results">
-        <div><dt>Nodes in the file</dt><dd><b>12,104 to 1,771</b>Quiet ridge scene in the repo at tolerance 0.15, 85 percent fewer than the same scene with nothing removed</dd></div>
-        <div><dt>Gzipped size</dt><dd><b>19,312 to 5,506 bytes</b>The same scene and tolerance with lines only, 71 percent smaller than with nothing removed</dd></div>
-        <div><dt>How far lines moved</dt><dd><b>0.19 units sampled, 0.221 proved</b>The same file against the extracted lines, where the bound is proved and the sample is an estimate</dd></div>
-        <div><dt>Repeatable files</dt><dd><b>Identical bytes</b>Chromium, Firefox, WebKit and Node, for the one workflow tested</dd></div>
-        <div><dt>Largest frame gap</dt><dd><b>25 ms against 204 ms</b>Worker against blocking on the stress scene, so the page stops freezing even though drafts get slower</dd></div>
-        <div><dt>Tests</dt><dd><b>178 tests and 420 random scenes</b>At the measured release, plus 70 seeded bugs with 69 caught by a named test and 1 by a timeout</dd></div>
-      </dl>
+    <section class="band reveal" aria-labelledby="made-title">
+      <header class="band-head">
+        <h3 id="made-title">How a drawing is made</h3>
+        <p class="prose">Five things happen between a point you drag and a file you can open. The figure takes the plate on the stage apart into those five, so every number beside it belongs to that drawing and changes when you change it.</p>
+      </header>
+      <figure class="fig made" id="made">
+        <div class="made-view">
+          <canvas id="made-canvas" role="img" aria-label="The plate on the stage pulled apart into five sheets"></canvas>
+          <label class="made-spread field"><span>Pull the sheets apart</span><input id="made-spread" type="range" min="0" max="1" step="0.01" value="1" style="--fill: 100%"></label>
+        </div>
+        <ol class="made-steps">
+          <li><button class="step" type="button" aria-pressed="false"><i>1</i><b>Sources</b><span id="made-note-0">Peaks and ridges, each a smooth rise or dip that ends at its reach</span></button></li>
+          <li><button class="step" type="button" aria-pressed="false"><i>2</i><b>Field</b><span id="made-note-1">Their sum, sampled at every corner of a grid</span></button></li>
+          <li><button class="step" type="button" aria-pressed="false"><i>3</i><b>Extracted lines</b><span id="made-note-2">Each height traced through the grid, with a node at every grid edge it crosses</span></button></li>
+          <li><button class="step" type="button" aria-pressed="false"><i>4</i><b>Simplified lines</b><span id="made-note-3">The nodes that hold the shape, with a proved limit on how far a path moved</span></button></li>
+          <li><button class="step" type="button" aria-pressed="true"><i>5</i><b>Tint</b><span id="made-note-4">Flat passes of colour, closed along the frame from the same paths</span></button></li>
+        </ol>
+        <figcaption>Live, from the plate on the stage, with its own frame, ink and edits</figcaption>
+      </figure>
+    </section>
 
-      <h3>Limits</h3>
-      <ul class="limits">
+    <section class="band reveal" aria-labelledby="line-title">
+      <header class="band-head">
+        <h3 id="line-title">The same line, before and after</h3>
+        <p class="prose">The grid gives every line a node at each grid edge it crosses, which is far more than its shape needs. Simplifying keeps the nodes that hold the shape, and a proof limits how far any path can move. Slide along one line of the repo's Quiet ridge scene to see both versions on the grid they came from.</p>
+      </header>
+      <figure class="fig line" id="line">
+        <canvas id="line-over" role="img" aria-label="The Quiet ridge scene, with one line picked out and a marker on it"></canvas>
+        <label class="line-at field"><span class="sr-only">Place along the line</span><input id="line-at" type="range" min="0" max="2000" step="1" value="1020" style="--fill: 51%"></label>
+        <div class="line-window">
+          <canvas id="line-loupe" role="img" aria-label="That place on the line, enlarged, with the nodes before and after and the band of the proved bound"></canvas>
+          <ul class="key" aria-label="Key">
+            <li><i class="key-before" aria-hidden="true"></i>Node from the grid</li>
+            <li><i class="key-after" aria-hidden="true"></i>Node kept in the file</li>
+            <li><i class="key-band" aria-hidden="true"></i>Proved bound, <span id="line-bound">0.221 units</span> either side</li>
+          </ul>
+          <p class="line-count" id="line-count" aria-live="off">Loading the measured scene</p>
+        </div>
+        <figcaption>Live, computed in this tab from the repo's Quiet ridge scene at tolerance 0.15, drawn to scale on its sampling grid</figcaption>
+      </figure>
+
+      <div class="measures">
+        <figure class="measure">
+          <p class="measure-figure"><b>12,104</b><span>to</span><b>1,771</b></p>
+          <div class="bars" aria-hidden="true"><i class="bar-base"></i><i class="bar-now" style="width: 14.63%"></i></div>
+          <figcaption><strong>Nodes in the file</strong>Quiet ridge scene in the repo at tolerance 0.15, lines only, 85 percent fewer than the same scene with nothing removed</figcaption>
+        </figure>
+        <figure class="measure">
+          <p class="measure-figure"><b>19,312</b><span>to</span><b>5,506</b></p>
+          <div class="bars" aria-hidden="true"><i class="bar-base"></i><i class="bar-now" style="width: 28.51%"></i></div>
+          <figcaption><strong>Gzipped bytes</strong>The same scene and tolerance, 71 percent smaller than with nothing removed</figcaption>
+        </figure>
+      </div>
+
+      <figure class="fig moved">
+        <div class="moved-scale" role="img" aria-label="Three distances drawn to one scale: 0.19 units sampled, 0.221 units proved, and about 0.79 units of grid error">
+          <div class="moved-row"><span>Sampled</span><i style="--at: 0.19"></i><b>0.19 units</b></div>
+          <div class="moved-row"><span>Proved</span><i style="--at: 0.221"></i><b>0.221 units</b></div>
+          <div class="moved-row" data-outside><span>Grid error</span><i style="--at: 0.79"></i><b>about 0.79 units</b></div>
+          <div class="moved-rule" aria-hidden="true"><span>0</span><span>1 unit</span></div>
+        </div>
+        <figcaption><strong>How far the lines moved, drawn to one scale</strong>The same file against the extracted lines, where the bound is proved and the sample is an estimate</figcaption>
+      </figure>
+      <p class="prose">Grid error is a different distance, from the extracted lines to the true ones. It reaches about 0.79 units at one near-flat saddle on this scene, simplifying does nothing to it, and no export bound includes it.</p>
+    </section>
+
+    <section class="band reveal" aria-labelledby="worker-title">
+      <header class="band-head">
+        <h3 id="worker-title">What the worker buys, and what it costs</h3>
+        <p class="prose">I expected the worker to make drafts faster, and it does not. A trip to the worker and back costs more than a small draft does. What it prevents is a frozen page, which is why the page still uses one.</p>
+      </header>
+      <div class="pair">
+        <figure class="chart">
+          <figcaption><strong>Largest frame gap</strong>Lower is better, and the bracket spans the lowest and highest run</figcaption>
+          <div class="chart-rows" style="--full: 220">
+            <div class="chart-row" data-win><span>Worker</span><i style="--v: 25; --lo: 18; --hi: 27"></i><b>25 ms</b></div>
+            <div class="chart-row"><span>Time sliced</span><i style="--v: 201; --lo: 198; --hi: 208"></i><b>201 ms</b></div>
+            <div class="chart-row"><span>Blocking</span><i style="--v: 204; --lo: 200; --hi: 209"></i><b>204 ms</b></div>
+          </div>
+          <p class="chart-say">The page keeps moving</p>
+        </figure>
+        <figure class="chart">
+          <figcaption><strong>Input to draft, 95th percentile</strong>Lower is better, and the mark is the 33 ms target</figcaption>
+          <div class="chart-rows" style="--full: 64; --target: 33">
+            <div class="chart-row" data-loss><span>Worker</span><i style="--v: 50.9; --lo: 48.5; --hi: 58.1"></i><b>51 ms</b></div>
+            <div class="chart-row"><span>Time sliced</span><i style="--v: 12.9; --lo: 10.9; --hi: 14.2"></i><b>13 ms</b></div>
+            <div class="chart-row"><span>Blocking</span><i style="--v: 15.2; --lo: 10.9; --hi: 29.3"></i><b>15 ms</b></div>
+          </div>
+          <p class="chart-say">The worker is the slowest, and misses the target here</p>
+        </figure>
+      </div>
+      <p class="scope">Stress scene with a 1024 grid and 64 levels, the same scripted drag, the mean of 5 runs with the lowest and highest run marked, on one laptop. The target was set for the lighter scene, where the worker meets it at 17 ms against 10 ms on the main thread.</p>
+    </section>
+
+    <section class="band reveal" aria-labelledby="checked-title">
+      <header class="band-head">
+        <h3 id="checked-title">How it was checked</h3>
+      </header>
+      <div class="checks">
+        <figure class="check-fig">
+          <div class="bugs" role="img" aria-label="70 squares, 69 filled and 1 outlined"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i data-timeout></i></div>
+          <figcaption><strong>70 seeded bugs</strong>69 were caught by a named test and 1 by a timeout, at the measured release, and the run does not cover tint, plates, the relief or this page</figcaption>
+        </figure>
+        <figure class="check-fig">
+          <div class="scenes" role="img" aria-label="420 dots in two blocks, 120 and 300"><i class="scenes-plain"></i><i class="scenes-crowded"></i></div>
+          <figcaption><strong>178 tests and 420 random scenes</strong>At the measured release, with 120 ordinary scenes and 300 crowded ones whose lines sit closer than the rounding lattice</figcaption>
+        </figure>
+        <figure class="check-fig">
+          <div class="engines" role="img" aria-label="Four engines joined by an equals sign"><span>Chromium</span><span>Firefox</span><span>WebKit</span><span>Node</span></div>
+          <figcaption><strong>Identical bytes</strong>The same SVG from all four, for the one workflow tested, with plain lines</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="band reveal" aria-labelledby="plates-title">
+      <header class="band-head">
+        <h3 id="plates-title">Six plates</h3>
+        <p class="prose">Each plate is a field with its own print. The first three are the repo's starter scenes and the other three were placed by hand for this project. Nothing is traced.</p>
+      </header>
+      <ol class="catalogue" id="catalogue"></ol>
+    </section>
+
+    <section class="band reveal" aria-labelledby="studio-title">
+      <div class="studio">
+        <header class="band-head">
+          <h3 id="studio-title">The studio</h3>
+          <p class="prose">The studio is the same drawing engine with the rest of the tools: ridges you draw yourself, exact numbers, scene files, the relief with its lamp, and React export.</p>
+          <a class="control outline" href="app/">Open studio</a>
+        </header>
+        <figure class="fig film">
+          <div class="film-frame" id="film-frame">
+            <video id="film" preload="none" playsinline width="1280" height="800" data-poster="studio.png" aria-label="A walkthrough of the studio">
+              <source src="walkthrough.mp4" type="video/mp4">
+            </video>
+            <button class="film-play" id="film-play" type="button">
+              <i aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5.5 3.4v11.2L14.6 9 5.5 3.4z" fill="currentColor"/></svg></i>
+              <span>Play the walkthrough</span>
+            </button>
+          </div>
+          <figcaption>Recorded in the studio, 73 seconds, no sound</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="band reveal" aria-labelledby="limits-title">
+      <header class="band-head">
+        <h3 id="limits-title">Limits</h3>
+      </header>
+      <ol class="limits">
         <li>All timings come from one fast laptop.</li>
         <li>The numbers above were measured on plain lines, and the plates here are drawn at this stage's frame with tint, so the export panel reports each file's own size.</li>
         <li>Grid error is not part of the proved bound and reaches about 0.79 units on the quiet ridge.</li>
         <li>Exports are polylines, so smooth lines need many nodes, and tint repeats each line as a filled shape.</li>
+        <li>A relief shadow is a few flat copies of its sheet, so it has steps where a real shadow is soft, and the relief file has only been opened in Chromium and resvg.</li>
         <li>I checked path editing in paper.js but have not tested Figma, Illustrator or Inkscape.</li>
         <li>Nobody outside this project has used it yet.</li>
-      </ul>
+      </ol>
+    </section>
 
-      <h3>Method</h3>
-      <p class="prose">The <a href="https://github.com/qbeka/contour-studio/blob/main/docs/REPORT.md">report</a> has the tables, raw data and failures. The <a href="https://github.com/qbeka/contour-studio/blob/main/docs/GEOMETRY.md">geometry notes</a> have the model and the proofs.</p>
+    <section class="ending reveal" aria-label="Where to go next">
+      <a class="ending-line" href="app/">Open the studio and draw one of your own<svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M7 14h14M15 8l6 6-6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <ul class="ending-links">
+        <li><a href="https://github.com/qbeka/contour-studio"><b>Repository</b><span>The engine, the page and the tests</span></a></li>
+        <li><a href="https://github.com/qbeka/contour-studio/blob/main/docs/REPORT.md"><b>Report</b><span>The tables, the raw data and what failed</span></a></li>
+        <li><a href="https://github.com/qbeka/contour-studio/blob/main/docs/GEOMETRY.md"><b>Geometry notes</b><span>The model and the proofs</span></a></li>
+      </ul>
     </section>
 
     <div class="page-end">
@@ -165,6 +310,26 @@
     </div>
   </main>
 </div>
+<dialog class="keys-dialog" id="keys" aria-labelledby="keys-title">
+  <div class="keys-head">
+    <h2 id="keys-title">Keyboard</h2>
+    <button class="control icon" id="keys-close" type="button" aria-label="Close">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <dl class="keys-list">
+    <div><dt><kbd>Tab</kbd></dt><dd>Reach the drawing, then its points</dd></div>
+    <div><dt><kbd>Arrows</kbd></dt><dd>Move the point by 10 units, or move the lamp</dd></div>
+    <div><dt><kbd>Shift</kbd> <kbd>Arrows</kbd></dt><dd>Move it five times as far</dd></div>
+    <div><dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Go to the point before or after</dd></div>
+    <div><dt><kbd>Enter</kbd></dt><dd>Open the settings of a point</dd></div>
+    <div><dt><kbd>Backspace</kbd></dt><dd>Remove the point's source</dd></div>
+    <div><dt><kbd>L</kbd></dt><dd>Switch between lines and relief</dd></div>
+    <div><dt><kbd>Cmd</kbd> or <kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Undo, and with Shift, redo</dd></div>
+    <div><dt><kbd>Esc</kbd></dt><dd>Close a panel, or put a dragged point back</dd></div>
+    <div><dt><kbd>?</kbd></dt><dd>Show this list</dd></div>
+  </dl>
+</dialog>
 <div class="sr-only" id="status" role="status"></div>
 <script type="module" src="./main.ts"></script>
 </body>

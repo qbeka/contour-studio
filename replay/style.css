@@ -1,4 +1,5 @@
 @import './foundation.css';
+@import './editorial.css';
 
 html { scroll-behavior: smooth; }
 
@@ -329,8 +330,6 @@ html { scroll-behavior: smooth; }
 #copy-link span { grid-area: 1 / 1; visibility: hidden; text-align: center; }
 #copy-link span.on { visibility: visible; }
 
-/* The film in Details */
-.film { display: block; width: 100%; height: auto; margin: 20px 0 0; border: 1px solid var(--line-strong); border-radius: var(--radius-outer); background: var(--surface); }
 
 /* A middling stage tightens the drawer. A narrow one stacks it. */
 @container (max-width: 900px) {
