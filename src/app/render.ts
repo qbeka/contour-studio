@@ -148,10 +148,16 @@ export function drawRelief(
   };
   const base = about(1);
   ctx.save();
-  base();
+  // The frame is clipped on whole pixels, taken inward. A sheet that runs along the
+  // frame covers only part of a pixel the frame cuts through, while the shadow
+  // copies cover all of it, so a soft clip would leave a dark thread down that edge.
+  const left = Math.ceil(k * rect.x + ox);
+  const top = Math.ceil(k * rect.y + oy);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.beginPath();
-  ctx.rect(rect.x, rect.y, rect.width, rect.height);
+  ctx.rect(left, top, Math.floor(k * (rect.x + rect.width) + ox) - left, Math.floor(k * (rect.y + rect.height) + oy) - top);
   ctx.clip();
+  base();
   ctx.fillStyle = relief.board;
   ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
   // Flat on the board there is nothing to throw a shadow, and the copies are skipped.
