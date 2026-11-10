@@ -292,7 +292,7 @@ Two things changed the first column since the table in the section above. Openin
 
 The second column is where the relief costs something. It fills each sheet six times, and without a GPU that happens on the main thread. The page watches the frame after each paint while something is moving, and after two slow frames in a row it draws the canvas at one pixel per CSS pixel, then at three quarters, then at half, and stays there for the visit. That is why a lamp drag on the two densest plates has long tasks at its start and none after. Opening the page straight into a relief on those plates still takes one long paint. I did not measure a frame rate.
 
-One browser test is sensitive to load on the machine. The throw in `e2e/page.spec.ts` needs its release within 60 ms of its last move, and with the laptop this busy it failed 4 times in 12 here and 3 times in 12 on the commit before this pass. In the five runs of the page's suite during this pass it failed in two.
+One browser test is sensitive to load on the machine. The throw in `e2e/page.spec.ts` needs its release within 60 ms of its last move, and with the laptop this busy it failed 4 times in 12 here and 3 times in 12 on the commit before this pass. In the six runs of the page's suite during this pass it failed in three, so that one test is now allowed three more tries.
 
 Not rerun for this pass: the benchmark, the mutation run, the renderer comparison and the consumer build. The mutation run does not cover `relief.ts`, the lamp, or anything under the stage. The relief file was opened in Chromium by the test above and rendered with resvg 2.6.2 while it was being written, with no saved comparison. I have not compared its bytes across engines, and no desktop editor has opened one.
 

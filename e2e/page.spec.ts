@@ -88,21 +88,26 @@ test('dragging a mark moves its source in one undo step @cross', async ({ page }
   expect((await hook(page)).field).toBe(before.field);
 });
 
-test('a thrown mark glides on and still makes one undo step', async ({ page }) => {
-  await openPage(page);
-  const from = await centre(page, '.mark[data-primary]');
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  for (let i = 1; i <= 8; i++) {
-    await page.mouse.move(from.x + i * 20, from.y);
-    await page.waitForTimeout(8);
-  }
-  await page.mouse.up();
-  const released = await centre(page, '.mark[data-primary]');
-  await settled(page);
-  const rested = await centre(page, '.mark[data-primary]');
-  expect(rested.x).toBeGreaterThan(released.x + 10);
-  expect((await hook(page)).past).toBe(1);
+// A throw is read from real time: the release has to come within 60 ms of the last
+// move. A busy machine can stretch that, so this one test may try again.
+test.describe('a throw', () => {
+  test.describe.configure({ retries: 3 });
+  test('a thrown mark glides on and still makes one undo step', async ({ page }) => {
+    await openPage(page);
+    const from = await centre(page, '.mark[data-primary]');
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 8; i++) {
+      await page.mouse.move(from.x + i * 20, from.y);
+      await page.waitForTimeout(8);
+    }
+    await page.mouse.up();
+    const released = await centre(page, '.mark[data-primary]');
+    await settled(page);
+    const rested = await centre(page, '.mark[data-primary]');
+    expect(rested.x).toBeGreaterThan(released.x + 10);
+    expect((await hook(page)).past).toBe(1);
+  });
 });
 
 test('export straight after an edit saves the final for that edit @cross', async ({ page }) => {
