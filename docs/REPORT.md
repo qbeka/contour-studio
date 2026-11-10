@@ -236,6 +236,66 @@ A browser with a working GPU rasterises the canvas off the main thread, which is
 
 Not rerun for this work: the benchmark, the mutation run, the renderer comparison and the consumer build. The mutation run does not cover `tint.ts`, `plates.ts` or the page. The cross-engine byte comparison still covers one workflow with plain lines. A tinted file prints its pass opacity from a power function, and I have not compared those bytes across engines.
 
+## Paper relief and the page under the stage, added in a second pass
+
+The relief view, its lamp, the relief file, the figures under the stage and the link card came after everything above. None of it is in the frozen plan, and no table above was rerun. The first four rows here are the evidence that nothing those tables describe has changed.
+
+| Check | Result | Where |
+|---|---|---|
+| The measured scene, quiet-ridge at 0.15 | Still 12,104 to 1,771 nodes, a bound of 0.221 units and 5,506 gzipped bytes as plain lines | `test/relief.test.ts`, `test/replay.test.ts` |
+| The plain export after a relief is built from the same geometry | The same bytes before and after | `test/relief.test.ts` |
+| Starter artwork rebuilt with the new code | The same bytes: 17,366, 28,227 and 63,857 for the three SVGs | `scripts/build-artwork.ts`, then `git diff artwork` |
+| The lines file on the page, after the relief has been shown and put away | The same bytes as before it was shown | `e2e/page.spec.ts` |
+| Relief sheets against the tint regions | Each sheet is the outline its tint pass fills, lowest first, and every sheet lies on the one below it, on the six plates | `test/relief.test.ts` |
+| The relief file | Each outline is written once and referred to six times. No stroke, filter, image, script or style. The same bytes for the same drawing and lamp | `test/relief.test.ts`, `e2e/page.spec.ts`, `e2e/app.spec.ts` |
+| A browser draws the relief file | Chromium decodes the saved file as an image and paints more than 20 colours from it | `e2e/page.spec.ts` |
+| The view and the lamp in a link | Written only when they differ from the default, kept on the sheet, and read as the default from text that is not a lamp | `test/link.test.ts`, `e2e/page.spec.ts` |
+| A press between two close marks | Goes to the nearer one, on the pair on Quiet ridge that sits closer together than one press area is wide | `e2e/page.spec.ts` |
+| The figures under the stage | The exploded figure reports the stage's own node counts and follows a change of plate. The line figure computes the measured scene in the tab | `e2e/page.spec.ts` |
+| Unit, property and regression tests | 237 passed | `pnpm test` |
+| Browser tests | 96 passed against the built site, with six workflows in three engines | `pnpm test:e2e` |
+| Accessibility scan of the page | No serious or critical finding in 6 states, two of them in relief with the whole page loaded | `e2e/page.spec.ts` |
+
+**How the relief is made.** A sheet of card is the tint region of its level, so its cut edge is the exported line and nothing new is extracted. A lamp at a finite height throws the shadow of a raised sheet as that sheet made larger about the point under the lamp. That is one similarity transform, so a shadow is four copies of its sheet, each a step larger and equally faint, and the lit edge is one copy a little smaller. The canvas and the file fill the same outlines in the same order with the same transforms. The steps are visible where the lamp is far away. A real shadow is soft there.
+
+**What the relief costs in the file.** The outlines are the ones a tint pass would write, and each is written once, so a relief is smaller than the tinted print of the same plate. Each plate as authored, at its own frame and tolerance, with the lamp where it starts:
+
+| Plate | Nodes | Lines only | Gzip | With tint | Gzip | Sheets | Relief | Gzip |
+|---|---|---|---|---|---|---|---|---|
+| I, Quiet ridge | 1,980 | 17.2 KB | 5.9 KB | 33.4 KB | 6.5 KB | 13 | 22.6 KB | 6.3 KB |
+| II, Tall basin | 2,926 | 30.1 KB | 10.9 KB | 60.2 KB | 11.6 KB | 18 | 38.0 KB | 11.5 KB |
+| III, Interference | 6,914 | 68.9 KB | 23.7 KB | No tint | No tint | 24 | 78.8 KB | 24.4 KB |
+| IV, Caldera | 4,404 | 35.8 KB | 11.6 KB | 70.5 KB | 22.3 KB | 17 | 42.8 KB | 12.2 KB |
+| V, Archipelago | 6,159 | 48.2 KB | 14.3 KB | 94.9 KB | 27.4 KB | 13 | 52.9 KB | 14.7 KB |
+| VI, Terraces | 3,730 | 30.9 KB | 10.0 KB | 60.6 KB | 10.8 KB | 25 | 41.6 KB | 10.8 KB |
+
+A relief holds no lines, so it is not a way to make a line file smaller. The Export list on the page and the Export panel in the studio both state the size of the relief on screen beside the size of its lines alone.
+
+**The page under a slowed main thread, measured again.** Scripted input in headless Chromium at 1440 by 900 and 2x, with the main thread throttled 4 times. The throttle does not reach the workers. Each cell is the range over three runs of the script. The laptop was busy with other work throughout, at a load average of 10 to 20, and none of this is part of the plan.
+
+| Action | GPU raster | Software raster |
+|---|---|---|
+| Opening the page, lines | No task over 50 ms | No task over 50 ms in three runs, and one of 51 to 58 ms in three more that watched for six seconds |
+| Opening the page, relief, four plates | No task over 50 ms in eleven runs of twelve, and one of 53 ms in the other. Watched for six seconds, none to one task of 51 to 52 ms | 1 to 3 tasks of 58 to 69 ms on plates I and V, and 2 of 141 to 162 ms on plates III and VI |
+| 3 s point drag, lines, plate I | No task over 50 ms. Largest frame gap 26 to 35 ms. 300 to 308 pointer moves handled | No task over 50 ms. Largest gap 34 to 35 ms. 88 to 89 moves |
+| 3 s lamp drag, relief, plates I, III, V and VI | No task over 50 ms. Largest gap 24 to 35 ms. 352 to 356 moves | Plate I: none. Plate V: 2 tasks of 52 to 63 ms. Plates III and VI: 2 to 4 tasks of 120 to 133 ms at the start, until the canvas drops to fewer pixels |
+| 3 s point drag, relief, the same plates | No task over 50 ms. Largest gap 10 to 17 ms. 242 to 315 moves | No task over 50 ms. Largest gap 27 to 51 ms. 66 to 97 moves |
+| Lines to relief and back, four times | No task over 50 ms. Largest gap 10 ms | 2 tasks of 65 to 69 ms |
+| 8 s of idle drift in relief | No task over 50 ms. Largest gap 10 ms | No task over 50 ms. Largest gap 27 ms |
+| Scrolling the whole page | No task over 50 ms. Largest gap 42 to 51 ms | One task of 63 to 71 ms |
+| Exploded figure: five steps and the spread | No task over 50 ms. Largest gap 10 ms | No task over 50 ms. Largest gap 27 to 34 ms |
+| Line figure: a drag along the line | No task over 50 ms. Largest gap 10 ms | No task over 50 ms. Largest gap 25 to 27 ms |
+| SVG, desktop wallpaper and poster, lines | No task over 50 ms. Largest gap 50 to 52 ms | 2 tasks of 61 to 71 ms |
+| The same three as a relief | One task of 52 to 53 ms. Largest gap 51 to 59 ms | 2 tasks of 113 to 124 ms |
+
+Two things changed the first column since the table in the section above. Opening the page had one task of 50 to 74 ms, which was the first layout. The sections under the stage are now laid out when the page is idle or when a reader reaches them, and opening the page has no task over 50 ms. The exploded figure draws each of its five sheets once into an image and then moves images, so stepping through it costs the same on any plate.
+
+The second column is where the relief costs something. It fills each sheet six times, and without a GPU that happens on the main thread. The page watches the frame after each paint while something is moving, and after two slow frames in a row it draws the canvas at one pixel per CSS pixel, then at three quarters, then at half, and stays there for the visit. That is why a lamp drag on the two densest plates has long tasks at its start and none after. Opening the page straight into a relief on those plates still takes one long paint. I did not measure a frame rate.
+
+One browser test is sensitive to load on the machine. The throw in `e2e/page.spec.ts` needs its release within 60 ms of its last move, and with the laptop this busy it failed 4 times in 12 here and 3 times in 12 on the commit before this pass. In the five runs of the page's suite during this pass it failed in two.
+
+Not rerun for this pass: the benchmark, the mutation run, the renderer comparison and the consumer build. The mutation run does not cover `relief.ts`, the lamp, or anything under the stage. The relief file was opened in Chromium by the test above and rendered with resvg 2.6.2 while it was being written, with no saved comparison. I have not compared its bytes across engines, and no desktop editor has opened one.
+
 ## What failed
 
 Real failures, kept here because they changed the design.
@@ -263,6 +323,7 @@ Real failures, kept here because they changed the design.
 - **Touch and screen readers.** Touch was emulated. No real phone or screen reader was used.
 - **Undo.** History lives in memory and does not survive a reload. The scene does.
 - **Tint.** A region is skipped if its paths do not pair up along the frame, so a wrong fill is never drawn. That did not happen in any tested scene, and nothing proves it cannot. Tint roughly doubles a file before compression.
+- **Relief.** A shadow is four flat copies of its sheet, so it has steps where a real shadow is soft. The file uses `use` with `xlink:href`, which Chromium and resvg draw and which no desktop editor has been asked to open. A level whose tint region cannot be worked out gets no sheet.
 - **Ready sizes.** The wallpapers and the poster are PNG only, and their title block is drawn with the page's fonts. Exporting one blocks the page for a moment on a slow machine.
 
 ## Reproduce
