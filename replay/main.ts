@@ -1693,6 +1693,25 @@ const revealer = new IntersectionObserver(
 );
 for (const section of document.querySelectorAll('.reveal')) revealer.observe(section);
 
+// The sections wait to be laid out, which keeps the first screen quick. Each one is
+// laid out for good when it is reached, and the rest follow one at a time when the
+// page has nothing else to do, so a jump to the end finds everything in place.
+const bands = [...document.querySelectorAll<HTMLElement>('.band')];
+for (const band of bands) {
+  band.addEventListener('contentvisibilityautostatechange', (event) => {
+    if (!(event as Event & { skipped: boolean }).skipped) band.classList.add('laid');
+  });
+}
+const whenIdle: (run: () => void) => void =
+  'requestIdleCallback' in window ? (run) => window.requestIdleCallback(run, { timeout: 1500 }) : (run) => window.setTimeout(run, 250);
+function layNext(): void {
+  const band = bands.find((entry) => !entry.classList.contains('laid'));
+  if (!band) return;
+  band.classList.add('laid');
+  whenIdle(layNext);
+}
+window.setTimeout(() => whenIdle(layNext), 1600);
+
 const lookListeners = new Set<() => void>();
 const lookChanged = () => lookListeners.forEach((listener) => listener());
 
@@ -1705,7 +1724,7 @@ new IntersectionObserver(
       startEditorial({ store, side, look, still: stillPage, plateOf, choose, onLook: (listener) => lookListeners.add(listener) }),
     );
   },
-  { rootMargin: '900px' },
+  { rootMargin: '240px' },
 ).observe($('details'));
 
 /* Keyboard list */

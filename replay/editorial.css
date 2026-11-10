@@ -35,6 +35,18 @@
 .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; max-width: 920px; margin-top: 36px; }
 .columns .prose { margin: 0; }
 
+/*
+ * A section is not laid out when the page opens, so the first screen pays nothing
+ * for what is under it. The script lays them out one at a time once the page is
+ * idle, or at once when a reader reaches one, and from then on a section stays
+ * laid out. While it waits it clips what leaves its box, so it reaches into the
+ * gutter and a little past its last line, which changes nothing once it is laid out.
+ */
+.band {
+  content-visibility: auto; contain-intrinsic-size: auto 760px;
+  margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); padding-bottom: 40px; margin-bottom: -40px;
+}
+.band.laid { content-visibility: visible; }
 .band { margin-top: var(--band-gap); scroll-margin-top: 32px; }
 .band-head { max-width: var(--reading-width); margin-bottom: 32px; }
 .band h3 { margin: 0 0 12px; font: 400 30px/36px var(--serif); letter-spacing: -0.022em; color: var(--ink); }
@@ -177,7 +189,9 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 .card-note { margin-top: 2px; color: var(--body); }
 .card-meta { display: flex; flex-wrap: wrap; column-gap: 12px; margin-top: 8px; font-size: 12px; line-height: 18px; color: var(--muted); }
 .card-meta em { margin-left: auto; font-style: normal; color: var(--forest); opacity: 0; transition: opacity .14s; }
-.card[data-current] em, .card:focus-visible em { opacity: 1; }
+.card:focus-visible em { opacity: 1; }
+/* Said at once. A label that fades in is, for a moment, too faint to read. */
+.card[data-current] em { opacity: 1; transition: none; }
 .card[data-current] canvas { box-shadow: 0 0 0 1px var(--paper), 0 0 0 3px var(--forest); }
 .card:active canvas { transform: scale(.985); }
 @media (hover: hover) {
