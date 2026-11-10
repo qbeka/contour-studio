@@ -763,10 +763,10 @@ export function ExportPanel({ store, state }: PanelProps) {
       <div className="export-actions">
         {relief && (
           <p className="report-note relief-note">
-            The relief file holds {relief.sheets} outlines and no lines. Each outline is written once and reused for its sheet, its
-            shadow and its lit edge. It is {formatBytes(relief.svg.length)}, which is{' '}
-            {formatBytes(Math.abs(relief.svg.length - relief.linesBytes))} {relief.svg.length < relief.linesBytes ? 'less' : 'more'} than
-            the lines alone.
+            The relief file holds {relief.sheets} outlines and no lines, each written once and reused for its sheet, its shadow and
+            its lit edge, and at {formatBytes(relief.svg.length)} it is{' '}
+            {formatBytes(Math.abs(relief.svg.length - relief.linesBytes))} {relief.svg.length < relief.linesBytes ? 'smaller' : 'larger'} than
+            the lines alone
           </p>
         )}
         <button

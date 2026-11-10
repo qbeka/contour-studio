@@ -521,7 +521,7 @@ function LampHandle({
     <button
       type="button"
       className="lamp-handle"
-      aria-label="Lamp over the sheet. Drag it or use the arrow keys to move the light."
+      aria-label="Lamp over the sheet, which you can drag or move with the arrow keys"
       title="Lamp"
       style={{ transform: `translate(${view.x + at.x * view.scale}px, ${view.y + at.y * view.scale}px)`, color: style.stroke }}
       onPointerDown={(event) => {

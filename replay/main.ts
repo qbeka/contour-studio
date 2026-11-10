@@ -271,7 +271,7 @@ function setView(view: Look['view']): void {
   repaintThumbs();
   lookChanged();
   scheduleLink();
-  say(view === 'relief' ? 'Paper relief, cut along the same lines.' : 'Line print.');
+  say(view === 'relief' ? 'Paper relief, cut along the same lines' : 'Line print');
 }
 
 /** The lamp's place on the stage, in px. */
@@ -1556,7 +1556,7 @@ function saveSvg(row: Row): void {
   saveBlob(name, new Blob([svg], { type: 'image/svg+xml' }));
   say(
     relief
-      ? `Saved ${name}, ${kb(svg.length)}, with ${relief.sheets} sheets of card and no lines.`
+      ? `Saved ${name}, ${kb(svg.length)}, with ${relief.sheets} sheets of card and no lines`
       : `Saved ${name}, ${kb(svg.length)}${tintBytes > 0 ? `, of which tint is ${kb(tintBytes)}` : ''}.`,
   );
   showRow(row, 'saved');

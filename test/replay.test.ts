@@ -133,6 +133,6 @@ describe('the figures under the stage', () => {
   });
 
   it('keeps interface text free of dashes', () => {
-    expect(html).not.toMatch(/[–—]/);
+    expect(html).not.toMatch(/[\u2013\u2014]/);
   });
 });
