@@ -4,7 +4,7 @@
 
 ![The Contour page with the Quiet ridge plate, its title block, five inks and six plates](docs/media/cover.png)
 
-**[Try it](https://www.qendrimbeka.com/projects/contour/)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/) | [Walkthrough, 73 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
+**[Try it](https://www.qendrimbeka.com/projects/contour/)** | [Open the studio](https://www.qendrimbeka.com/projects/contour/app/) | [Walkthrough, 84 s](docs/media/walkthrough.mp4) | [Report](docs/REPORT.md)
 
 Contour is a design tool for original line artwork. You place peaks and ridges on a sheet, drag them, and the contour lines follow. When you stop, the canvas shows the same numbers the file will contain, and the Export panel tells you the file size and how far simplifying moved the lines.
 
@@ -20,8 +20,15 @@ The [page](https://www.qendrimbeka.com/projects/contour/) is the quickest way in
 
 1. Drag any point, or throw it and let it glide. Double click the paper to add a peak.
 2. Pick a plate or an ink, or press New for a composition made from a seed.
-3. Copy the address. It holds the plate or seed, the ink and your edits, so the link opens the same drawing.
-4. Export the SVG as drawn, or a desktop wallpaper, a phone wallpaper or a poster drawn from the same field at that shape.
+3. Press Relief, or `L`, to see the same drawing as a stack of cut card, and drag the lamp to move the light.
+4. Copy the address. It holds the plate or seed, the ink, the view, the lamp and your edits, so the link opens the same drawing.
+5. Export what is on the stage: the SVG, or a desktop wallpaper, a phone wallpaper or a poster drawn from the same field at that shape.
+
+Press `?` for the keyboard. Under the stage, the page takes the drawing apart into its five stages, shows one measured line before and after simplifying, and sets each result beside what it was measured against.
+
+![The Terraces plate as a paper relief, with the lamp near its top left corner](docs/media/relief.png)
+
+The relief is cut from the tint shapes, so every sheet of card ends exactly on a line. A lamp at a finite height throws the shadow of a raised sheet as that sheet made a little larger about the point under the lamp, which is one transform. So the relief file writes each outline once and refers to it six times: four shadow copies, a lit edge and the sheet. It holds no raster, no filter and no lines.
 
 ![A poster, a phone wallpaper and a desktop wallpaper exported from the Caldera plate](docs/media/prints.png)
 
@@ -51,8 +58,9 @@ Open http://localhost:5173. It starts on a finished scene, so you can drag strai
 2. Press `P` and click to add a peak. Press `R` and click to draw a ridge, then press `Enter` to finish it.
 3. Adjust Height, Reach, Line gap and Texture in the right column. Numbers can be typed.
 4. Choose an ink, and set index lines, taper and tint under **Lines**.
-5. Open **Export**, choose a line detail, and read the file size and error for your composition. If the scene has a tint, the panel says what it adds to the file.
-6. Download an SVG, a React component, a PNG or one of the ready sizes. Save the scene file to keep editing it later.
+5. Under **Lines**, choose Paper relief, or press `L`, and drag the lamp on the sheet.
+6. Open **Export**, choose a line detail, and read the file size and error for your composition. If the scene has a tint, the panel says what it adds to the file. In relief it says what the relief file holds and how its size compares with the lines alone.
+7. Download an SVG, a React component, a PNG or one of the ready sizes. Save the scene file to keep editing it later.
 
 Your work saves itself in the browser. Press `?` at any time for every shortcut. `Cmd+Z` undoes.
 
@@ -94,7 +102,7 @@ Measured on an Apple M5 Pro laptop on AC power, with other work running on it. T
 | Renderers | Within 1 px | Chromium, Firefox, WebKit, resvg | Three scenes. Resolves whole pixels. A control moved by 4 units reads 4 px or more |
 <!-- /results -->
 
-Every row was measured on plain lines, before tint existed. Tint changes no line, and it roughly doubles the bytes of a file before compression, because each pass repeats its line as a shape. The report has the numbers for each plate.
+Every row was measured on plain lines, before tint and relief existed. Tint changes no line, and it roughly doubles the bytes of a file before compression, because each pass repeats its line as a shape. The report has the numbers for each plate.
 
 These timings come from one fast machine, and nobody outside this project has used the tool yet. Path editing was checked in paper.js, not in a desktop vector editor. The worker does not make drafts faster. It keeps the page from freezing on heavy scenes.
 
@@ -116,6 +124,7 @@ output geometry  ->  canvas preview and SVG print the same numbers
 - **Ambiguous cells** use the asymptotic decider. Ties have one written rule.
 - **Simplification** has a proved bound. Paths that would break a topology rule are retried at finer settings, per path, and the export reports it.
 - **Tint** never samples the field. Every path runs with the higher ground on its left, so a path that leaves the frame is closed along the frame's edge until the next one comes in.
+- **Relief** is those tint shapes stacked as card. Each shadow is its sheet scaled about the lamp, so the canvas and the file draw the same picture from the same outlines, and the plain export is not touched.
 - **Drafts and finals** run in a worker, with a main thread fallback. A newer edit cancels a running final, and results commit in scene order, so an old render cannot overwrite a newer drag.
 
 The full model and proofs are in [docs/GEOMETRY.md](docs/GEOMETRY.md).
