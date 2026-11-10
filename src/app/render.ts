@@ -125,7 +125,8 @@ function sheetPath(geometry: Geometry, level: number, loops: Float64Array[]): Pa
 
 /**
  * Draws the drawing as a stack of cut card under a lamp. It fills the same
- * outlines the relief file names, in the same order and with the same transforms.
+ * outlines the relief file names, in the same order and with the same transforms:
+ * each sheet goes down over its shadow copies and its lit edge.
  */
 export function drawRelief(
   ctx: CanvasRenderingContext2D,
@@ -133,12 +134,19 @@ export function drawRelief(
   scene: Scene,
   t: DrawTransform,
   lamp: Lamp,
+  lift = 1,
 ): void {
   const started = performance.now();
-  const relief = buildRelief(geometry, scene, lamp);
+  const relief = buildRelief(geometry, scene, lamp, lift);
   const { rect, shadow } = relief;
   const k = t.dpr * t.scale;
-  const base = () => ctx.setTransform(k, 0, 0, k, t.dpr * t.x, t.dpr * t.y);
+  const ox = t.dpr * t.x;
+  const oy = t.dpr * t.y;
+  const about = (scale: number) => {
+    const [a, , , d, e, f] = scaleAbout(scale, relief.lamp.x, relief.lamp.y);
+    return () => ctx.setTransform(k * a, 0, 0, k * d, k * e + ox, k * f + oy);
+  };
+  const base = about(1);
   ctx.save();
   base();
   ctx.beginPath();
@@ -146,22 +154,26 @@ export function drawRelief(
   ctx.clip();
   ctx.fillStyle = relief.board;
   ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-  const grown = shadow.scales.map((scale) => scaleAbout(scale, relief.lamp.x, relief.lamp.y));
-  const lit = scaleAbout(relief.lit.scale, relief.lamp.x, relief.lamp.y);
+  // Flat on the board there is nothing to throw a shadow, and the copies are skipped.
+  const raised = relief.lit.scale !== 1;
+  const grown = shadow.scales.map(about);
+  const lit = about(relief.lit.scale);
   for (const sheet of relief.sheets) {
     const path = sheetPath(geometry, sheet.level, sheet.loops);
-    ctx.fillStyle = shadow.colour;
-    ctx.globalAlpha = shadow.opacity;
-    for (const [a, , , d, e, f] of grown) {
-      ctx.setTransform(k * a, 0, 0, k * d, k * e + t.dpr * t.x, k * f + t.dpr * t.y);
+    if (raised) {
+      ctx.fillStyle = shadow.colour;
+      ctx.globalAlpha = shadow.opacity;
+      for (const copy of grown) {
+        copy();
+        ctx.fill(path, 'evenodd');
+      }
+      ctx.fillStyle = relief.lit.colour;
+      ctx.globalAlpha = relief.lit.opacity;
+      lit();
       ctx.fill(path, 'evenodd');
+      base();
+      ctx.globalAlpha = 1;
     }
-    ctx.fillStyle = relief.lit.colour;
-    ctx.globalAlpha = relief.lit.opacity;
-    ctx.setTransform(k * lit[0], 0, 0, k * lit[3], k * lit[4] + t.dpr * t.x, k * lit[5] + t.dpr * t.y);
-    ctx.fill(path, 'evenodd');
-    base();
-    ctx.globalAlpha = 1;
     ctx.fillStyle = sheet.colour;
     ctx.fill(path, 'evenodd');
   }

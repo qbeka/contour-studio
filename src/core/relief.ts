@@ -110,11 +110,16 @@ export function reliefColours(scene: Scene, count: number): { board: string; she
 
 const cache = new WeakMap<Geometry, { key: string; relief: Relief }>();
 
-/** The stack for a drawing. A level whose ground could not be worked out is left out. */
-export function buildRelief(geometry: Geometry, scene: Scene, lamp: Lamp): Relief {
+/**
+ * The stack for a drawing. A level whose ground could not be worked out is left out.
+ * `lift` is how far the sheets stand off the board: 1 is the finished relief, and 0
+ * lays them flat, which the page uses to raise the stack out of the line print.
+ */
+export function buildRelief(geometry: Geometry, scene: Scene, lamp: Lamp, lift = 1): Relief {
   const { style } = scene;
   const at = clampLamp(lamp);
-  const key = [style.background, style.stroke, style.tint, style.tintColor, at.u, at.v].join('|');
+  const up = Math.min(1, Math.max(0, lift));
+  const key = [style.background, style.stroke, style.tint, style.tintColor, at.u, at.v, up].join('|');
   const hit = cache.get(geometry);
   if (hit && hit.key === key) return hit.relief;
 
@@ -135,9 +140,9 @@ export function buildRelief(geometry: Geometry, scene: Scene, lamp: Lamp): Relie
       // On dark paper the ink is light, and a light shadow would read as a glow.
       colour: dark ? '#000000' : style.stroke,
       opacity: dark ? 0.16 : 0.08,
-      scales: Array.from({ length: SHADOW_COPIES }, (_, k) => 1 + (SHADOW_GROW * (k + 1)) / SHADOW_COPIES),
+      scales: Array.from({ length: SHADOW_COPIES }, (_, k) => 1 + (up * SHADOW_GROW * (k + 1)) / SHADOW_COPIES),
     },
-    lit: { colour: dark ? mixColour(style.tintColor, '#ffffff', 0.35) : '#ffffff', opacity: dark ? 0.5 : 0.7, scale: 1 - LIT_SHRINK },
+    lit: { colour: dark ? mixColour(style.tintColor, '#ffffff', 0.35) : '#ffffff', opacity: dark ? 0.5 : 0.7, scale: 1 - up * LIT_SHRINK },
   };
   cache.set(geometry, { key, relief });
   return relief;
