@@ -258,12 +258,13 @@ async function walkthrough(): Promise<void> {
   await page.waitForTimeout(2400);
 
   await caption(page, 'The same lines can be cut into card. Drag the lamp and every shadow follows it.');
-  await page.keyboard.press('l');
+  // Focus is in a number field here, where L is a letter, so the status bar is used.
+  await page.getByRole('button', { name: 'Relief', exact: true }).click();
   await page.waitForTimeout(1800);
   const lamp = await markCentre(page, '.lamp-handle');
   await sweepStudioLamp(page, lamp);
   await page.waitForTimeout(1400);
-  await page.keyboard.press('l');
+  await page.getByRole('button', { name: 'Relief', exact: true }).click();
   await page.waitForTimeout(900);
 
   await caption(page, 'Undo steps back one whole gesture. Redo returns it.');
