@@ -7,11 +7,21 @@
  */
 
 import { PLATES, SEED_LIMIT, applyPalette, generatePlate, paletteById, paletteOf, type Plate } from '../src/core/plates';
+import { DEFAULT_LAMP, clampLamp, type Lamp } from '../src/core/relief';
 import { LIMITS, validateScene, type Scene, type Source } from '../src/core/scene';
+
+/** How the drawing is shown: as a line print, or as a stack of cut card under a lamp. */
+export interface Look {
+  view: 'lines' | 'relief';
+  lamp: Lamp;
+}
+
+export const DEFAULT_LOOK: Look = { view: 'lines', lamp: DEFAULT_LAMP };
 
 export interface LinkState {
   plate: Plate;
   scene: Scene;
+  look: Look;
 }
 
 const VERSION = 'v1';
@@ -86,15 +96,36 @@ export function decodeEdits(plate: Plate, text: string): Scene | null {
 }
 
 /** The query for a drawing. Parameters that say nothing new are left out. */
-export function writeLink(plate: Plate, scene: Scene, query: URLSearchParams = new URLSearchParams()): URLSearchParams {
+export function writeLink(
+  plate: Plate,
+  scene: Scene,
+  query: URLSearchParams = new URLSearchParams(),
+  look: Look = DEFAULT_LOOK,
+): URLSearchParams {
   const out = new URLSearchParams(query);
-  for (const key of ['plate', 'seed', 'ink', 'e']) out.delete(key);
+  for (const key of ['plate', 'seed', 'ink', 'e', 'view', 'lamp']) out.delete(key);
   if (plate.seed !== undefined) out.set('seed', String(plate.seed));
   else if (plate !== PLATES[0]) out.set('plate', plate.id);
   const palette = paletteOf(scene);
   if (palette && palette !== paletteOf(plate.scene)) out.set('ink', palette.id);
   if (!isOriginal(plate, scene)) out.set('e', encodeEdits(scene));
+  if (look.view === 'relief') {
+    out.set('view', 'relief');
+    // The lamp is written in hundredths of the frame, and only once it has been moved.
+    const lamp = encodeLamp(look.lamp);
+    if (lamp !== encodeLamp(DEFAULT_LAMP)) out.set('lamp', lamp);
+  }
   return out;
+}
+
+const encodeLamp = (lamp: Lamp) => `${Math.round(clampLamp(lamp).u * 100)}.${Math.round(clampLamp(lamp).v * 100)}`;
+
+/** Reads the view and the lamp. Anything it cannot read is the default. */
+export function readLook(query: URLSearchParams): Look {
+  const view = query.get('view') === 'relief' ? 'relief' : 'lines';
+  const at = /^(\d{1,3})\.(\d{1,3})$/.exec(query.get('lamp') ?? '');
+  const lamp = at ? clampLamp({ u: Number(at[1]) / 100, v: Number(at[2]) / 100 }) : DEFAULT_LAMP;
+  return { view, lamp };
 }
 
 /** Reads a drawing from a query. Anything it cannot read falls back, never fails. */
@@ -111,5 +142,5 @@ export function readLink(query: URLSearchParams): LinkState {
   if (edits !== null && edits.length <= 4000) scene = decodeEdits(plate, edits) ?? scene;
   const palette = paletteById(query.get('ink'));
   if (palette) scene = applyPalette(scene, palette);
-  return { plate, scene };
+  return { plate, scene, look: readLook(query) };
 }
