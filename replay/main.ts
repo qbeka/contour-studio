@@ -1679,18 +1679,17 @@ watchPixelRatio();
 
 /* The page under the stage */
 
-// Sections come in as they are reached. The class is set here, so that a page
-// whose script never ran simply shows them.
-document.documentElement.classList.add('js');
+// Sections come in as they are reached. One that is already on screen when the
+// page opens is left as it is, and so is every one of them under reduced motion.
 const revealer = new IntersectionObserver(
   (entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      entry.target.classList.add('in');
       revealer.unobserve(entry.target);
+      if (entry.boundingClientRect.top > window.innerHeight * 0.6) entry.target.classList.add('in');
     }
   },
-  { rootMargin: '0px 0px -8% 0px', threshold: 0.04 },
+  { rootMargin: '0px 0px 140px 0px' },
 );
 for (const section of document.querySelectorAll('.reveal')) revealer.observe(section);
 
