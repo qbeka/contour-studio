@@ -9,7 +9,8 @@ import type { Geometry } from '../core/pipeline';
 import { frameFor, type Plate } from '../core/plates';
 import type { Scene } from '../core/scene';
 import { tintPass } from '../core/tint';
-import { drawArtwork } from './render';
+import type { Lamp } from '../core/relief';
+import { drawArtwork, drawRelief } from './render';
 
 export interface PrintSize {
   id: 'desktop' | 'phone' | 'poster';
@@ -124,6 +125,12 @@ export function plateFor(scene: Scene): Plate {
   };
 }
 
+/** The same block for a relief, which counts sheets of card where a print counts lines. */
+export function reliefText(text: BlockText, sheets: number, scene: Scene): BlockText {
+  const spacing = scene.levels.spacing.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  return { ...text, lines: `${sheets} sheets at ${spacing}` };
+}
+
 export function blockText(plate: Plate, scene: Scene): BlockText {
   const spacing = scene.levels.spacing.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
   return {
@@ -221,18 +228,17 @@ export function drawPrint(
   scene: Scene,
   layout: PrintLayout,
   text: BlockText,
+  /** Set to draw the print as a paper relief under this lamp. */
+  lamp?: Lamp,
 ): void {
   const { art } = layout;
   const paper = scene.style.background ?? '#ffffff';
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, layout.width, layout.height);
   const scale = art.width / geometry.rect.width;
-  drawArtwork(ctx, geometry, scene, {
-    scale,
-    x: art.x - geometry.rect.x * scale,
-    y: art.y - geometry.rect.y * scale,
-    dpr: 1,
-  });
+  const transform = { scale, x: art.x - geometry.rect.x * scale, y: art.y - geometry.rect.y * scale, dpr: 1 };
+  if (lamp) drawRelief(ctx, geometry, scene, transform, lamp);
+  else drawArtwork(ctx, geometry, scene, transform);
   if (layout.placed === 'under') {
     // A plate mark: one fine rule around the artwork.
     ctx.globalAlpha = 0.55;
