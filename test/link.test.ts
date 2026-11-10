@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeEdits, encodeEdits, isOriginal, readLink, writeLink } from '../replay/link';
+import { DEFAULT_LOOK, decodeEdits, encodeEdits, isOriginal, readLink, writeLink } from '../replay/link';
 import { addPeak, removeSource, setHandle, updateSource } from '../src/app/edits';
 import { PALETTES, PLATES, applyPalette, generatePlate, paletteOf } from '../src/core/plates';
 import type { Scene } from '../src/core/scene';
@@ -77,5 +77,37 @@ describe('a drawing as a link', () => {
 
   it('edits stay short enough for a link', () => {
     for (const plate of PLATES) expect(encodeEdits(plate.scene).length).toBeLessThan(500);
+  });
+});
+
+describe('the view and the lamp in a link', () => {
+  const plate = PLATES[0];
+
+  it('a line print with the lamp where it starts writes nothing', () => {
+    expect(writeLink(plate, plate.scene, new URLSearchParams(), DEFAULT_LOOK).toString()).toBe('');
+    expect(readLink(new URLSearchParams()).look).toEqual(DEFAULT_LOOK);
+  });
+
+  it('writes the relief, and the lamp only once it has moved', () => {
+    expect(writeLink(plate, plate.scene, new URLSearchParams(), { view: 'relief', lamp: DEFAULT_LOOK.lamp }).toString()).toBe('view=relief');
+    const moved = writeLink(plate, plate.scene, new URLSearchParams(), { view: 'relief', lamp: { u: 0.725, v: 0.4 } });
+    expect(moved.toString()).toBe('view=relief&lamp=73.40');
+    expect(readLink(moved).look).toEqual({ view: 'relief', lamp: { u: 0.73, v: 0.4 } });
+  });
+
+  it('going back to lines removes both, and leaves the drawing alone', () => {
+    const query = new URLSearchParams('plate=caldera&view=relief&lamp=10.90&hook=1');
+    const opened = readLink(query);
+    expect(opened.look).toEqual({ view: 'relief', lamp: { u: 0.1, v: 0.9 } });
+    expect(opened.plate.id).toBe('caldera');
+    expect(writeLink(opened.plate, opened.scene, query, { view: 'lines', lamp: opened.look.lamp }).toString()).toBe('hook=1&plate=caldera');
+  });
+
+  it('reads a lamp it cannot trust as the default, and keeps one off the sheet on it', () => {
+    for (const text of ['', 'x', '1', '1.2.3', '-5.20', '1e2.5', '12.5.']) {
+      expect(readLink(new URLSearchParams(`view=relief&lamp=${text}`)).look.lamp).toEqual(DEFAULT_LOOK.lamp);
+    }
+    expect(readLink(new URLSearchParams('view=relief&lamp=999.250')).look.lamp).toEqual({ u: 1, v: 1 });
+    expect(readLink(new URLSearchParams('view=shaded')).look.view).toBe('lines');
   });
 });

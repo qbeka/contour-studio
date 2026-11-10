@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { MEASURED } from '../replay/editorial';
 import { ExportHold, type HoldState } from '../replay/export-hold';
+import { linesOnly, toSvg } from '../src/core/svg';
 import { computeGeometry, type Geometry } from '../src/core/pipeline';
 import { PLATES } from '../src/core/plates';
 import type { PeakSource, Scene } from '../src/core/scene';
@@ -92,5 +96,43 @@ describe('export hold', () => {
     land('final');
     hold.request();
     expect(saved).toHaveLength(1);
+  });
+});
+
+describe('the figures under the stage', () => {
+  const html = readFileSync('replay/index.html', 'utf8');
+  const measured = computeGeometry(MEASURED, { quality: 'final' });
+
+  it('the line figure runs the scene the size table was measured on', () => {
+    expect(MEASURED.name).toBe('Quiet ridge');
+    expect(MEASURED.export.tolerance).toBe(0.15);
+    expect(MEASURED.style.tint).toBe(0);
+    expect(measured.stats.sourceVertices).toBe(12_104);
+    expect(measured.stats.outputVertices).toBe(1_771);
+    expect(measured.stats.maxBound.toFixed(3)).toBe('0.221');
+  });
+
+  it('the page quotes those numbers, and draws its bars to their scale', () => {
+    expect(html).toContain('<b>12,104</b><span>to</span><b>1,771</b>');
+    expect(html).toContain('<b>19,312</b><span>to</span><b>5,506</b>');
+    const widths = [...html.matchAll(/class="bar-now" style="width: ([\d.]+)%"/g)].map((m) => Number(m[1]));
+    expect(widths[0]).toBeCloseTo((1_771 / 12_104) * 100, 2);
+    expect(widths[1]).toBeCloseTo((5_506 / 19_312) * 100, 2);
+    expect(html).toContain(`<span id="line-bound">${measured.stats.maxBound.toFixed(3)} units</span>`);
+  });
+
+  it('the lines file of that scene still gzips to the size quoted', () => {
+    const svg = toSvg(measured, linesOnly(MEASURED));
+    expect(gzipSync(svg, { level: 9 }).length).toBe(5_506);
+  });
+
+  it('has seventy squares for the seeded bugs, one of them the timeout', () => {
+    const bugs = html.slice(html.indexOf('class="bugs"'), html.indexOf('</div>', html.indexOf('class="bugs"')));
+    expect(bugs.match(/<i/g)).toHaveLength(70);
+    expect(bugs.match(/data-timeout/g)).toHaveLength(1);
+  });
+
+  it('keeps interface text free of dashes', () => {
+    expect(html).not.toMatch(/[–—]/);
   });
 });
