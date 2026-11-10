@@ -269,6 +269,7 @@ function setView(view: Look['view']): void {
   cancelAnimationFrame(frame);
   paint();
   repaintThumbs();
+  lookChanged();
   scheduleLink();
   say(view === 'relief' ? 'Paper relief, cut along the same lines.' : 'Line print.');
 }
@@ -314,6 +315,7 @@ function endLampDrag(): void {
   lampDrag = null;
   stage.removeAttribute('data-lighting');
   repaintThumbs();
+  lookChanged();
   syncLive();
   scheduleLink();
   touched();
@@ -1472,6 +1474,7 @@ resetButton.addEventListener('click', () => {
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
+    if (keysDialog.open) return;
     if (drag) {
       endDrag(false);
     } else if (stage.dataset.panel === 'exports') {
@@ -1489,7 +1492,11 @@ document.addEventListener('keydown', (event) => {
     else undo();
     return;
   }
-  if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.metaKey || event.ctrlKey || event.altKey || keysDialog.open) return;
+  if (event.key === '?') {
+    openKeys();
+    return;
+  }
   if (event.key.toLowerCase() === 'l') {
     setView(look.view === 'relief' ? 'lines' : 'relief');
     if (look.view === 'relief' && stage.hasAttribute('data-keys')) lampHandle.focus({ preventScroll: true });
@@ -1670,13 +1677,50 @@ function watchPixelRatio(): void {
 }
 watchPixelRatio();
 
-/* The film loads its poster only once someone reaches it. */
-const film = $<HTMLVideoElement>('film');
-new IntersectionObserver((entries, observer) => {
-  if (!entries.some((entry) => entry.isIntersecting)) return;
-  film.poster = film.dataset.poster ?? '';
-  observer.disconnect();
-}, { rootMargin: '400px' }).observe(film);
+/* The page under the stage */
+
+// Sections come in as they are reached. The class is set here, so that a page
+// whose script never ran simply shows them.
+document.documentElement.classList.add('js');
+const revealer = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('in');
+      revealer.unobserve(entry.target);
+    }
+  },
+  { rootMargin: '0px 0px -8% 0px', threshold: 0.04 },
+);
+for (const section of document.querySelectorAll('.reveal')) revealer.observe(section);
+
+const lookListeners = new Set<() => void>();
+const lookChanged = () => lookListeners.forEach((listener) => listener());
+
+// The figures are a separate file, fetched when the reader gets near them.
+new IntersectionObserver(
+  (entries, observer) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    observer.disconnect();
+    void import('./editorial').then(({ startEditorial }) =>
+      startEditorial({ store, side, look, still: stillPage, plateOf, choose, onLook: (listener) => lookListeners.add(listener) }),
+    );
+  },
+  { rootMargin: '900px' },
+).observe($('details'));
+
+/* Keyboard list */
+
+const keysDialog = $<HTMLDialogElement>('keys');
+const openKeys = () => {
+  if (!keysDialog.open) keysDialog.showModal();
+};
+$('keys-open').addEventListener('click', openKeys);
+$('keys-close').addEventListener('click', () => keysDialog.close());
+keysDialog.addEventListener('click', (event) => {
+  // A press on the backdrop lands on the dialog itself.
+  if (event.target === keysDialog) keysDialog.close();
+});
 
 // The worker already has the first scene. The controls are built and filled in a
 // task of their own, so that neither holds up the other.
