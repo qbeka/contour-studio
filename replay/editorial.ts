@@ -731,7 +731,6 @@ function startCatalogue(host: Host): void {
     button.className = 'card';
     const palette = paletteOf(plate.scene);
     button.innerHTML = `<canvas width="2" height="2" aria-hidden="true"></canvas><span class="card-head"><i>${plate.numeral}</i><b>${plate.name}</b></span><span class="card-note">${plate.summary.replace(/\.$/, '')}</span><span class="card-meta"><span>${plate.scene.levels.count} lines</span><span>${palette?.name ?? ''} ink</span><em>Put it on the stage</em></span>`;
-    button.setAttribute('aria-label', `Plate ${plate.numeral}, ${plate.name}. ${plate.summary} Put it on the stage.`);
     button.addEventListener('click', () => {
       host.choose(plate);
       $('stage').scrollIntoView({ block: 'center', behavior: host.still.matches ? 'auto' : 'smooth' });

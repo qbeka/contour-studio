@@ -345,8 +345,9 @@ html { scroll-behavior: smooth; }
   .legend-key { margin: 6px 0 5px; }
   .invite { left: 10px; top: 58px; right: 10px; }
   .tray { top: 8px; right: 8px; }
-  .view { padding: 0; width: 34px; }
-  .view span { display: none; }
+  .view { padding: 0; width: 34px; gap: 0; }
+  /* The word is kept for a screen reader when there is only room for the picture. */
+  .view span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .exports { left: 8px; right: 8px; bottom: 8px; width: auto; }
   .inspector, .inspector[data-side='left'] { top: 8px; left: 8px; right: 8px; width: auto; padding: 2px 10px 6px; }
   .inspector[data-edge='bottom'] { top: auto; bottom: 8px; }
