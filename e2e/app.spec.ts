@@ -705,3 +705,67 @@ test('the six plates are offered as starters', async ({ page }) => {
   expect(scene.name).toBe('Archipelago');
   expect(scene.style.background).toBe('#111c17');
 });
+
+test('the paper relief shows, takes a lamp and exports what the panel describes @cross', async ({ page }) => {
+  await open(page);
+  const before = await readHook(page);
+  const state = () =>
+    page.evaluate(() => {
+      const s = (window as unknown as { __contour: { store: any } }).__contour.store.getState();
+      return { relief: s.relief as boolean, u: s.lamp.u as number, v: s.lamp.v as number };
+    });
+  await page.keyboard.press('l');
+  expect((await state()).relief).toBe(true);
+  await expect(page.locator('.status-toggle', { hasText: 'Relief' })).toHaveAttribute('aria-pressed', 'true');
+  const lamp = page.getByRole('button', { name: /Lamp over the sheet/ });
+  await expect(lamp).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Paper relief' })).toBeChecked();
+
+  // The lamp is dragged, and the scene and its history do not change.
+  const start = await state();
+  const box = await lamp.boundingBox();
+  if (!box) throw new Error('No lamp.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 260, box.y + 90, { steps: 6 });
+  await page.mouse.up();
+  const moved = await state();
+  expect(moved.u).toBeGreaterThan(start.u + 0.1);
+  // With the lamp focused the arrows move the light, not a source.
+  await lamp.focus();
+  await page.keyboard.press('ArrowDown');
+  expect((await state()).v).toBeCloseTo(moved.v + 0.02, 5);
+  const after = await readHook(page);
+  expect(after.sceneJson).toBe(before.sceneJson);
+  expect(after.past).toBe(before.past);
+  expect(after.revision).toBe(before.revision);
+
+  // The export follows the view and says what the file holds.
+  await page.getByRole('tab', { name: 'Export' }).click();
+  await expect(page.locator('.relief-note')).toContainText(/holds \d+ outlines and no lines/);
+  const relief = await downloadText(page, () => page.getByRole('button', { name: 'Download relief SVG' }).click());
+  expect(relief.name).toBe('quiet-ridge-relief.svg');
+  const outlines = relief.text.match(/<path id="s\d+"/g)?.length ?? 0;
+  expect(Number((await page.locator('.relief-note').textContent())?.match(/holds (\d+) outlines/)?.[1])).toBe(outlines);
+  expect(relief.text.match(/<use /g)?.length).toBe(outlines * 6);
+  expect(relief.text).not.toMatch(/stroke=|<filter|<image/);
+
+  // Back in lines, the file is exactly what the core writes for the scene.
+  await page.getByRole('tab', { name: 'Lines' }).click();
+  await page.getByRole('radio', { name: 'Line print' }).check();
+  expect((await state()).relief).toBe(false);
+  await expect(lamp).toBeHidden();
+  await page.getByRole('tab', { name: 'Export' }).click();
+  await expect(page.locator('.relief-note')).toHaveCount(0);
+  const lines = await downloadText(page, () => page.getByRole('button', { name: 'Download SVG' }).click());
+  expect(lines.name).toBe('quiet-ridge.svg');
+  expect(lines.text).toBe(canonicalSvg(after.sceneJson));
+});
+
+test('the studio names its tab icon and the link card', async ({ page, request }) => {
+  await open(page);
+  const icon = await page.locator('link[rel=icon]').getAttribute('href');
+  expect(icon).toContain('favicon.svg');
+  expect((await request.get(`/app/${icon}`)).ok()).toBe(true);
+  expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('https://www.qendrimbeka.com/projects/contour/og.png');
+});
