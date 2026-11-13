@@ -36,11 +36,11 @@ html { scroll-behavior: smooth; }
 .stage.drawn .legend { opacity: 1; }
 .legend p { margin: 0; }
 .legend-name { font: 400 20px/24px var(--serif); letter-spacing: -0.015em; }
-.legend-meta { display: flex; flex-wrap: wrap; column-gap: 10px; margin-top: 1px; font-size: 12px; line-height: 17px; opacity: .74; }
+.legend-meta { display: flex; flex-wrap: wrap; column-gap: 10px; margin-top: 1px; font-size: 14px; line-height: 19px; opacity: .74; }
 .legend-key { display: flex; height: 6px; margin: 8px 0 7px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--p-ink) 30%, transparent); }
 .legend-key:empty { display: none; }
 .legend-key i { flex: 1 1 0; background: var(--p-tint); }
-.legend-live { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 17px; opacity: .74; }
+.legend-live { display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 19px; opacity: .74; }
 .legend-key:empty + .legend-live { margin-top: 5px; }
 .legend-live i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--p-ink); transition: background-color .16s; }
 .legend-live[data-state='draft'] i,
