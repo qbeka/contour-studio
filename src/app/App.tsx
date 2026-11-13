@@ -302,7 +302,9 @@ export function App({ store, session }: { store: EditorStore; session: Session }
       onDrop={onDrop}
     >
       <header className="bar">
-        <h1 className="brand">Contour</h1>
+        <h1 className="brand">
+          <a href="../">Contour</a>
+        </h1>
         <label className="scene-name">
           <span className="visually-hidden">Scene name</span>
           <input
