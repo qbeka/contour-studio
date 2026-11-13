@@ -192,11 +192,11 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 .card:focus-visible em { opacity: 1; }
 /* Said at once. A label that fades in is, for a moment, too faint to read. */
 .card[data-current] em { opacity: 1; transition: none; }
-.card[data-current] canvas { box-shadow: 0 0 0 1px var(--paper), 0 0 0 3px var(--forest); }
+.card[data-current] canvas { box-shadow: 0 0 0 1px var(--page), 0 0 0 3px var(--forest); }
 .card:active canvas { transform: scale(.985); }
 @media (hover: hover) {
   .card:hover canvas { box-shadow: 0 0 0 1px #11151159, 0 10px 24px #11151114; transform: translateY(-2px); }
-  .card[data-current]:hover canvas { box-shadow: 0 0 0 1px var(--paper), 0 0 0 3px var(--forest-hover), 0 10px 24px #11151114; }
+  .card[data-current]:hover canvas { box-shadow: 0 0 0 1px var(--page), 0 0 0 3px var(--forest-hover), 0 10px 24px #11151114; }
   .card:hover em { opacity: 1; }
   .card:active canvas { transform: scale(.985); }
 }
