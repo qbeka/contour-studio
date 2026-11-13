@@ -171,9 +171,9 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 .scenes-plain { --dot: #8d918e; width: calc(var(--pitch) * 12); }
 .scenes-crowded { --dot: var(--forest); width: calc(var(--pitch) * 30); }
 .engines { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; font-size: 14px; line-height: 18px; color: var(--ink); }
-.engines span { padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); }
-.engines span + span { margin-left: 22px; position: relative; }
-.engines span + span::before { content: '='; position: absolute; left: -16px; top: 5px; color: var(--muted); }
+.engines span { padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--paper); }
+.engines span + span { margin-left: 18px; position: relative; }
+.engines span + span::before { content: '='; position: absolute; left: -13px; top: 5px; color: var(--muted); }
 
 /* The plates as a catalogue */
 .catalogue { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 28px; margin: 0; padding: 0; list-style: none; }
