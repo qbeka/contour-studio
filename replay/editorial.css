@@ -118,7 +118,8 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 .measure { margin: 0; }
 .measure-figure { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; margin: 0; }
 .measure-figure b { font: 400 60px/64px var(--serif); letter-spacing: -0.035em; color: var(--ink); }
-.measure-figure b:first-child { color: var(--faint); }
+/* A shade under faint, so the figure still reads at 3:1 on the paper. */
+.measure-figure b:first-child { color: #858986; }
 .measure-figure span { font-size: 15px; color: var(--muted); }
 .bars { position: relative; height: 12px; margin-top: 14px; }
 .bars i { position: absolute; left: 0; top: 0; bottom: 0; }
