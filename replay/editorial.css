@@ -135,7 +135,7 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 .moved-row b { padding-left: 10px; font-weight: 500; color: var(--ink); white-space: nowrap; }
 /* Grid error lies outside what the bound covers, so it is drawn open. */
 .moved-row[data-outside] i { background: repeating-linear-gradient(135deg, transparent 0 4px, #1d3a2a8c 4px 5px); box-shadow: inset 0 0 0 1px var(--forest); }
-.moved-rule { position: relative; width: var(--unit); height: 22px; margin: 2px 0 0 84px; border-top: 1px solid var(--ink); background: repeating-linear-gradient(to right, var(--ink) 0 1px, transparent 1px calc(var(--unit) / 10)) 0 0 / 100% 5px no-repeat; font-size: 12px; line-height: 16px; color: var(--muted); }
+.moved-rule { position: relative; width: var(--unit); height: 24px; margin: 2px 0 0 84px; border-top: 1px solid var(--ink); background: repeating-linear-gradient(to right, var(--ink) 0 1px, transparent 1px calc(var(--unit) / 10)) 0 0 / 100% 5px no-repeat; font-size: 14px; line-height: 18px; color: var(--muted); }
 .moved-rule::after { content: ''; position: absolute; right: 0; top: 0; width: 1px; height: 5px; background: var(--ink); }
 .moved-rule span { position: absolute; top: 7px; }
 .moved-rule span:last-child { right: 0; transform: translateX(50%); white-space: nowrap; }

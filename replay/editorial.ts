@@ -640,7 +640,7 @@ function startLine(host: Host): void {
     ctx.lineTo(bx + z + 0.5, by - 4);
     ctx.stroke();
     ctx.fillStyle = '#111511';
-    ctx.font = '400 12px Geist, system-ui, sans-serif';
+    ctx.font = '400 14px Geist, system-ui, sans-serif';
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     ctx.fillText('1 unit', bx + z + 8, by + 1);
