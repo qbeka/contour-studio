@@ -199,7 +199,8 @@ test('a double click adds a peak, and Backspace takes it away', async ({ page })
 
 test('keyboard only: reach a mark, change point, open settings, close them', async ({ page }) => {
   await openPage(page);
-  for (let i = 0; i < 5; i++) await page.keyboard.press('Tab');
+  // The way back, the story, details, GitHub and the studio come first, then the first mark.
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
   await expect(page.locator('.mark[data-primary]')).toBeFocused();
   const before = await hook(page);
   await page.keyboard.press('ArrowDown');
