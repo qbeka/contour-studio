@@ -206,7 +206,7 @@ html { scroll-behavior: smooth; }
 .plate {
   appearance: none; flex: none; display: grid; justify-items: start; row-gap: 5px; min-width: 84px; padding: 5px 5px 4px; margin: 0;
   border: 0; border-radius: 8px; background: transparent; color: var(--muted);
-  font: 400 12px/15px var(--sans); letter-spacing: -0.003em; text-align: left; cursor: pointer; scroll-snap-align: start;
+  font: 400 14px/18px var(--sans); letter-spacing: -0.003em; text-align: left; cursor: pointer; scroll-snap-align: start;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: background-color .12s, color .12s;
 }
 .plate canvas, .plate .blank {
