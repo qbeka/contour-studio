@@ -14,7 +14,7 @@
   to { opacity: 1; transform: none; }
 }
 .title h1 { animation: arrive .48s cubic-bezier(.2, .7, .2, 1) both; }
-.title p, .title .control { animation: arrive .48s cubic-bezier(.2, .7, .2, 1) .07s both; }
+.title .control { animation: arrive .48s cubic-bezier(.2, .7, .2, 1) .07s both; }
 .stage { animation: arrive .5s cubic-bezier(.2, .7, .2, 1) .14s both; }
 
 /*

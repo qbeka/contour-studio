@@ -376,7 +376,6 @@ html { scroll-behavior: smooth; }
 }
 @media (max-width: 479px) {
   .title h1 { font-size: 34px; line-height: 38px; }
-  .title p { font-size: 16px; margin-top: 0; }
 }
 /* A short window gives the sheet the room and drops the plate names. */
 @media (max-height: 640px) {
@@ -389,7 +388,6 @@ html { scroll-behavior: smooth; }
   .topbar { height: 40px; }
   .title { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; margin-bottom: 8px; }
   .title h1 { font-size: 24px; line-height: 32px; }
-  .title p { grid-column: 2; grid-row: 1; margin: 0; font-size: 15px; }
   .title .control { grid-column: 3; grid-row: 1; }
   .plate canvas, .plate .blank { height: 30px; }
   .inspector { width: 380px; padding: 0 10px 4px; }
