@@ -55,7 +55,7 @@
 .scope { max-width: var(--reading-width); margin: 28px 0 0; font-size: 14px; line-height: 22px; color: var(--body); }
 
 .fig { margin: 0; }
-figcaption { margin-top: 12px; font-size: 13px; line-height: 20px; color: var(--muted); }
+figcaption { margin-top: 12px; font-size: 14px; line-height: 21px; color: var(--muted); }
 figcaption strong { display: block; font-weight: 500; color: var(--ink); }
 
 /* A drawing pulled apart */
@@ -240,7 +240,7 @@ figcaption strong { display: block; font-weight: 500; color: var(--ink); }
   .ending-line:hover svg { transform: translateX(6px); }
 }
 .ending-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 28px; margin: 56px 0 0; padding: 0; list-style: none; }
-.ending-links a { display: block; padding: 14px 0 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 20px; text-decoration: none; border-radius: 2px; }
+.ending-links a { display: block; padding: 14px 0 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 21px; text-decoration: none; border-radius: 2px; }
 .ending-links b { display: block; font-weight: 500; font-size: 14px; color: var(--ink); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; transition: text-decoration-color .12s; }
 .ending-links a:active b { text-decoration-color: currentColor; }
 @media (hover: hover) {
