@@ -30,8 +30,7 @@
 
 /* Details opens wide, then settles into two columns. */
 .reading { max-width: none; margin-top: 88px; }
-.reading h2 { margin-bottom: 20px; font-size: 15px; line-height: 20px; font-family: var(--sans); font-weight: 500; letter-spacing: 0; color: var(--muted); }
-.lede { max-width: 21em; margin: 0; font: 400 40px/48px var(--serif); letter-spacing: -0.028em; color: var(--ink); text-wrap: balance; }
+.reading h2 { max-width: 880px; margin: 0 0 28px; font: 400 clamp(30px, 4.3vw, 46px)/1.08 var(--serif); letter-spacing: -0.03em; color: var(--ink); text-wrap: balance; }
 .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; max-width: 920px; margin-top: 36px; }
 .columns .prose { margin: 0; }
 
@@ -272,7 +271,6 @@ kbd { display: inline-block; min-width: 20px; padding: 0 5px; border: 1px solid 
   .measure-figure b { font-size: 48px; line-height: 54px; }
 }
 @media (max-width: 859px) {
-  .lede { font-size: 32px; line-height: 40px; }
   .columns { grid-template-columns: minmax(0, 1fr); row-gap: 14px; max-width: var(--reading-width); }
   .made { grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
   .made-view { height: 460px; }
@@ -292,7 +290,6 @@ kbd { display: inline-block; min-width: 20px; padding: 0 5px; border: 1px solid 
   #line-loupe { height: 260px; }
 }
 @media (max-width: 479px) {
-  .lede { font-size: 27px; line-height: 34px; }
   .band h3 { font-size: 26px; line-height: 32px; }
   .made-view { height: 400px; }
   .made-spread { width: 150px; }
