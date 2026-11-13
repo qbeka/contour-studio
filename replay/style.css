@@ -364,8 +364,9 @@ html { scroll-behavior: smooth; }
   .tray .divider { margin: 5px 2px; }
   .well { width: 34px; }
   .well i { inset: 10px 7px; }
-  .actions .control { padding: 0 7px; }
-  .actions .control.primary { padding: 0 12px; }
+  /* At 14px the five tools only fit a 320 px stage with a little less room in each. */
+  .actions .control { gap: 4px; padding: 0 5px; }
+  .actions .control.primary { padding: 0 10px; }
   .legend-live, .legend-key { display: none; }
   .legend-name { font-size: 16px; line-height: 20px; }
   .row { min-height: 44px; padding: 5px 8px; }
