@@ -338,7 +338,7 @@ html { scroll-behavior: smooth; }
 }
 @container (max-width: 759px) {
   .desk { flex-direction: column; align-items: stretch; gap: 6px; padding: 6px 8px 8px; }
-  .plates { mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right: 24px; }
+  .plates { mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); padding-right: 40px; }
   .actions .control.primary { margin-left: auto; padding: 0 18px; }
   .legend { left: 10px; bottom: 10px; min-width: 0; padding: 7px 9px 6px; }
   .legend-name { font-size: 17px; line-height: 21px; }
